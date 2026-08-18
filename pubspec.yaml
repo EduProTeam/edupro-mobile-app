@@ -61,6 +61,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/edupro_logo.svg
+    - assets/images/onboarding/onboarding_1.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
