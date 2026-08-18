@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../widgets/auth_form_components.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -224,8 +225,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {
-                                _showInfoMessage(
-                                  'TODO: Connect Forgot Password screen next.',
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        const ForgotPasswordScreen(),
+                                  ),
                                 );
                               },
                               style: TextButton.styleFrom(
