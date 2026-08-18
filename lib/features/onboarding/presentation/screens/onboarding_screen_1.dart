@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../auth/presentation/screens/register_screen.dart';
 import '../widgets/onboarding_screen_layout.dart';
 import 'onboarding_screen_2.dart';
 
@@ -23,7 +24,11 @@ class OnboardingScreen1 extends StatelessWidget {
         );
       },
       onSkipPressed: () {
-        // TODO(Chenath): Route to the next auth-related screen when it exists.
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const RegisterScreen(),
+          ),
+        );
       },
     );
   }

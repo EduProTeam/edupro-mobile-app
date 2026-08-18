@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       title: 'EduPro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF3D8FEF),
+        scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
       home: const OnboardingScreen1(),
