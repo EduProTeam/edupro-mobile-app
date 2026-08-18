@@ -22,7 +22,7 @@ class SplashScreen extends StatelessWidget {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final brandingWidth =
-                (constraints.maxWidth * 0.6).clamp(225.0, 300.0);
+                (constraints.maxWidth * 0.6).clamp(225.0, 300.0).toDouble();
 
             return Center(
               child: SizedBox(
