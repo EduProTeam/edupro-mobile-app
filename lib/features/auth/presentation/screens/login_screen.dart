@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../../home/presentation/screens/home_shell_screen.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../widgets/auth_form_components.dart';
 import 'forgot_password_screen.dart';
@@ -74,6 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => const HomeShellScreen(),
+        ),
+      );
     } on AuthFailure catch (error) {
       if (!mounted) {
         return;
