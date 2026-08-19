@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../auth/services/auth_service.dart';
+import '../../../splash/presentation/screens/splash_screen.dart';
+
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
 
@@ -9,7 +12,24 @@ class HomeShellScreen extends StatefulWidget {
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
+  final _authService = AuthService();
+
   int _currentIndex = 0;
+
+  Future<void> _logout() async {
+    await _authService.signOut();
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => const SplashScreen(),
+      ),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +40,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         : 'No email available';
 
     final screens = [
-      _SimpleHomeScreen(userName: userName),
+      _SimpleHomeScreen(
+        userName: userName,
+        onLogout: _logout,
+      ),
       _SimpleProfileScreen(
         userName: userName,
         email: userEmail,
@@ -73,15 +96,23 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 class _SimpleHomeScreen extends StatelessWidget {
   const _SimpleHomeScreen({
     required this.userName,
+    required this.onLogout,
   });
 
   final String userName;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
+        actions: [
+          TextButton(
+            onPressed: () => onLogout(),
+            child: const Text('Logout'),
+          ),
+        ],
       ),
       body: Center(
         child: Text(

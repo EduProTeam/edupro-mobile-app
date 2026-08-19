@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-import 'features/onboarding/presentation/screens/onboarding_screen_1.dart';
+import 'features/splash/presentation/screens/splash_screen.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
-      home: const OnboardingScreen1(),
+      home: const SplashScreen(),
     );
   }
 }
