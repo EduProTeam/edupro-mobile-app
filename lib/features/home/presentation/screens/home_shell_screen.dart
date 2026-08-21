@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../auth/services/auth_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../splash/presentation/screens/splash_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
@@ -162,8 +163,11 @@ class _SimpleProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Header(
-                  onSettingsTap: () =>
-                      _showSnackBar(context, 'Settings coming soon'),
+                  onSettingsTap: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SettingsScreen(user: user!),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _ProfileAvatar(
