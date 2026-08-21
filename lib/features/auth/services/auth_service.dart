@@ -3,17 +3,55 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthService {
-  AuthService({
-    FirebaseAuth? firebaseAuth,
-    FirebaseFirestore? firestore,
-  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-       _firestore = firestore ?? FirebaseFirestore.instance;
+  AuthService({FirebaseAuth? firebaseAuth, FirebaseFirestore? firestore})
+    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+      _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
 
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
+  }
+
+  Future<void> updateProfile({
+    required String fullName,
+    required String? username,
+    required String? phone,
+    required String? organization,
+    required String? professionalTitle,
+    required String? bio,
+    required List<String> skills,
+    required List<String> learningInterests,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const AuthFailure('No signed-in user is available.');
+    }
+
+    final profile = <String, dynamic>{
+      'fullName': fullName,
+      'username': username,
+      'phone': phone,
+      'organization': organization,
+      'professionalTitle': professionalTitle,
+      'bio': bio,
+      'skills': skills,
+      'learningInterests': learningInterests,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    try {
+      await user.updateDisplayName(fullName);
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(profile, SetOptions(merge: true));
+    } on FirebaseException catch (_) {
+      throw const AuthFailure('Unable to update profile. Please try again.');
+    } catch (_) {
+      throw const AuthFailure('Unable to update profile. Please try again.');
+    }
   }
 
   Future<UserCredential> signInWithEmailAndPassword({

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../splash/presentation/screens/splash_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
@@ -25,9 +26,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => const SplashScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const SplashScreen()),
       (route) => false,
     );
   }
@@ -38,20 +37,12 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     final userName = _resolveUserName(user);
 
     final screens = [
-      _SimpleHomeScreen(
-        userName: userName,
-        onLogout: _logout,
-      ),
-      _SimpleProfileScreen(
-        user: user,
-      ),
+      _SimpleHomeScreen(userName: userName, onLogout: _logout),
+      _SimpleProfileScreen(user: user),
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -91,10 +82,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 }
 
 class _SimpleHomeScreen extends StatelessWidget {
-  const _SimpleHomeScreen({
-    required this.userName,
-    required this.onLogout,
-  });
+  const _SimpleHomeScreen({required this.userName, required this.onLogout});
 
   final String userName;
   final Future<void> Function() onLogout;
@@ -105,19 +93,13 @@ class _SimpleHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
-          TextButton(
-            onPressed: () => onLogout(),
-            child: const Text('Logout'),
-          ),
+          TextButton(onPressed: () => onLogout(), child: const Text('Logout')),
         ],
       ),
       body: Center(
         child: Text(
           'Hi $userName',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
           textAlign: TextAlign.center,
         ),
       ),
@@ -126,9 +108,7 @@ class _SimpleHomeScreen extends StatelessWidget {
 }
 
 class _SimpleProfileScreen extends StatelessWidget {
-  const _SimpleProfileScreen({
-    required this.user,
-  });
+  const _SimpleProfileScreen({required this.user});
 
   static const _primaryBlue = Color(0xFF3D8FEF);
   static const _lightBlue = Color(0xFFEFF6FF);
@@ -158,7 +138,8 @@ class _SimpleProfileScreen extends StatelessWidget {
         }
 
         final profile = snapshot.data?.data();
-        final name = _firstNonEmpty([
+        final name =
+            _firstNonEmpty([
               profile?['fullName'],
               user!.displayName,
               user!.email?.split('@').first,
@@ -166,8 +147,12 @@ class _SimpleProfileScreen extends StatelessWidget {
             'User';
         final email = _firstNonEmpty([profile?['email'], user!.email]);
         final profileImageUrl = _firstNonEmpty([profile?['profileImageUrl']]);
-        const skills = <String>[];
-        const interests = <String>[];
+        final professionalTitle =
+            _firstNonEmpty([profile?['professionalTitle']]) ?? 'EduPro Learner';
+        final organization = _firstNonEmpty([profile?['organization']]);
+        final bio = _firstNonEmpty([profile?['bio']]);
+        final skills = _stringList(profile?['skills']);
+        final interests = _stringList(profile?['learningInterests']);
 
         return SafeArea(
           child: SingleChildScrollView(
@@ -175,7 +160,10 @@ class _SimpleProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _Header(onSettingsTap: () => _showSnackBar(context, 'Settings coming soon')),
+                _Header(
+                  onSettingsTap: () =>
+                      _showSnackBar(context, 'Settings coming soon'),
+                ),
                 const SizedBox(height: 24),
                 _ProfileAvatar(
                   imageUrl: profileImageUrl,
@@ -195,11 +183,19 @@ class _SimpleProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'EduPro Learner',
+                Text(
+                  professionalTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 17, color: _textSecondary),
+                  style: const TextStyle(fontSize: 17, color: _textSecondary),
                 ),
+                if (organization != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    organization,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15, color: _textSecondary),
+                  ),
+                ],
                 if (email != null) ...[
                   const SizedBox(height: 6),
                   Text(
@@ -209,23 +205,38 @@ class _SimpleProfileScreen extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 14),
-                const Text(
-                  'Add a bio to tell the community about yourself.',
+                Text(
+                  bio ?? 'Add a bio to tell the community about yourself.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, height: 1.4, color: _textSecondary),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.4,
+                    color: _textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const _StatsCard(),
                 const SizedBox(height: 20),
                 _ProfileActions(
-                  onEdit: () => _showSnackBar(context, 'Edit Profile coming soon'),
-                  onShare: () => _showSnackBar(context, 'Profile sharing coming soon'),
+                  onEdit: () async {
+                    final wasSaved = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute<bool>(
+                        builder: (_) => EditProfileScreen(user: user!),
+                      ),
+                    );
+                    if (wasSaved == true && context.mounted) {
+                      _showSnackBar(context, 'Profile updated successfully');
+                    }
+                  },
+                  onShare: () =>
+                      _showSnackBar(context, 'Profile sharing coming soon'),
                 ),
                 const SizedBox(height: 28),
                 _SectionHeading(
                   title: 'My Skills',
                   actionLabel: '+ Add Skill',
-                  onAction: () => _showSnackBar(context, 'Add Skill coming soon'),
+                  onAction: () =>
+                      _showSnackBar(context, 'Add Skill coming soon'),
                 ),
                 const SizedBox(height: 14),
                 if (skills.isEmpty)
@@ -275,10 +286,23 @@ class _SimpleProfileScreen extends StatelessWidget {
     return null;
   }
 
+  List<String> _stringList(dynamic value) {
+    if (value is! Iterable) {
+      return [];
+    }
+    return value
+        .whereType<String>()
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
   void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+      ..showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
   }
 }
 
@@ -335,14 +359,25 @@ class _ProfileAvatar extends StatelessWidget {
                 border: Border.all(color: Colors.white, width: 4),
                 color: const Color(0xFFEFF6FF),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x1A000000), blurRadius: 10, offset: Offset(0, 4)),
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
                 ],
                 image: imageUrl != null
-                    ? DecorationImage(image: NetworkImage(imageUrl!), fit: BoxFit.cover)
+                    ? DecorationImage(
+                        image: NetworkImage(imageUrl!),
+                        fit: BoxFit.cover,
+                      )
                     : null,
               ),
               child: imageUrl == null
-                  ? const Icon(Icons.person, size: 54, color: _SimpleProfileScreen._primaryBlue)
+                  ? const Icon(
+                      Icons.person,
+                      size: 54,
+                      color: _SimpleProfileScreen._primaryBlue,
+                    )
                   : null,
             ),
             Positioned(
@@ -360,7 +395,11 @@ class _ProfileAvatar extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 3),
                     ),
-                    child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 21),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Colors.white,
+                      size: 21,
+                    ),
                   ),
                 ),
               ),
@@ -386,11 +425,17 @@ class _StatsCard extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Expanded(child: _StatItem(value: '0', label: 'Courses')),
+          Expanded(
+            child: _StatItem(value: '0', label: 'Courses'),
+          ),
           _StatDivider(),
-          Expanded(child: _StatItem(value: '0', label: 'Skills')),
+          Expanded(
+            child: _StatItem(value: '0', label: 'Skills'),
+          ),
           _StatDivider(),
-          Expanded(child: _StatItem(value: '0', label: 'Sessions')),
+          Expanded(
+            child: _StatItem(value: '0', label: 'Sessions'),
+          ),
         ],
       ),
     );
@@ -403,18 +448,34 @@ class _StatItem extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) => Column(
-        children: [
-          Text(value, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: _SimpleProfileScreen._primaryBlue)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 15, color: _SimpleProfileScreen._textSecondary)),
-        ],
-      );
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 25,
+          fontWeight: FontWeight.w800,
+          color: _SimpleProfileScreen._primaryBlue,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 15,
+          color: _SimpleProfileScreen._textSecondary,
+        ),
+      ),
+    ],
+  );
 }
 
 class _StatDivider extends StatelessWidget {
   const _StatDivider();
   @override
-  Widget build(BuildContext context) => const SizedBox(height: 48, child: VerticalDivider(width: 1, color: _SimpleProfileScreen._borderColor));
+  Widget build(BuildContext context) => const SizedBox(
+    height: 48,
+    child: VerticalDivider(width: 1, color: _SimpleProfileScreen._borderColor),
+  );
 }
 
 class _ProfileActions extends StatelessWidget {
@@ -423,35 +484,39 @@ class _ProfileActions extends StatelessWidget {
   final VoidCallback onShare;
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(
-            child: FilledButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Edit Profile'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                backgroundColor: _SimpleProfileScreen._primaryBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+    children: [
+      Expanded(
+        child: FilledButton.icon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Edit Profile'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            backgroundColor: _SimpleProfileScreen._primaryBlue,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: onShare,
-              icon: const Icon(Icons.share_outlined),
-              label: const Text('Share Profile'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                foregroundColor: _SimpleProfileScreen._primaryBlue,
-                side: const BorderSide(color: _SimpleProfileScreen._primaryBlue),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: OutlinedButton.icon(
+          onPressed: onShare,
+          icon: const Icon(Icons.share_outlined),
+          label: const Text('Share Profile'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            foregroundColor: _SimpleProfileScreen._primaryBlue,
+            side: const BorderSide(color: _SimpleProfileScreen._primaryBlue),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 class _SectionHeading extends StatelessWidget {
@@ -461,17 +526,29 @@ class _SectionHeading extends StatelessWidget {
   final VoidCallback? onAction;
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _SimpleProfileScreen._textPrimary)),
-          const Spacer(),
-          if (actionLabel != null)
-            TextButton(
-              onPressed: onAction,
-              style: TextButton.styleFrom(foregroundColor: _SimpleProfileScreen._primaryBlue),
-              child: Text(actionLabel!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            ),
-        ],
-      );
+    children: [
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: _SimpleProfileScreen._textPrimary,
+        ),
+      ),
+      const Spacer(),
+      if (actionLabel != null)
+        TextButton(
+          onPressed: onAction,
+          style: TextButton.styleFrom(
+            foregroundColor: _SimpleProfileScreen._primaryBlue,
+          ),
+          child: Text(
+            actionLabel!,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+        ),
+    ],
+  );
 }
 
 class _SkillChip extends StatelessWidget {
