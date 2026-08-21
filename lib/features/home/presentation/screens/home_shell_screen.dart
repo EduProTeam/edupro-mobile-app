@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
+import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../splash/presentation/screens/splash_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
@@ -167,10 +168,25 @@ class _SimpleProfileScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 _ProfileAvatar(
                   imageUrl: profileImageUrl,
-                  onCameraTap: () => _showSnackBar(
-                    context,
-                    'Profile photo editing coming soon',
-                  ),
+                  onCameraTap: () async {
+                    final result = await Navigator.of(context)
+                        .push<ProfilePhotoResult>(
+                          MaterialPageRoute<ProfilePhotoResult>(
+                            builder: (_) => ProfilePhotoScreen(
+                              user: user!,
+                              imageUrl: profileImageUrl,
+                            ),
+                          ),
+                        );
+                    if (result != null && context.mounted) {
+                      _showSnackBar(
+                        context,
+                        result.imageUrl == null
+                            ? 'Profile photo removed successfully.'
+                            : 'Profile photo updated successfully.',
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(height: 18),
                 Text(

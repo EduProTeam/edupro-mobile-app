@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import 'profile_photo_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.user});
@@ -155,6 +156,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
   }
 
+  Future<void> _openProfilePhoto() async {
+    final result = await Navigator.of(context).push<ProfilePhotoResult>(
+      MaterialPageRoute<ProfilePhotoResult>(
+        builder: (_) =>
+            ProfilePhotoScreen(user: widget.user, imageUrl: _profileImageUrl),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _profileImageUrl = result.imageUrl);
+      _showSnackBar(
+        result.imageUrl == null
+            ? 'Profile photo removed successfully.'
+            : 'Profile photo updated successfully.',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,13 +224,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       _Avatar(
                         imageUrl: _profileImageUrl,
-                        onTap: () =>
-                            _showSnackBar('Profile photo editing coming next'),
+                        onTap: _openProfilePhoto,
                       ),
                       const SizedBox(height: 8),
                       TextButton(
-                        onPressed: () =>
-                            _showSnackBar('Profile photo editing coming next'),
+                        onPressed: _openProfilePhoto,
                         child: const Text(
                           'Change Profile Photo',
                           style: TextStyle(fontSize: 17, color: _primaryBlue),
