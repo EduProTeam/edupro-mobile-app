@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/onboarding_screen_layout.dart';
+import '../screens/chat_list_screen.dart';
 
 class OnboardingScreen2 extends StatelessWidget {
   const OnboardingScreen2({super.key});
@@ -15,10 +16,16 @@ class OnboardingScreen2 extends StatelessWidget {
       activePageIndex: 1,
       primaryButtonLabel: 'Get started',
       onPrimaryButtonPressed: () {
-        // TODO(Chenath): Route to the login or welcome screen when it exists.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatListScreen()),
+        );
       },
       onSkipPressed: () {
-        // TODO(Chenath): Route to the next auth-related screen when it exists.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatListScreen()),
+        );
       },
     );
   }
