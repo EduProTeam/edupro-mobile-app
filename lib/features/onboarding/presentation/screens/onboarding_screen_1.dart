@@ -17,9 +17,7 @@ class OnboardingScreen1 extends StatelessWidget {
       primaryButtonLabel: 'Next',
       onPrimaryButtonPressed: () {
         Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const OnboardingScreen2(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const OnboardingScreen2()),
         );
       },
       onSkipPressed: () {
