@@ -111,34 +111,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _addValue({required bool isSkill}) async {
-    final controller = TextEditingController();
     final label = isSkill ? 'Skill' : 'Learning Interest';
     final value = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add $label'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (text) => Navigator.of(context).pop(text),
-          decoration: InputDecoration(
-            hintText: 'Enter a ${label.toLowerCase()}',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (_) => _AddValueDialog(label: label),
     );
-    controller.dispose();
 
     final normalized = value?.trim();
     if (normalized == null || normalized.isEmpty) {
@@ -551,4 +528,48 @@ class _EditableChipSection extends StatelessWidget {
       ),
     ],
   );
+}
+
+class _AddValueDialog extends StatefulWidget {
+  const _AddValueDialog({required this.label});
+
+  final String label;
+
+  @override
+  State<_AddValueDialog> createState() => _AddValueDialogState();
+}
+
+class _AddValueDialogState extends State<_AddValueDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_controller.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Add ${widget.label}'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+        decoration: InputDecoration(
+          hintText: 'Enter a ${widget.label.toLowerCase()}',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(onPressed: _submit, child: const Text('Add')),
+      ],
+    );
+  }
 }
