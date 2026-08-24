@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import '../../../courses/models/course_draft.dart';
+import '../../../courses/presentation/screens/create_course_screen.dart';
+import '../../../courses/presentation/screens/recorded_courses_screen.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
@@ -17,6 +20,7 @@ class HomeShellScreen extends StatefulWidget {
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
   final _authService = AuthService();
+  final List<CourseDraft> _courses = [];
 
   int _currentIndex = 0;
 
@@ -33,6 +37,23 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  Future<void> _openCreateCourseScreen() async {
+    final result = await Navigator.of(context).push<CourseDraft>(
+      MaterialPageRoute<CourseDraft>(
+        builder: (_) => const CreateCourseScreen(),
+      ),
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    setState(() {
+      _courses.insert(0, result);
+      _currentIndex = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -40,6 +61,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     final screens = [
       _SimpleHomeScreen(userName: userName, onLogout: _logout),
+      RecordedCoursesScreen(
+        courses: _courses,
+        onCreateCoursePressed: _openCreateCourseScreen,
+      ),
       _SimpleProfileScreen(user: user),
     ];
 
@@ -57,6 +82,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.video_library_outlined),
+            activeIcon: Icon(Icons.video_library),
+            label: 'Videos',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
