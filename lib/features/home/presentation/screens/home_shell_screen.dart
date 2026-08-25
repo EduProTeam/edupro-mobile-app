@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import '../../../posts/presentation/screens/new_post_screen.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
@@ -35,15 +36,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
-  void _showCreatePostMessage() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Create Post'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  void _openNewPost() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const NewPostScreen()),
+    );
   }
 
   @override
@@ -60,11 +56,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       body: IndexedStack(index: _currentIndex, children: screens),
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
-              onPressed: _showCreatePostMessage,
+              onPressed: _openNewPost,
               backgroundColor: _createPostPurple,
               foregroundColor: Colors.white,
               elevation: 6,
-              tooltip: 'Create Post',
+              tooltip: 'New Post',
               child: const Icon(Icons.add),
             )
           : null,
