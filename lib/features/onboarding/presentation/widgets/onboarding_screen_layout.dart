@@ -33,16 +33,25 @@ class OnboardingScreenLayout extends StatelessWidget {
           builder: (context, constraints) {
             final screenWidth = constraints.maxWidth;
             final screenHeight = constraints.maxHeight;
-            final horizontalPadding =
-                (screenWidth * 0.075).clamp(24.0, 30.0);
-            final illustrationWidth =
-                (screenWidth * 0.78).clamp(260.0, 320.0);
+            final horizontalPadding = (screenWidth * 0.075)
+                .clamp(24.0, 30.0)
+                .toDouble();
+            final illustrationWidth = (screenWidth * 0.78)
+                .clamp(260.0, 320.0)
+                .toDouble();
             final titleSize = screenWidth < 360 ? 38.0 : 41.0;
-            final topSpacing = (screenHeight * 0.035).clamp(18.0, 30.0);
-            final titleSpacing = (screenHeight * 0.042).clamp(26.0, 38.0);
-            final indicatorSpacing =
-                (screenHeight * 0.038).clamp(22.0, 32.0);
-            final bottomSpacing = (screenHeight * 0.04).clamp(22.0, 34.0);
+            final topSpacing = (screenHeight * 0.035)
+                .clamp(18.0, 30.0)
+                .toDouble();
+            final titleSpacing = (screenHeight * 0.042)
+                .clamp(26.0, 38.0)
+                .toDouble();
+            final indicatorSpacing = (screenHeight * 0.038)
+                .clamp(22.0, 32.0)
+                .toDouble();
+            final bottomSpacing = (screenHeight * 0.04)
+                .clamp(22.0, 34.0)
+                .toDouble();
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -80,10 +89,7 @@ class OnboardingScreenLayout extends StatelessWidget {
                   Center(
                     child: SizedBox(
                       width: illustrationWidth,
-                      child: Image.asset(
-                        imageAssetPath,
-                        fit: BoxFit.contain,
-                      ),
+                      child: Image.asset(imageAssetPath, fit: BoxFit.contain),
                     ),
                   ),
                   SizedBox(height: titleSpacing),
@@ -99,7 +105,9 @@ class OnboardingScreenLayout extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.03,
+                    ),
                     child: Text(
                       description,
                       textAlign: TextAlign.center,
@@ -144,9 +152,7 @@ class OnboardingScreenLayout extends StatelessWidget {
 }
 
 class _PageIndicators extends StatelessWidget {
-  const _PageIndicators({
-    required this.activePageIndex,
-  });
+  const _PageIndicators({required this.activePageIndex});
 
   final int activePageIndex;
 
@@ -164,9 +170,7 @@ class _PageIndicators extends StatelessWidget {
 }
 
 class _IndicatorDot extends StatelessWidget {
-  const _IndicatorDot({
-    required this.isActive,
-  });
+  const _IndicatorDot({required this.isActive});
 
   final bool isActive;
 
