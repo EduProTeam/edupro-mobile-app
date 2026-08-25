@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
@@ -11,6 +12,7 @@ class CreateCourseScreen extends StatefulWidget {
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
+  final _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -56,51 +58,101 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       );
   }
 
-  Future<void> _editMediaField({
-    required String title,
-    required String initialValue,
-    required ValueChanged<String> onSaved,
-  }) async {
-    final controller = TextEditingController(text: initialValue);
+  String _fileName(String path) {
+    if (path.isEmpty) {
+      return 'Not added';
+    }
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              hintText: 'Paste a local file path or note',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+    final normalized = path.replaceAll('\\', '/');
+    return normalized.split('/').last;
+  }
+
+  Future<void> _pickThumbnail() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
     );
 
-    if (result == null) {
+    if (file == null || !mounted) {
       return;
     }
 
     setState(() {
-      onSaved(result);
+      _thumbnailPath = file.path;
+    });
+  }
+
+  Future<void> _pickPromoVideo() async {
+    final file = await _picker.pickVideo(source: ImageSource.gallery);
+
+    if (file == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _promoVideoPath = file.path;
+    });
+  }
+
+  Future<void> _showMediaUploadSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Upload Course Media',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.image_outlined),
+                  title: const Text('Upload Thumbnail'),
+                  subtitle: Text(_fileName(_thumbnailPath)),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _pickThumbnail();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.video_library_outlined),
+                  title: const Text('Upload Promo Video'),
+                  subtitle: Text(_fileName(_promoVideoPath)),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _pickPromoVideo();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickLessonVideo(_EditableLesson lesson) async {
+    final file = await _picker.pickVideo(source: ImageSource.gallery);
+
+    if (file == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      lesson.videoPath = file.path;
     });
   }
 
   Future<void> _editLesson(_EditableLesson lesson) async {
     final titleController = TextEditingController(text: lesson.title);
     final durationController = TextEditingController(text: lesson.duration);
-    final videoController = TextEditingController(text: lesson.videoPath);
 
     final updated = await showDialog<_EditableLesson>(
       context: context,
@@ -121,10 +173,20 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   decoration: const InputDecoration(labelText: 'Duration'),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: videoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Short Video Path / Note',
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.video_library_outlined),
+                  title: const Text('Lesson Video'),
+                  subtitle: Text(_fileName(lesson.videoPath)),
+                  trailing: TextButton(
+                    onPressed: () async {
+                      await _pickLessonVideo(lesson);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        await _editLesson(lesson);
+                      }
+                    },
+                    child: const Text('Upload'),
                   ),
                 ),
               ],
@@ -145,7 +207,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                     duration: durationController.text.trim().isEmpty
                         ? lesson.duration
                         : durationController.text.trim(),
-                    videoPath: videoController.text.trim(),
+                    videoPath: lesson.videoPath,
                   ),
                 );
               },
@@ -312,21 +374,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           children: [
             InkWell(
               borderRadius: BorderRadius.circular(24),
-              onTap: () async {
-                await _editMediaField(
-                  title: 'Thumbnail Path',
-                  initialValue: _thumbnailPath,
-                  onSaved: (value) => _thumbnailPath = value,
-                );
-                if (!mounted) {
-                  return;
-                }
-                await _editMediaField(
-                  title: 'Promo Video Path',
-                  initialValue: _promoVideoPath,
-                  onSaved: (value) => _promoVideoPath = value,
-                );
-              },
+              onTap: _showMediaUploadSheet,
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -366,7 +414,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Text(
-                          'Thumbnail: ${_thumbnailPath.isEmpty ? 'Not added' : 'Added'}\nPromo Video: ${_promoVideoPath.isEmpty ? 'Not added' : 'Added'}',
+                          'Thumbnail: ${_fileName(_thumbnailPath)}\nPromo Video: ${_fileName(_promoVideoPath)}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 13,
@@ -617,11 +665,11 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                     const SizedBox(height: 12),
                     _SettingsInfoRow(
                       label: 'Thumbnail',
-                      value: _thumbnailPath.isEmpty ? 'Not added' : 'Added',
+                      value: _fileName(_thumbnailPath),
                     ),
                     _SettingsInfoRow(
                       label: 'Promo Video',
-                      value: _promoVideoPath.isEmpty ? 'Not added' : 'Added',
+                      value: _fileName(_promoVideoPath),
                     ),
                     _SettingsInfoRow(
                       label: 'Category',
