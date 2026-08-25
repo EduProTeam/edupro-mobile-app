@@ -42,6 +42,96 @@ class PostAttachment {
   bool get needsStorageUpload => type != PostAttachmentType.link;
 }
 
+/// The Firestore representation written by [PostService.savePost].
+///
+/// This keeps the feed aligned with the post-creation field names without
+/// introducing another storage structure.
+class PublishedPost {
+  const PublishedPost({
+    required this.id,
+    required this.userName,
+    required this.title,
+    required this.category,
+    required this.content,
+    required this.tags,
+    required this.attachmentType,
+    required this.attachmentUrl,
+    required this.attachmentName,
+    required this.linkUrl,
+    required this.likeCount,
+    required this.commentCount,
+    required this.createdAt,
+    this.userProfileImage,
+  });
+
+  factory PublishedPost.fromDocument(
+    DocumentSnapshot<Map<String, dynamic>> document,
+  ) {
+    final data = document.data() ?? const <String, dynamic>{};
+
+    return PublishedPost(
+      id: _stringValue(data['postId']) ?? document.id,
+      userName: _stringValue(data['userName']) ?? 'EduPro user',
+      userProfileImage: _stringValue(data['userProfileImage']),
+      title: _stringValue(data['title']) ?? 'Untitled post',
+      category: _stringValue(data['category']) ?? 'General',
+      content: _stringValue(data['content']) ?? '',
+      tags: _stringList(data['tags']),
+      attachmentType: _stringValue(data['attachmentType']) ?? 'none',
+      attachmentUrl: _stringValue(data['attachmentUrl']),
+      attachmentName: _stringValue(data['attachmentName']),
+      linkUrl: _stringValue(data['linkUrl']),
+      likeCount: _countValue(data['likeCount']),
+      commentCount: _countValue(data['commentCount']),
+      createdAt: data['createdAt'] is Timestamp
+          ? data['createdAt'] as Timestamp
+          : null,
+    );
+  }
+
+  final String id;
+  final String userName;
+  final String? userProfileImage;
+  final String title;
+  final String category;
+  final String content;
+  final List<String> tags;
+  final String attachmentType;
+  final String? attachmentUrl;
+  final String? attachmentName;
+  final String? linkUrl;
+  final int likeCount;
+  final int commentCount;
+  final Timestamp? createdAt;
+
+  static String? _stringValue(Object? value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return null;
+  }
+
+  static List<String> _stringList(Object? value) {
+    if (value is! Iterable) {
+      return const [];
+    }
+
+    return value
+        .whereType<String>()
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static int _countValue(Object? value) {
+    return switch (value) {
+      int() => value,
+      num() => value.toInt(),
+      _ => 0,
+    };
+  }
+}
+
 class PostService {
   PostService({FirebaseAuth? firebaseAuth, FirebaseFirestore? firestore})
     : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
@@ -49,6 +139,24 @@ class PostService {
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+
+  Stream<List<PublishedPost>> watchPublishedPosts() {
+    return _firestore
+        .collection('posts')
+        .where('status', isEqualTo: 'published')
+        .snapshots()
+        .map((snapshot) {
+          final posts = snapshot.docs
+              .map(PublishedPost.fromDocument)
+              .toList(growable: false);
+          posts.sort((newer, older) {
+            final newerTime = newer.createdAt?.millisecondsSinceEpoch ?? 0;
+            final olderTime = older.createdAt?.millisecondsSinceEpoch ?? 0;
+            return olderTime.compareTo(newerTime);
+          });
+          return posts;
+        });
+  }
 
   SupabaseClient get _supabase => SupabaseClient(
     SupabaseOptions.url,
