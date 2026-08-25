@@ -18,6 +18,8 @@ class HomeShellScreen extends StatefulWidget {
 class _HomeShellScreenState extends State<HomeShellScreen> {
   final _authService = AuthService();
 
+  static const _createPostPurple = Color(0xFF5B2CCF);
+
   int _currentIndex = 0;
 
   Future<void> _logout() async {
@@ -33,6 +35,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  void _showCreatePostMessage() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Create Post'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -45,6 +58,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: screens),
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: _showCreatePostMessage,
+              backgroundColor: _createPostPurple,
+              foregroundColor: Colors.white,
+              elevation: 6,
+              tooltip: 'Create Post',
+              child: const Icon(Icons.add),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
