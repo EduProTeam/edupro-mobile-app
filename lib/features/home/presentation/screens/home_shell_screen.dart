@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import '../../../posts/presentation/widgets/post_card.dart';
+import '../../../posts/presentation/screens/new_post_screen.dart';
+import '../../../posts/services/post_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
@@ -17,6 +20,8 @@ class HomeShellScreen extends StatefulWidget {
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
   final _authService = AuthService();
+
+  static const _createPostPurple = Color(0xFF5B2CCF);
 
   int _currentIndex = 0;
 
@@ -33,18 +38,34 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  void _openNewPost() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const NewPostScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final userName = _resolveUserName(user);
 
     final screens = [
-      _SimpleHomeScreen(userName: userName, onLogout: _logout),
+      _SimpleHomeScreen(onLogout: _logout),
       _SimpleProfileScreen(user: user),
     ];
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: screens),
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: _openNewPost,
+              backgroundColor: _createPostPurple,
+              foregroundColor: Colors.white,
+              elevation: 6,
+              tooltip: 'New Post',
+              child: const Icon(Icons.add),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -67,27 +88,45 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       ),
     );
   }
-
-  String _resolveUserName(User? user) {
-    final displayName = user?.displayName?.trim();
-    if (displayName != null && displayName.isNotEmpty) {
-      return displayName;
-    }
-
-    final email = user?.email?.trim();
-    if (email != null && email.isNotEmpty) {
-      return email.split('@').first;
-    }
-
-    return 'User';
-  }
 }
 
-class _SimpleHomeScreen extends StatelessWidget {
-  const _SimpleHomeScreen({required this.userName, required this.onLogout});
+class _SimpleHomeScreen extends StatefulWidget {
+  const _SimpleHomeScreen({required this.onLogout});
 
-  final String userName;
   final Future<void> Function() onLogout;
+
+  @override
+  State<_SimpleHomeScreen> createState() => _SimpleHomeScreenState();
+}
+
+class _SimpleHomeScreenState extends State<_SimpleHomeScreen> {
+  final _postService = PostService();
+  late Stream<List<PublishedPost>> _postsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _postsStream = _postService.watchPublishedPosts();
+  }
+
+  Future<void> _refreshPosts() async {
+    final refreshedStream = _postService.watchPublishedPosts();
+    setState(() {
+      _postsStream = refreshedStream;
+    });
+
+    try {
+      await refreshedStream.first;
+    } catch (_) {
+      // The StreamBuilder below presents the error state and retry option.
+    }
+  }
+
+  void _retryPosts() {
+    setState(() {
+      _postsStream = _postService.watchPublishedPosts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,15 +134,152 @@ class _SimpleHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
-          TextButton(onPressed: () => onLogout(), child: const Text('Logout')),
+          TextButton(
+            onPressed: () => widget.onLogout(),
+            child: const Text('Logout'),
+          ),
         ],
       ),
-      body: Center(
-        child: Text(
-          'Hi $userName',
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-          textAlign: TextAlign.center,
+      body: StreamBuilder<List<PublishedPost>>(
+        stream: _postsStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Published posts feed error: ${snapshot.error}');
+            return _FeedMessage(
+              message: 'Unable to load posts.',
+              actionLabel: 'Try again',
+              onAction: _retryPosts,
+              onRefresh: _refreshPosts,
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const _FeedLoading();
+          }
+
+          final posts = snapshot.data ?? const <PublishedPost>[];
+          if (posts.isEmpty) {
+            return _FeedMessage(
+              message: 'No posts yet',
+              detail:
+                  'Be the first to share something with the EduPro community.',
+              onRefresh: _refreshPosts,
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _refreshPosts,
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 104),
+              itemCount: posts.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return const Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      'Educational Posts',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  );
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: PostCard(post: posts[index - 1]),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FeedLoading extends StatelessWidget {
+  const _FeedLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 104),
+      children: const [
+        Text(
+          'Educational Posts',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
         ),
+        SizedBox(height: 96),
+        Center(child: CircularProgressIndicator()),
+        SizedBox(height: 14),
+        Center(child: Text('Loading posts...')),
+      ],
+    );
+  }
+}
+
+class _FeedMessage extends StatelessWidget {
+  const _FeedMessage({
+    required this.message,
+    required this.onRefresh,
+    this.detail,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String message;
+  final String? detail;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final Future<void> Function() onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 104),
+        children: [
+          const Text(
+            'Educational Posts',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 96),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (detail != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    detail!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Color(0xFF6B7280)),
+                  ),
+                ],
+                if (actionLabel != null) ...[
+                  const SizedBox(height: 14),
+                  OutlinedButton(
+                    onPressed: onAction,
+                    child: Text(actionLabel!),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
