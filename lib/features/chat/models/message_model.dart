@@ -4,6 +4,7 @@ class MessageModel {
   final String? id;
   final String senderId;
   final String senderName;
+  final String senderProfileImageUrl;
   final String text;
   final DateTime? timestamp;
 
@@ -11,6 +12,7 @@ class MessageModel {
     this.id,
     required this.senderId,
     required this.senderName,
+    required this.senderProfileImageUrl,
     required this.text,
     this.timestamp,
   });
@@ -19,6 +21,7 @@ class MessageModel {
     return {
       'senderId': senderId,
       'senderName': senderName,
+      'senderProfileImageUrl': senderProfileImageUrl,
       'text': text,
       'timestamp': timestamp != null
           ? Timestamp.fromDate(timestamp!)
@@ -28,10 +31,12 @@ class MessageModel {
 
   factory MessageModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+
     return MessageModel(
       id: doc.id,
       senderId: data['senderId'] ?? '',
       senderName: data['senderName'] ?? 'Unknown',
+      senderProfileImageUrl: data['senderProfileImageUrl'] ?? '',
       text: data['text'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate(),
     );
