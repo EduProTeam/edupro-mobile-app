@@ -119,6 +119,26 @@ class GroupService {
     });
   }
 
+  bool isCurrentUserMember(GroupModel group) {
+    final uid = currentUserId;
+
+    if (uid == null) {
+      return false;
+    }
+
+    return group.members.contains(uid);
+  }
+
+  bool isCurrentUserAdmin(GroupModel group) {
+    final uid = currentUserId;
+
+    if (uid == null) {
+      return false;
+    }
+
+    return group.createdBy == uid;
+  }
+
   // Delete Group (Creator Only)
   Future<void> deleteGroup(String groupId) async {
     await _firestore.collection('groups').doc(groupId).delete();

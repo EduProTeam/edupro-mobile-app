@@ -492,10 +492,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
         // Open Chat Room
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ChatRoomScreen(group: group)),
-          );
+          _openGroup(group);
         },
 
         child: Container(
@@ -510,7 +507,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
           child: Row(
             children: [
               // Image
-              _buildGroupAvatar(group),
+              GestureDetector(
+                onTap: () {
+                  _handleGroupIconTap(group);
+                },
+                child: _buildGroupAvatar(group),
+              ),
 
               const SizedBox(width: 12),
 
@@ -610,6 +612,174 @@ class _GroupListScreenState extends State<GroupListScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // ============================================================
+  // GROUP Open
+  // ============================================================
+
+  Future<void> _openGroup(GroupModel group) async {
+    final isMember = _groupService.isCurrentUserMember(group);
+
+    // Already member
+    if (isMember) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ChatRoomScreen(group: group)),
+      );
+      return;
+    }
+
+    // Not a member -> ask to join
+    final shouldJoin = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            group.groupName,
+            style: const TextStyle(
+              color: Color(0xFF151A24),
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: const Text(
+            'You need to join this group before you can chat.',
+            style: TextStyle(
+              color: Color(0xFF8A94A6),
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF7A8494),
+              ),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3D8FEF),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Join Group',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldJoin != true) {
+      return;
+    }
+
+    try {
+      await _groupService.joinGroup(group.id!);
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You joined the group successfully.')),
+      );
+
+      // Join successful -> now allow chat
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ChatRoomScreen(group: group)),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to join group: $e')));
+    }
+  }
+
+  // ============================================================
+  // GROUP handle
+  // ============================================================
+
+  Future<void> _handleGroupIconTap(GroupModel group) async {
+    final isMember = _groupService.isCurrentUserMember(group);
+
+    // Already member nam chat room ekata yanna
+    if (isMember) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ChatRoomScreen(group: group)),
+      );
+      return;
+    }
+
+    // Member newei nam join dialog eka pennanna
+    final shouldJoin = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Join ${group.groupName}?'),
+          content: const Text('Join this group to participate in the chat.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Join Group'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldJoin != true) {
+      return;
+    }
+
+    await _groupService.joinGroup(group.id!);
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('You joined the group successfully.')),
     );
   }
 
