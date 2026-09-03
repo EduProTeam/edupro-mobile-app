@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../auth/presentation/screens/register_screen.dart';
 import '../widgets/onboarding_screen_layout.dart';
 
 class OnboardingScreen2 extends StatelessWidget {
@@ -14,11 +15,17 @@ class OnboardingScreen2 extends StatelessWidget {
           'Share your skills, learn from peers, join educational communities, and grow together',
       activePageIndex: 1,
       primaryButtonLabel: 'Get started',
+
       onPrimaryButtonPressed: () {
-        // TODO(Chenath): Route to the login or welcome screen when it exists.
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const RegisterScreen()));
       },
+
       onSkipPressed: () {
-        // TODO(Chenath): Route to the next auth-related screen when it exists.
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const RegisterScreen()));
       },
     );
   }
