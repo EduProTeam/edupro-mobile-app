@@ -38,23 +38,33 @@ class LessonFormData {
   );
 }
 
-class LessonEditor extends StatefulWidget {
-  const LessonEditor({
+class InlineLessonEditor extends StatefulWidget {
+  const InlineLessonEditor({
     super.key,
     required this.lesson,
     required this.number,
+    required this.heading,
+    required this.onSave,
+    required this.onCancel,
     this.showErrors = false,
     required this.onRetry,
   });
   final LessonFormData lesson;
   final int number;
+  final String heading;
+  final ValueChanged<LessonFormData> onSave;
+  final VoidCallback onCancel;
   final bool showErrors;
   final Future<void> Function(CourseFileSelection) onRetry;
   @override
-  State<LessonEditor> createState() => _LessonEditorState();
+  State<InlineLessonEditor> createState() => _LessonEditorState();
 }
 
-class _LessonEditorState extends State<LessonEditor> {
+// Kept as a source-compatible alias for existing callers and tests. The
+// component itself is now rendered inline and never owns a route or scaffold.
+typedef LessonEditor = InlineLessonEditor;
+
+class _LessonEditorState extends State<InlineLessonEditor> {
   late final LessonFormData _lesson = widget.lesson.copy();
   late final _title = TextEditingController(text: _lesson.title);
   late final _description = TextEditingController(text: _lesson.description);
@@ -126,22 +136,43 @@ class _LessonEditorState extends State<LessonEditor> {
     }
   }
 
+  void _save() {
+    final updated = _lesson.copy()
+      ..title = _title.text.trim()
+      ..description = _description.text.trim();
+    widget.onSave(updated);
+  }
+
   @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: !_busy,
-    child: Scaffold(
-      backgroundColor: const Color(0xFFF7F8FB),
-      appBar: AppBar(title: Text('${lessonLabel(widget.number)} — Editor')),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: CourseFormCard(
+  Widget build(BuildContext context) => AnimatedSize(
+    duration: const Duration(milliseconds: 220),
+    curve: Curves.easeOut,
+    alignment: Alignment.topCenter,
+    child: CourseFormCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              widget.heading,
+                              style: const TextStyle(
+                                color: OnboardingScreenLayout.primaryBlue,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Collapse editor',
+                            onPressed: _busy ? null : widget.onCancel,
+                            icon: const Icon(Icons.keyboard_arrow_up),
+                            color: OnboardingScreenLayout.primaryBlue,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       CourseField(
                         label: 'Lesson Title',
                         requiredField: true,
@@ -218,18 +249,12 @@ class _LessonEditorState extends State<LessonEditor> {
                         icon: const Icon(Icons.attach_file),
                         label: const Text('Choose files'),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+                      const SizedBox(height: 6),
+                      Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _busy ? null : () => Navigator.pop(context),
+                      onPressed: _busy ? null : widget.onCancel,
                       child: const Text('Cancel'),
                     ),
                   ),
@@ -240,22 +265,14 @@ class _LessonEditorState extends State<LessonEditor> {
                         backgroundColor: OnboardingScreenLayout.primaryBlue,
                         minimumSize: const Size.fromHeight(54),
                       ),
-                      onPressed: _busy
-                          ? null
-                          : () {
-                              _lesson.title = _title.text.trim();
-                              _lesson.description = _description.text.trim();
-                              Navigator.pop(context, _lesson);
-                            },
+                      onPressed: _busy ? null : _save,
                       child: const Text('Save Lesson'),
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
+                      ),
+                    ],
+                  ),
+                ),
   );
 }

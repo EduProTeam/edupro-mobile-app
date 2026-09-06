@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
@@ -78,24 +80,94 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     }
   }
 
-  Future<void> _editLesson(int index) async {
-    final result = await Navigator.of(context).push<LessonFormData>(
-      MaterialPageRoute(
-        builder: (_) => LessonEditor(
-          lesson: _lessons[index],
-          number: index,
-          showErrors: _publishErrors,
-          onRetry: _upload,
-        ),
+  Future<LessonFormData?> _showLessonEditor({
+    required LessonFormData lesson,
+    required int number,
+    required bool creating,
+  }) {
+    return showGeneralDialog<LessonFormData>(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'Lesson editor',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) => Stack(
+        children: [
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: const ColoredBox(color: Color(0x99000000)),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Material(
+                  color: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: 440,
+                      maxHeight: MediaQuery.sizeOf(dialogContext).height * .86,
+                    ),
+                    child: SingleChildScrollView(
+                      child: InlineLessonEditor(
+                        lesson: lesson,
+                        number: number,
+                        heading: creating ? 'Create Lesson' : 'Edit Lesson',
+                        showErrors: _publishErrors,
+                        onRetry: _upload,
+                        onCancel: () => Navigator.of(dialogContext).pop(),
+                        onSave: (updated) =>
+                            Navigator.of(dialogContext).pop(updated),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: .94, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
-    if (mounted && result != null) setState(() => _lessons[index] = result);
+  }
+
+  Future<void> _editLesson(int index) async {
+    final updated = await _showLessonEditor(
+      lesson: _lessons[index],
+      number: index,
+      creating: false,
+    );
+    if (mounted && updated != null) {
+      setState(() => _lessons[index] = updated);
+    }
   }
 
   Future<void> _addLesson() async {
-    setState(() => _lessons.add(LessonFormData(id: _service.newId())));
-    await _editLesson(_lessons.length - 1);
+    final lesson = await _showLessonEditor(
+      lesson: LessonFormData(id: _service.newId()),
+      number: _lessons.length,
+      creating: true,
+    );
+    if (mounted && lesson != null) {
+      setState(() => _lessons.add(lesson));
+    }
   }
+
+  void _removeLesson(int index) => setState(() => _lessons.removeAt(index));
 
   Future<void> _upload(CourseFileSelection file) async {
     if (file.media != null) return;
@@ -397,10 +469,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           for (var i = 0; i < _lessons.length; i++)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12),
-                              child: CourseFormCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  CourseFormCard(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
                                     Text(
                                       lessonLabel(i),
                                       style: const TextStyle(
@@ -470,9 +545,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                         ),
                                         if (_lessons.length > 1)
                                           TextButton.icon(
-                                            onPressed: () => setState(
-                                              () => _lessons.removeAt(i),
-                                            ),
+                                            onPressed: () => _removeLesson(i),
                                             icon: const Icon(
                                               Icons.delete_outline,
                                             ),
@@ -480,8 +553,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                           ),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           OutlinedButton.icon(

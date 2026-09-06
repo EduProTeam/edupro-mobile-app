@@ -80,8 +80,8 @@ void main() {
     expect(find.text('Remove Lesson'), findsNothing);
     await tester.tap(find.text('Add Another Lesson'));
     await tester.pumpAndSettle();
-    expect(find.text('Lesson 02 — Editor'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).first, 'Second lesson');
+    expect(find.text('Create Lesson'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).at(2), 'Second lesson');
     await tester.tap(find.text('Save Lesson'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -120,7 +120,7 @@ void main() {
     );
     await tester.tap(find.text('Publish Course'));
     await tester.pumpAndSettle();
-    expect(find.byType(LessonEditor), findsOneWidget);
+    expect(find.byType(InlineLessonEditor), findsOneWidget);
     expect(service.saved, isNull);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
