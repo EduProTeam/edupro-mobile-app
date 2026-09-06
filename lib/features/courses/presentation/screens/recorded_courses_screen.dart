@@ -2,29 +2,75 @@ import 'package:flutter/material.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
+import '../../services/course_service.dart';
 import 'view_course_screen.dart';
 
-class RecordedCoursesScreen extends StatelessWidget {
-  const RecordedCoursesScreen({
-    super.key,
-    required this.courses,
-    required this.onCreateCoursePressed,
-  });
+class RecordedCoursesScreen extends StatefulWidget {
+  const RecordedCoursesScreen({super.key, required this.onCreateCoursePressed});
 
-  final List<CourseDraft> courses;
   final VoidCallback onCreateCoursePressed;
 
   @override
-  Widget build(BuildContext context) {
-    final allCourses = [...courses, ..._demoCourses];
+  State<RecordedCoursesScreen> createState() => _RecordedCoursesScreenState();
+}
 
+class _RecordedCoursesScreenState extends State<RecordedCoursesScreen> {
+  final _service = CourseService();
+  late Stream<List<CourseDraft>> _owned = _service.watchCourses(owned: true);
+  late Stream<List<CourseDraft>> _published = _service.watchCourses(
+    owned: false,
+  );
+  @override
+  Widget build(BuildContext context) => StreamBuilder<List<CourseDraft>>(
+    stream: _owned,
+    builder: (context, own) => StreamBuilder<List<CourseDraft>>(
+      stream: _published,
+      builder: (context, published) {
+        if (own.hasError || published.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Recorded Courses')),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Unable to load courses. Please try again.'),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _owned = _service.watchCourses(owned: true);
+                      _published = _service.watchCourses(owned: false);
+                    }),
+                    child: const Text('Retry'),
+                  ),
+                  TextButton(
+                    onPressed: widget.onCreateCoursePressed,
+                    child: const Text('Create course'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        if (!own.hasData || !published.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _content(context, own.data!, published.data!);
+      },
+    ),
+  );
+  Widget _content(
+    BuildContext context,
+    List<CourseDraft> courses,
+    List<CourseDraft> allCourses,
+  ) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FB),
       appBar: AppBar(
         title: const Text('Recorded Courses'),
         actions: [
           IconButton(
-            onPressed: onCreateCoursePressed,
+            onPressed: widget.onCreateCoursePressed,
             icon: const Icon(Icons.add),
             tooltip: 'Create course',
           ),
@@ -76,17 +122,21 @@ class RecordedCoursesScreen extends StatelessWidget {
               actionLabel: 'View all',
             ),
             const SizedBox(height: 12),
-            ...courses.map((course) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _CourseCard(course: course),
-                )),
+            ...courses.map(
+              (course) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _CourseCard(course: course),
+              ),
+            ),
             const SizedBox(height: 10),
           ],
-          const _SectionTitle(
-            title: 'All Courses',
-            actionLabel: 'View all',
-          ),
+          const _SectionTitle(title: 'All Courses', actionLabel: 'View all'),
           const SizedBox(height: 12),
+          if (allCourses.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('No published courses yet.'),
+            ),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -95,7 +145,7 @@ class RecordedCoursesScreen extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.88,
+              mainAxisExtent: 270,
             ),
             itemBuilder: (context, index) {
               return _CourseGridTile(course: allCourses[index]);
@@ -108,18 +158,13 @@ class RecordedCoursesScreen extends StatelessWidget {
 }
 
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({
-    required this.course,
-  });
+  const _CourseCard({required this.course});
 
   final CourseDraft course;
 
   @override
   Widget build(BuildContext context) {
-    final lessonCount = course.modules.fold<int>(
-      0,
-      (count, module) => count + module.lessons.length,
-    );
+    final lessonCount = course.lessons.length;
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -186,19 +231,11 @@ class _CourseCard extends StatelessWidget {
               course.description.isEmpty
                   ? 'No description added yet.'
                   : course.description,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(height: 14),
             Row(
               children: [
-                _DetailPill(
-                  icon: Icons.menu_book_outlined,
-                  label: '${course.modules.length} modules',
-                ),
-                const SizedBox(width: 8),
                 _DetailPill(
                   icon: Icons.video_library_outlined,
                   label: '$lessonCount lessons',
@@ -206,7 +243,9 @@ class _CourseCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 _DetailPill(
                   icon: Icons.sell_outlined,
-                  label: '${course.currency} ${course.price}',
+                  label: course.type == CourseType.free
+                      ? 'Free'
+                      : '${course.currency} ${course.price}',
                 ),
               ],
             ),
@@ -218,18 +257,13 @@ class _CourseCard extends StatelessWidget {
 }
 
 class _CourseGridTile extends StatelessWidget {
-  const _CourseGridTile({
-    required this.course,
-  });
+  const _CourseGridTile({required this.course});
 
   final CourseDraft course;
 
   @override
   Widget build(BuildContext context) {
-    final lessonCount = course.modules.fold<int>(
-      0,
-      (count, module) => count + module.lessons.length,
-    );
+    final lessonCount = course.lessons.length;
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -267,18 +301,16 @@ class _CourseGridTile extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               course.title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
               course.category,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const Spacer(),
             Row(
@@ -286,16 +318,11 @@ class _CourseGridTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '$lessonCount lessons',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ),
                 _MiniPriceChip(
-                  label: course.price == '0' || course.price == '0.00'
-                      ? 'Free'
-                      : 'Paid',
+                  label: course.type == CourseType.free ? 'Free' : 'Paid',
                 ),
               ],
             ),
@@ -307,10 +334,7 @@ class _CourseGridTile extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.actionLabel,
-  });
+  const _SectionTitle({required this.title, required this.actionLabel});
 
   final String title;
   final String actionLabel;
@@ -321,10 +345,7 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
         const Spacer(),
         Text(
@@ -341,10 +362,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    this.selected = false,
-  });
+  const _FilterChip({required this.label, this.selected = false});
 
   final String label;
   final bool selected;
@@ -368,9 +386,7 @@ class _FilterChip extends StatelessWidget {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: selected
-              ? OnboardingScreenLayout.primaryBlue
-              : Colors.black87,
+          color: selected ? OnboardingScreenLayout.primaryBlue : Colors.black87,
         ),
       ),
     );
@@ -378,9 +394,7 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _MiniPriceChip extends StatelessWidget {
-  const _MiniPriceChip({
-    required this.label,
-  });
+  const _MiniPriceChip({required this.label});
 
   final String label;
 
@@ -394,127 +408,14 @@ class _MiniPriceChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
   }
 }
 
-final List<CourseDraft> _demoCourses = [
-  CourseDraft(
-    id: 'demo-uiux',
-    title: 'UI/UX Design Fundamentals',
-    category: 'Design & UI/UX',
-    description: 'Learn the core principles of UI/UX design from scratch.',
-    currency: 'USD',
-    price: '49.99',
-    applyDiscount: false,
-    couponCode: '',
-    thumbnailPath: '',
-    promoVideoPath: '',
-    modules: [
-      CourseModule(
-        title: 'Module 1: UX Basics',
-        lessons: [
-          CourseLesson(
-            title: 'Introduction to UI/UX',
-            duration: '04:28 min',
-            videoPath: '',
-          ),
-          CourseLesson(
-            title: 'Wireframing Basics',
-            duration: '09:10 min',
-            videoPath: '',
-          ),
-        ],
-      ),
-    ],
-    status: CourseStatus.published,
-  ),
-  CourseDraft(
-    id: 'demo-flutter',
-    title: 'Flutter for Beginners',
-    category: 'Development',
-    description: 'Start building mobile apps with Flutter step by step.',
-    currency: 'USD',
-    price: '0.00',
-    applyDiscount: false,
-    couponCode: '',
-    thumbnailPath: '',
-    promoVideoPath: '',
-    modules: [
-      CourseModule(
-        title: 'Module 1: Flutter Setup',
-        lessons: [
-          CourseLesson(
-            title: 'Installing Flutter',
-            duration: '07:15 min',
-            videoPath: '',
-          ),
-        ],
-      ),
-    ],
-    status: CourseStatus.published,
-  ),
-  CourseDraft(
-    id: 'demo-python',
-    title: 'Python Data Structures',
-    category: 'Development',
-    description: 'Understand lists, tuples, sets, and dictionaries.',
-    currency: 'USD',
-    price: '29.99',
-    applyDiscount: false,
-    couponCode: '',
-    thumbnailPath: '',
-    promoVideoPath: '',
-    modules: [
-      CourseModule(
-        title: 'Module 1: Core Structures',
-        lessons: [
-          CourseLesson(
-            title: 'Lists and Tuples',
-            duration: '11:40 min',
-            videoPath: '',
-          ),
-        ],
-      ),
-    ],
-    status: CourseStatus.published,
-  ),
-  CourseDraft(
-    id: 'demo-marketing',
-    title: 'Marketing Basics',
-    category: 'Marketing',
-    description: 'A simple starter course for digital marketing learners.',
-    currency: 'USD',
-    price: '19.99',
-    applyDiscount: false,
-    couponCode: '',
-    thumbnailPath: '',
-    promoVideoPath: '',
-    modules: [
-      CourseModule(
-        title: 'Module 1: Intro to Marketing',
-        lessons: [
-          CourseLesson(
-            title: 'Marketing Overview',
-            duration: '05:32 min',
-            videoPath: '',
-          ),
-        ],
-      ),
-    ],
-    status: CourseStatus.published,
-  ),
-];
-
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({
-    required this.status,
-  });
+  const _StatusChip({required this.status});
 
   final CourseStatus status;
 
@@ -525,9 +426,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isPublished
-            ? const Color(0xFFE8F8EE)
-            : const Color(0xFFF4F5F8),
+        color: isPublished ? const Color(0xFFE8F8EE) : const Color(0xFFF4F5F8),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -543,10 +442,7 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _DetailPill extends StatelessWidget {
-  const _DetailPill({
-    required this.icon,
-    required this.label,
-  });
+  const _DetailPill({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -566,10 +462,7 @@ class _DetailPill extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
       ),

@@ -23,7 +23,6 @@ class HomeShellScreen extends StatefulWidget {
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
   final _authService = AuthService();
-  final List<CourseDraft> _courses = [];
 
   static const _createPostPurple = Color(0xFF5B2CCF);
 
@@ -54,7 +53,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     }
 
     setState(() {
-      _courses.insert(0, result);
       _currentIndex = 1;
     });
   }
@@ -71,10 +69,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     final screens = [
       _SimpleHomeScreen(onLogout: _logout),
-      RecordedCoursesScreen(
-        courses: _courses,
-        onCreateCoursePressed: _openCreateCourseScreen,
-      ),
+      RecordedCoursesScreen(onCreateCoursePressed: _openCreateCourseScreen),
       _SimpleProfileScreen(user: user),
     ];
 

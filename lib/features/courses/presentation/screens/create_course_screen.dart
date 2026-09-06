@@ -1,985 +1,589 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
+import '../../services/course_service.dart';
+import '../widgets/course_form_widgets.dart';
+import '../widgets/lesson_editor.dart';
 
 class CreateCourseScreen extends StatefulWidget {
-  const CreateCourseScreen({super.key});
-
+  const CreateCourseScreen({super.key, this.course, this.service});
+  final CourseDraft? course;
+  final CourseService? service;
   @override
   State<CreateCourseScreen> createState() => _CreateCourseScreenState();
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
-  final _picker = ImagePicker();
+  late final _service = widget.service ?? CourseService();
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _priceController = TextEditingController(text: '99.99');
-  final _couponController = TextEditingController();
-
-  int _selectedTab = 0;
-  String _category = 'Design & UI/UX';
-  String _currency = 'USD (\$)';
-  bool _applyDiscount = false;
-  String _thumbnailPath = '';
-  String _promoVideoPath = '';
-  final List<_EditableModule> _modules = [
-    _EditableModule(
-      title: 'Module 1: Introduction to Figma',
-      lessons: [
-        _EditableLesson(
-          title: '01. Introduction to Figma',
-          duration: '04:28 min',
-          videoPath: '',
-        ),
-      ],
-    ),
-  ];
-
+  late final _id = widget.course?.id ?? _service.newId();
+  late final _title = TextEditingController(text: widget.course?.title);
+  late final _description = TextEditingController(
+    text: widget.course?.description,
+  );
+  late final _price = TextEditingController(
+    text: widget.course?.price.toString() ?? '',
+  );
+  late String? _category = widget.course?.category.isNotEmpty == true
+      ? widget.course!.category
+      : null;
+  late String? _language = widget.course?.language.isNotEmpty == true
+      ? widget.course!.language
+      : null;
+  late String _currency = widget.course?.currency ?? 'USD';
+  late CourseType _type = widget.course?.type ?? CourseType.free;
+  late CourseFileSelection? _cover = widget.course?.thumbnail == null
+      ? null
+      : CourseFileSelection.stored(widget.course!.thumbnail!);
+  late final List<LessonFormData> _lessons =
+      widget.course?.lessons.isNotEmpty == true
+      ? widget.course!.lessons.map(LessonFormData.fromLesson).toList()
+      : [LessonFormData(id: _service.newId())];
+  bool _busy = false, _picking = false, _publishErrors = false;
+  String? _error;
+  String _operation = '';
   @override
   void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _priceController.dispose();
-    _couponController.dispose();
+    _title.dispose();
+    _description.dispose();
+    _price.dispose();
     super.dispose();
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+  String? _required(String? value) =>
+      _publishErrors && (value ?? '').trim().isEmpty
+      ? 'This field is required.'
+      : null;
+  void _message(String text) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    }
+  }
+
+  Future<void> _pickCover() async {
+    setState(() => _picking = true);
+    try {
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
       );
-  }
-
-  String _fileName(String path) {
-    if (path.isEmpty) {
-      return 'Not added';
+      if (image != null && mounted) {
+        setState(() => _cover = CourseFileSelection.local(image.path));
+      }
+    } catch (_) {
+      _message('Unable to select the cover image. Please try again.');
+    } finally {
+      if (mounted) setState(() => _picking = false);
     }
-
-    final normalized = path.replaceAll('\\', '/');
-    return normalized.split('/').last;
   }
 
-  Future<void> _pickThumbnail() async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 90,
-    );
-
-    if (file == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _thumbnailPath = file.path;
-    });
-  }
-
-  Future<void> _pickPromoVideo() async {
-    final file = await _picker.pickVideo(source: ImageSource.gallery);
-
-    if (file == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _promoVideoPath = file.path;
-    });
-  }
-
-  Future<void> _showMediaUploadSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Upload Course Media',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.image_outlined),
-                  title: const Text('Upload Thumbnail'),
-                  subtitle: Text(_fileName(_thumbnailPath)),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    await _pickThumbnail();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.video_library_outlined),
-                  title: const Text('Upload Promo Video'),
-                  subtitle: Text(_fileName(_promoVideoPath)),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    await _pickPromoVideo();
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _pickLessonVideo(_EditableLesson lesson) async {
-    final file = await _picker.pickVideo(source: ImageSource.gallery);
-
-    if (file == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      lesson.videoPath = file.path;
-    });
-  }
-
-  Future<void> _editLesson(_EditableLesson lesson) async {
-    final titleController = TextEditingController(text: lesson.title);
-    final durationController = TextEditingController(text: lesson.duration);
-
-    final updated = await showDialog<_EditableLesson>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Lesson'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Lesson Title'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: durationController,
-                  decoration: const InputDecoration(labelText: 'Duration'),
-                ),
-                const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.video_library_outlined),
-                  title: const Text('Lesson Video'),
-                  subtitle: Text(_fileName(lesson.videoPath)),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      await _pickLessonVideo(lesson);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        await _editLesson(lesson);
-                      }
-                    },
-                    child: const Text('Upload'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).pop(
-                  _EditableLesson(
-                    title: titleController.text.trim().isEmpty
-                        ? lesson.title
-                        : titleController.text.trim(),
-                    duration: durationController.text.trim().isEmpty
-                        ? lesson.duration
-                        : durationController.text.trim(),
-                    videoPath: lesson.videoPath,
-                  ),
-                );
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (updated == null) {
-      return;
-    }
-
-    setState(() {
-      lesson
-        ..title = updated.title
-        ..duration = updated.duration
-        ..videoPath = updated.videoPath;
-    });
-  }
-
-  void _addModule() {
-    setState(() {
-      _modules.add(
-        _EditableModule(
-          title: 'Module ${_modules.length + 1}: New Module',
-          lessons: [
-            _EditableLesson(
-              title: '01. New Lesson',
-              duration: '00:00 min',
-              videoPath: '',
-            ),
-          ],
+  Future<void> _editLesson(int index) async {
+    final result = await Navigator.of(context).push<LessonFormData>(
+      MaterialPageRoute(
+        builder: (_) => LessonEditor(
+          lesson: _lessons[index],
+          number: index,
+          showErrors: _publishErrors,
+          onRetry: _upload,
         ),
+      ),
+    );
+    if (mounted && result != null) setState(() => _lessons[index] = result);
+  }
+
+  Future<void> _addLesson() async {
+    setState(() => _lessons.add(LessonFormData(id: _service.newId())));
+    await _editLesson(_lessons.length - 1);
+  }
+
+  Future<void> _upload(CourseFileSelection file) async {
+    if (file.media != null) return;
+    if (mounted) setState(() => file.status = UploadStatus.uploading);
+    try {
+      file.media = await _service.upload(_id, file.localPath!);
+      file.status = UploadStatus.uploaded;
+    } catch (_) {
+      file.status = UploadStatus.failed;
+      rethrow;
+    } finally {
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _retryCover() async {
+    setState(() => _busy = true);
+    try {
+      await _upload(_cover!);
+    } on CourseFailure catch (e) {
+      _message(e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _save(CourseStatus status) async {
+    if (_busy || _picking) return;
+    setState(() {
+      _publishErrors = status == CourseStatus.published;
+      _error = null;
+    });
+    final validFields = _formKey.currentState!.validate();
+    final badLesson = _lessons.indexWhere(
+      (l) => l.title.trim().isEmpty || l.video == null,
+    );
+    if (!validFields ||
+        (_publishErrors && (_cover == null || badLesson >= 0))) {
+      setState(
+        () => _error =
+            'Complete the required fields${badLesson >= 0 ? ' and ${lessonLabel(badLesson)}' : ''} before publishing.',
       );
-    });
-  }
-
-  void _addLesson(_EditableModule module) {
-    setState(() {
-      module.lessons.add(
-        _EditableLesson(
-          title: '${module.lessons.length + 1}. New Lesson',
-          duration: '00:00 min',
-          videoPath: '',
-        ),
-      );
-    });
-  }
-
-  void _saveCourse(CourseStatus status) {
-    if (!_formKey.currentState!.validate()) {
+      if (_publishErrors && badLesson >= 0) await _editLesson(badLesson);
       return;
     }
-
-    final course = CourseDraft(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      title: _titleController.text.trim(),
-      category: _category,
-      description: _descriptionController.text.trim(),
-      currency: _currency,
-      price: _priceController.text.trim(),
-      applyDiscount: _applyDiscount,
-      couponCode: _couponController.text.trim(),
-      thumbnailPath: _thumbnailPath,
-      promoVideoPath: _promoVideoPath,
-      modules: _modules
-          .map(
-            (module) => CourseModule(
-              title: module.title,
-              lessons: module.lessons
-                  .map(
-                    (lesson) => CourseLesson(
-                      title: lesson.title,
-                      duration: lesson.duration,
-                      videoPath: lesson.videoPath,
-                    ),
-                  )
-                  .toList(),
-            ),
-          )
-          .toList(),
-      status: status,
-    );
-
-    Navigator.of(context).pop(course);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FB),
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back),
-        ),
-        title: const Text(
-          'Create New Course',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        centerTitle: true,
-        actions: [
-          TextButton.icon(
-            onPressed: () => _showMessage('Preview can be connected later.'),
-            icon: const Icon(Icons.remove_red_eye_outlined, size: 20),
-            label: const Text('Draft'),
-          ),
+    setState(() {
+      _busy = true;
+      _operation = 'Uploading course files…';
+    });
+    try {
+      final files = [
+        ?_cover,
+        for (final lesson in _lessons) ...[
+          if (lesson.video != null) lesson.video!,
+          ...lesson.materials,
         ],
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _saveCourse(CourseStatus.draft),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  side: const BorderSide(color: Color(0xFFD6DCE6)),
-                ),
-                child: const Text(
-                  'Save as Draft',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+      ];
+      for (final file in files) {
+        await _upload(file);
+      }
+      if (!mounted) return;
+      setState(() => _operation = 'Saving course…');
+      final course = CourseDraft(
+        id: _id,
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        category: _category ?? '',
+        language: _language ?? '',
+        type: _type,
+        currency: _currency,
+        price: _type == CourseType.free
+            ? 0
+            : double.tryParse(_price.text.trim()) ?? 0,
+        status: status,
+        thumbnail: _cover?.media,
+        userId: _service.userId,
+        lessons: _lessons
+            .map(
+              (l) => CourseLesson(
+                id: l.id,
+                title: l.title,
+                description: l.description,
+                duration: l.duration,
+                video: l.video?.media,
+                materials: l.materials.map((m) => m.media!).toList(),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () => _saveCourse(CourseStatus.published),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54),
-                  backgroundColor: OnboardingScreenLayout.primaryBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Publish Course',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
+            )
+            .toList(),
+      );
+      await _service.save(course, isNew: widget.course == null);
+      if (mounted) {
+        _message(
+          status == CourseStatus.draft ? 'Draft saved.' : 'Course published.',
+        );
+        Navigator.pop(context, course);
+      }
+    } on CourseFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Could not save the course. Please retry.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _dropdown(
+    String label,
+    String? value,
+    List<String> values,
+    ValueChanged<String?> changed,
+  ) => CourseField(
+    label: label,
+    requiredField: true,
+    child: DropdownButtonFormField<String>(
+      initialValue: value,
+      isExpanded: true,
+      decoration: courseInput('Select ${label.toLowerCase()}'),
+      items: {
+        ...values,
+        ?value,
+      }.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+      onChanged: changed,
+      validator: _required,
+    ),
+  );
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_busy,
+    child: Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(
+          context,
+        ).colorScheme.copyWith(primary: OnboardingScreenLayout.primaryBlue),
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F8FB),
+        appBar: AppBar(
+          title: const Text(
+            'Create New Course',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          centerTitle: true,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Chip(
+                label: Text(
+                  widget.course?.status == CourseStatus.published
+                      ? 'Published'
+                      : 'Draft',
                 ),
               ),
             ),
           ],
         ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(24),
-              onTap: _showMediaUploadSheet,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: OnboardingScreenLayout.primaryBlue,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: AbsorbPointer(
+                  absorbing: _busy || _picking,
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: _publishErrors
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
+                    child: SingleChildScrollView(
+                      key: const ValueKey('course-scroll'),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CourseFormCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Text(
+                                  'Course Details',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                CourseField(
+                                  label: 'Course Thumbnail / Cover Image',
+                                  requiredField: true,
+                                  child: CourseUploadField(
+                                    label: 'Upload cover image',
+                                    image: true,
+                                    selection: _cover,
+                                    onPick: _pickCover,
+                                    onRemove: _cover == null
+                                        ? null
+                                        : () => setState(() => _cover = null),
+                                    onRetry: _retryCover,
+                                    error: _publishErrors && _cover == null
+                                        ? 'Add a cover image before publishing.'
+                                        : null,
+                                  ),
+                                ),
+                                CourseField(
+                                  label: 'Course Title',
+                                  requiredField: true,
+                                  child: TextFormField(
+                                    controller: _title,
+                                    decoration: courseInput(
+                                      'Enter course title',
+                                    ),
+                                    validator: _required,
+                                  ),
+                                ),
+                                CourseField(
+                                  label: 'Short Description',
+                                  requiredField: true,
+                                  child: TextFormField(
+                                    controller: _description,
+                                    decoration: courseInput(
+                                      'Tell learners what your course is about',
+                                    ),
+                                    maxLines: 3,
+                                    validator: _required,
+                                  ),
+                                ),
+                                _dropdown(
+                                  'Category',
+                                  _category,
+                                  [
+                                    'Design & UI/UX',
+                                    'Development',
+                                    'Marketing',
+                                    'Business',
+                                    'Other',
+                                  ],
+                                  (v) => setState(() => _category = v),
+                                ),
+                                _dropdown(
+                                  'Language',
+                                  _language,
+                                  ['English', 'Sinhala', 'Tamil', 'Other'],
+                                  (v) => setState(() => _language = v),
+                                ),
+                                CourseField(
+                                  label: 'Course Type',
+                                  requiredField: true,
+                                  child: SegmentedButton<CourseType>(
+                                    segments: const [
+                                      ButtonSegment(
+                                        value: CourseType.free,
+                                        label: Text('Free'),
+                                      ),
+                                      ButtonSegment(
+                                        value: CourseType.paid,
+                                        label: Text('Paid'),
+                                      ),
+                                    ],
+                                    selected: {_type},
+                                    onSelectionChanged: (v) =>
+                                        setState(() => _type = v.first),
+                                  ),
+                                ),
+                                if (_type == CourseType.paid) ...[
+                                  _dropdown(
+                                    'Currency',
+                                    _currency,
+                                    ['USD', 'LKR'],
+                                    (v) => setState(() => _currency = v!),
+                                  ),
+                                  CourseField(
+                                    label: 'Price',
+                                    requiredField: true,
+                                    child: TextFormField(
+                                      controller: _price,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      decoration: courseInput('0.00'),
+                                      validator: (v) => _publishErrors
+                                          ? validateCoursePrice(v ?? '')
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          const Text(
+                            'Lessons',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          for (var i = 0; i < _lessons.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: CourseFormCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      lessonLabel(i),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color:
+                                            OnboardingScreenLayout.primaryBlue,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _lessons[i].title.isEmpty
+                                          ? 'Untitled lesson'
+                                          : _lessons[i].title,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _lessons[i].video?.name ??
+                                          'No video selected',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (_lessons[i].video != null)
+                                      Text(
+                                        switch (_lessons[i].video!.status) {
+                                          UploadStatus.uploading =>
+                                            'Uploading…',
+                                          UploadStatus.uploaded => '✓ Uploaded',
+                                          UploadStatus.failed =>
+                                            'Upload failed · open Edit to retry',
+                                          UploadStatus.selected =>
+                                            'Video selected',
+                                        },
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    if (_lessons[i].materials.isNotEmpty)
+                                      Text(
+                                        '${_lessons[i].materials.length} learning materials',
+                                      ),
+                                    if (_lessons[i].materials.any(
+                                      (f) => f.status == UploadStatus.failed,
+                                    ))
+                                      const Text(
+                                        'Material upload failed · open Edit to retry',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    if (_publishErrors &&
+                                        (_lessons[i].title.isEmpty ||
+                                            _lessons[i].video == null))
+                                      const Text(
+                                        'Lesson title and video are required.',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: () => _editLesson(i),
+                                          icon: const Icon(Icons.edit_outlined),
+                                          label: const Text('Edit'),
+                                        ),
+                                        if (_lessons.length > 1)
+                                          TextButton.icon(
+                                            onPressed: () => setState(
+                                              () => _lessons.removeAt(i),
+                                            ),
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                            ),
+                                            label: const Text('Remove Lesson'),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          OutlinedButton.icon(
+                            onPressed: _addLesson,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(54),
+                              side: const BorderSide(
+                                color: OnboardingScreenLayout.primaryBlue,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Another Lesson'),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Color(0xFFE3E6ED))),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.photo_camera_outlined,
-                      size: 36,
-                      color: OnboardingScreenLayout.primaryBlue,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '+ Upload Promo Video / Thumbnail',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: OnboardingScreenLayout.primaryBlue,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Supported formats: MP4, PNG, JPG (16:9 ratio)',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    if (_thumbnailPath.isNotEmpty || _promoVideoPath.isNotEmpty)
+                    if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          'Thumbnail: ${_fileName(_thumbnailPath)}\nPromo Video: ${_fileName(_promoVideoPath)}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
                         ),
                       ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 22),
-            const _FieldLabel('Course Title'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _titleController,
-              decoration: _inputDecoration(
-                'Enter engaging course title e.g., Figma Masterclass',
-              ),
-              validator: (value) {
-                if ((value ?? '').trim().isEmpty) {
-                  return 'Enter the course title.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 18),
-            const _FieldLabel('Course Category'),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _category,
-              decoration: _inputDecoration('Course Category'),
-              borderRadius: BorderRadius.circular(18),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Design & UI/UX',
-                  child: Text('Design & UI/UX'),
-                ),
-                DropdownMenuItem(
-                  value: 'Development',
-                  child: Text('Development'),
-                ),
-                DropdownMenuItem(
-                  value: 'Marketing',
-                  child: Text('Marketing'),
-                ),
-                DropdownMenuItem(
-                  value: 'Business',
-                  child: Text('Business'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                setState(() {
-                  _category = value;
-                });
-              },
-            ),
-            const SizedBox(height: 18),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Expanded(
-                  child: _FieldLabel('Course Price'),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Apply Discount',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Switch(
-                      value: _applyDiscount,
-                      onChanged: (value) {
-                        setState(() {
-                          _applyDiscount = value;
-                        });
+                    if (_busy) ...[
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 6),
+                      Text(_operation),
+                      const SizedBox(height: 8),
+                    ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final buttons = [
+                          OutlinedButton(
+                            onPressed: _busy || _picking
+                                ? null
+                                : () => _save(CourseStatus.draft),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(54),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text('Save as Draft'),
+                          ),
+                          FilledButton(
+                            onPressed: _busy || _picking
+                                ? null
+                                : () => _save(CourseStatus.published),
+                            style: FilledButton.styleFrom(
+                              backgroundColor:
+                                  OnboardingScreenLayout.primaryBlue,
+                              minimumSize: const Size.fromHeight(54),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text('Publish Course'),
+                          ),
+                        ];
+                        if (constraints.maxWidth < 330 ||
+                            MediaQuery.textScalerOf(context).scale(16) > 22) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              buttons[0],
+                              const SizedBox(height: 8),
+                              buttons[1],
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: buttons[0]),
+                            const SizedBox(width: 12),
+                            Expanded(child: buttons[1]),
+                          ],
+                        );
                       },
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _currency,
-                    decoration: _inputDecoration('Currency'),
-                    borderRadius: BorderRadius.circular(18),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'USD (\$)',
-                        child: Text('USD (\$)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'LKR (Rs)',
-                        child: Text('LKR (Rs)'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() {
-                        _currency = value;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _priceController,
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDecoration('99.99'),
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) {
-                        return 'Enter price';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (_applyDiscount) ...[
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _couponController,
-                decoration: _inputDecoration('Coupon / discount note'),
-              ),
-            ],
-            const SizedBox(height: 18),
-            const _FieldLabel('Course Description'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _descriptionController,
-              maxLines: 4,
-              decoration: _inputDecoration(
-                'Short description about the course, audience, and outcomes',
-              ),
-            ),
-            const SizedBox(height: 26),
-            const Text(
-              'Curriculum Builder',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _BuilderTab(
-                    label: 'Curriculum',
-                    selected: _selectedTab == 0,
-                    onTap: () {
-                      setState(() {
-                        _selectedTab = 0;
-                      });
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: _BuilderTab(
-                    label: 'Settings & Pricing',
-                    selected: _selectedTab == 1,
-                    onTap: () {
-                      setState(() {
-                        _selectedTab = 1;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_selectedTab == 0) ...[
-              for (final module in _modules) ...[
-                _ModuleCard(
-                  module: module,
-                  onAddLesson: () => _addLesson(module),
-                  onDeleteLesson: (lesson) {
-                    setState(() {
-                      module.lessons.remove(lesson);
-                    });
-                  },
-                  onEditLesson: (lesson) => _editLesson(lesson),
-                  onDeleteModule: () {
-                    if (_modules.length == 1) {
-                      _showMessage('At least one module should remain.');
-                      return;
-                    }
-                    setState(() {
-                      _modules.remove(module);
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-              ],
-              OutlinedButton.icon(
-                onPressed: _addModule,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  side: const BorderSide(
-                    color: OnboardingScreenLayout.primaryBlue,
-                  ),
-                ),
-                icon: const Icon(Icons.add),
-                label: const Text(
-                  'Add Lesson / Module',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ] else
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE3E6ED)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Settings & Pricing',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _SettingsInfoRow(
-                      label: 'Thumbnail',
-                      value: _fileName(_thumbnailPath),
-                    ),
-                    _SettingsInfoRow(
-                      label: 'Promo Video',
-                      value: _fileName(_promoVideoPath),
-                    ),
-                    _SettingsInfoRow(
-                      label: 'Category',
-                      value: _category,
-                    ),
-                    _SettingsInfoRow(
-                      label: 'Price',
-                      value: '$_currency ${_priceController.text.trim()}',
-                    ),
-                    _SettingsInfoRow(
-                      label: 'Discount',
-                      value: _applyDiscount
-                          ? (_couponController.text.trim().isEmpty
-                              ? 'Enabled'
-                              : _couponController.text.trim())
-                          : 'Off',
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hintText) {
-    return InputDecoration(
-      hintText: hintText,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD3D9E3)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: OnboardingScreenLayout.primaryBlue,
-          width: 1.4,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
-      ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-class _BuilderTab extends StatelessWidget {
-  const _BuilderTab({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: selected
-                  ? OnboardingScreenLayout.primaryBlue
-                  : const Color(0xFFD7DCE5),
-              width: 3,
-            ),
-          ),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: selected
-                ? OnboardingScreenLayout.primaryBlue
-                : Colors.black87,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({
-    required this.module,
-    required this.onAddLesson,
-    required this.onDeleteLesson,
-    required this.onEditLesson,
-    required this.onDeleteModule,
-  });
-
-  final _EditableModule module;
-  final VoidCallback onAddLesson;
-  final ValueChanged<_EditableLesson> onDeleteLesson;
-  final ValueChanged<_EditableLesson> onEditLesson;
-  final VoidCallback onDeleteModule;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE3E6ED)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.drag_indicator, color: Colors.black45),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  module.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: OnboardingScreenLayout.primaryBlue,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: onDeleteModule,
-                icon: const Icon(Icons.more_horiz),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          for (var index = 0; index < module.lessons.length; index++) ...[
-            Builder(
-              builder: (context) {
-                final lesson = module.lessons[index];
-                return Container(
-                  padding: const EdgeInsets.all(14),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FB),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2E6EE)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${index + 1}'.padLeft(2, '0') + '.',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.play_lesson_outlined),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              lesson.title,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              lesson.duration,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => onEditLesson(lesson),
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                      IconButton(
-                        onPressed: () => onDeleteLesson(lesson),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-          OutlinedButton.icon(
-            onPressed: onAddLesson,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              side: const BorderSide(
-                color: OnboardingScreenLayout.primaryBlue,
-              ),
-            ),
-            icon: const Icon(Icons.add),
-            label: const Text(
-              'Add Lesson / Module',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
-    );
-  }
-}
-
-class _SettingsInfoRow extends StatelessWidget {
-  const _SettingsInfoRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EditableModule {
-  _EditableModule({
-    required this.title,
-    required this.lessons,
-  });
-
-  String title;
-  final List<_EditableLesson> lessons;
-}
-
-class _EditableLesson {
-  _EditableLesson({
-    required this.title,
-    required this.duration,
-    required this.videoPath,
-  });
-
-  String title;
-  String duration;
-  String videoPath;
+    ),
+  );
 }
