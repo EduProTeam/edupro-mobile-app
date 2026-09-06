@@ -64,11 +64,17 @@ class CourseDraft {
     required this.status,
     required List<CourseLesson> lessons,
     this.thumbnail,
+    this.instructorName = '',
+    this.level = 'Beginner',
+    this.rating = 0,
+    this.totalDuration = '',
     this.userId = '',
     this.updatedAt = 0,
   }) : lessons = List.unmodifiable(lessons);
   final String id, title, category, description, language, currency, userId;
+  final String instructorName, level, totalDuration;
   final double price;
+  final double rating;
   final CourseType type;
   final CourseStatus status;
   final CourseMedia? thumbnail;
@@ -84,6 +90,10 @@ class CourseDraft {
     'price': type == CourseType.free ? 0 : price,
     'status': status.name,
     'thumbnail': thumbnail?.toMap(),
+    'instructorName': instructorName,
+    'level': level,
+    'rating': rating,
+    'totalDuration': totalDuration,
     'lessons': lessons.map((l) => l.toMap()).toList(),
     'userId': userId,
     'schemaVersion': 2,
@@ -102,6 +112,10 @@ class CourseDraft {
       description: data['description'] as String? ?? '',
       language: data['language'] as String? ?? '',
       currency: data['currency'] as String? ?? 'USD',
+      instructorName: data['instructorName'] as String? ?? '',
+      level: data['level'] as String? ?? 'Beginner',
+      rating: double.tryParse('${data['rating'] ?? 0}') ?? 0,
+      totalDuration: data['totalDuration'] as String? ?? '',
       type: data['type'] == 'paid' ? CourseType.paid : CourseType.free,
       price: price,
       status: data['status'] == 'published'

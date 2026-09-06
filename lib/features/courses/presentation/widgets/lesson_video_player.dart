@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
@@ -78,6 +79,16 @@ class _LessonVideoPlayerState extends State<LessonVideoPlayer> {
     if (mounted) setState(_initialize);
   }
 
+  Future<void> _openFullscreen() async {
+    if (!_controller.value.isInitialized || !mounted) return;
+    await _controller.pause();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => _FullscreenLessonVideo(url: _url),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<void>(
@@ -140,6 +151,16 @@ class _LessonVideoPlayerState extends State<LessonVideoPlayer> {
                     backgroundColor: Colors.white24,
                   ),
                 ),
+                Positioned(
+                  right: 6,
+                  bottom: 10,
+                  child: IconButton(
+                    tooltip: 'Open fullscreen',
+                    onPressed: _openFullscreen,
+                    color: Colors.white,
+                    icon: const Icon(Icons.fullscreen),
+                  ),
+                ),
               ],
             ),
           ),
@@ -157,6 +178,122 @@ class _LessonVideoPlayerState extends State<LessonVideoPlayer> {
       return 'This Android device does not support the video codec.';
     }
     return 'Check the uploaded file and try again.';
+  }
+}
+
+class _FullscreenLessonVideo extends StatefulWidget {
+  const _FullscreenLessonVideo({required this.url});
+
+  final String url;
+
+  @override
+  State<_FullscreenLessonVideo> createState() => _FullscreenLessonVideoState();
+}
+
+class _FullscreenLessonVideoState extends State<_FullscreenLessonVideo> {
+  late final VideoPlayerController _controller;
+  late final Future<void> _initialization;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    _initialization = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: FutureBuilder<void>(
+        future: _initialization,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: TextButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                label: const Text(
+                  'Unable to load video',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            );
+          }
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
+          }
+          return SafeArea(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Center(
+                  child: AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio == 0
+                        ? 16 / 9
+                        : _controller.value.aspectRatio,
+                    child: VideoPlayer(_controller),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 12,
+                  child: Row(
+                    children: [
+                      ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: _controller,
+                        builder: (context, value, child) => IconButton(
+                          color: Colors.white,
+                          icon: Icon(
+                            value.isPlaying ? Icons.pause : Icons.play_arrow,
+                          ),
+                          onPressed: () => value.isPlaying
+                              ? _controller.pause()
+                              : _controller.play(),
+                        ),
+                      ),
+                      Expanded(
+                        child: VideoProgressIndicator(
+                          _controller,
+                          allowScrubbing: true,
+                          colors: const VideoProgressColors(
+                            playedColor: OnboardingScreenLayout.primaryBlue,
+                            bufferedColor: Colors.white54,
+                            backgroundColor: Colors.white24,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Exit fullscreen',
+                        color: Colors.white,
+                        icon: const Icon(Icons.fullscreen_exit),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
