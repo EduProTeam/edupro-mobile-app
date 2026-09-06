@@ -169,6 +169,37 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   void _removeLesson(int index) => setState(() => _lessons.removeAt(index));
 
+  CourseDraft _buildCourse(CourseStatus status) => CourseDraft(
+    id: _id,
+    title: _title.text.trim(),
+    description: _description.text.trim(),
+    category: _category ?? '',
+    language: _language ?? '',
+    type: _type,
+    currency: _currency,
+    price: _type == CourseType.free
+        ? 0
+        : double.tryParse(_price.text.trim()) ?? 0,
+    status: status,
+    thumbnail: _cover?.media,
+    userId: _service.userId,
+    lessons: _lessons
+        .map(
+          (lesson) => CourseLesson(
+            id: lesson.id,
+            title: lesson.title,
+            description: lesson.description,
+            duration: lesson.duration,
+            video: lesson.video?.media,
+            materials: lesson.materials
+                .where((material) => material.media != null)
+                .map((material) => material.media!)
+                .toList(),
+          ),
+        )
+        .toList(),
+  );
+
   Future<void> _upload(CourseFileSelection file) async {
     if (file.media != null) return;
     if (mounted) setState(() => file.status = UploadStatus.uploading);
@@ -215,9 +246,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     }
     setState(() {
       _busy = true;
-      _operation = 'Uploading course files…';
+      _operation = 'Saving course draft…';
     });
     try {
+      final isNew = widget.course == null;
+      await _service.save(_buildCourse(CourseStatus.draft), isNew: isNew);
+      if (!mounted) return;
+      setState(() => _operation = 'Uploading course files…');
       final files = [
         ?_cover,
         for (final lesson in _lessons) ...[
@@ -230,34 +265,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       }
       if (!mounted) return;
       setState(() => _operation = 'Saving course…');
-      final course = CourseDraft(
-        id: _id,
-        title: _title.text.trim(),
-        description: _description.text.trim(),
-        category: _category ?? '',
-        language: _language ?? '',
-        type: _type,
-        currency: _currency,
-        price: _type == CourseType.free
-            ? 0
-            : double.tryParse(_price.text.trim()) ?? 0,
-        status: status,
-        thumbnail: _cover?.media,
-        userId: _service.userId,
-        lessons: _lessons
-            .map(
-              (l) => CourseLesson(
-                id: l.id,
-                title: l.title,
-                description: l.description,
-                duration: l.duration,
-                video: l.video?.media,
-                materials: l.materials.map((m) => m.media!).toList(),
-              ),
-            )
-            .toList(),
-      );
-      await _service.save(course, isNew: widget.course == null);
+      final course = _buildCourse(status);
+      await _service.save(course, isNew: false);
       if (mounted) {
         _message(
           status == CourseStatus.draft ? 'Draft saved.' : 'Course published.',

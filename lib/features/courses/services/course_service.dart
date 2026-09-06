@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../supabase_options.dart';
 import '../models/course_draft.dart';
@@ -54,7 +55,13 @@ class CourseService {
         File(localPath),
         fileOptions: FileOptions(contentType: _mime(name)),
       );
-    } catch (_) {
+    } on StorageException catch (error) {
+      debugPrint('Course media upload error: ${error.statusCode} ${error.message}');
+      throw const CourseFailure(
+        'Upload failed. Check your connection and retry.',
+      );
+    } catch (error) {
+      debugPrint('Course media upload error: $error');
       throw const CourseFailure(
         'Upload failed. Check your connection and retry.',
       );
@@ -62,13 +69,36 @@ class CourseService {
     try {
       final url = await bucket.createSignedUrl(path, 60 * 60 * 24 * 365);
       return CourseMedia(name: name, path: path, url: url);
-    } catch (_) {
+    } on StorageException catch (error) {
+      debugPrint('Course signed URL error: ${error.statusCode} ${error.message}');
+      try {
+        await bucket.remove([path]);
+      } catch (_) {
+        // Preserve the original failure.
+      }
+      throw const CourseFailure('Could not finish the upload. Please retry.');
+    } catch (error) {
+      debugPrint('Course signed URL error: $error');
       try {
         await bucket.remove([path]);
       } catch (_) {
         /* Preserve the original failure. */
       }
       throw const CourseFailure('Could not finish the upload. Please retry.');
+    }
+  }
+
+  Future<String> refreshMediaUrl(String path) async {
+    if (path.trim().isEmpty) {
+      throw const CourseFailure('The stored video path is empty.');
+    }
+    try {
+      return await _storage.storage
+          .from(SupabaseOptions.mediaBucket)
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+    } on StorageException catch (error) {
+      debugPrint('Course media URL refresh error: ${error.statusCode} ${error.message}');
+      throw const CourseFailure('The video URL could not be refreshed.');
     }
   }
 
@@ -100,7 +130,13 @@ class CourseService {
         'updatedAt': FieldValue.serverTimestamp(),
         if (isNew) 'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-    } catch (_) {
+    } on FirebaseException catch (error) {
+      debugPrint('Course Firestore save error: ${error.code} ${error.message}');
+      throw CourseFailure(
+        'Could not save the course to Firestore (${error.code}). Check your Firestore rules and try again.',
+      );
+    } catch (error) {
+      debugPrint('Course Firestore save error: $error');
       throw const CourseFailure(
         'Could not save the course to Firestore. Your entries are retained; please retry.',
       );

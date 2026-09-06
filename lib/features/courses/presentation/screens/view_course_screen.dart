@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
+import '../../services/course_service.dart';
 import '../widgets/course_form_widgets.dart';
+import '../widgets/lesson_video_player.dart';
 import 'create_course_screen.dart';
 
 class ViewCourseScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class ViewCourseScreen extends StatefulWidget {
 
 class _ViewCourseScreenState extends State<ViewCourseScreen> {
   late CourseDraft _course = widget.course;
+  final _courseService = CourseService();
   Future<void> _edit() async {
     final result = await Navigator.push<CourseDraft>(
       context,
@@ -148,14 +151,14 @@ class _ViewCourseScreenState extends State<ViewCourseScreen> {
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(course.lessons[i].description),
                       ),
-                    if (course.lessons[i].video != null)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Video attached',
-                          style: TextStyle(color: Colors.black54),
-                        ),
+                    if (course.lessons[i].video != null) ...[
+                      const SizedBox(height: 12),
+                      LessonVideoPlayer(
+                        url: course.lessons[i].video!.url,
+                        storagePath: course.lessons[i].video!.path,
+                        onRefreshUrl: _courseService.refreshMediaUrl,
                       ),
+                    ],
                     if (course.lessons[i].materials.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       const Text(
