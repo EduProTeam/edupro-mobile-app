@@ -29,17 +29,17 @@ class CourseService {
         : _db.collection('courses').where('status', isEqualTo: 'published');
     return query.snapshots().map((snapshot) {
       final courses = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final time = data['updatedAt'];
-        return CourseDraft.fromMap(
-          doc.id,
-          data,
-          updatedAt: time is Timestamp ? time.millisecondsSinceEpoch : 0,
-          createdAt: data['createdAt'] is Timestamp
-              ? (data['createdAt'] as Timestamp).millisecondsSinceEpoch
-              : 0,
-        );
-      }).toList();
+          final data = doc.data();
+          final time = data['updatedAt'];
+          return CourseDraft.fromMap(
+            doc.id,
+            data,
+            updatedAt: time is Timestamp ? time.millisecondsSinceEpoch : 0,
+            createdAt: data['createdAt'] is Timestamp
+                ? (data['createdAt'] as Timestamp).millisecondsSinceEpoch
+                : 0,
+          );
+        }).toList();
       courses.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return courses;
     });
