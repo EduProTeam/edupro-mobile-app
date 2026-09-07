@@ -41,11 +41,11 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
   late List<int?> _answers = List<int?>.filled(_quiz.questions.length, null);
   bool _busy = false;
   String? _message;
-  bool _failed = false;
+  VerificationResult? _result;
 
   Future<void> _submit() async {
     if (_answers.any((answer) => answer == null)) {
-      setState(() => _message = 'Please answer all 10 questions before submitting.');
+      setState(() => _message = 'Please answer all ${_quiz.questions.length} questions before submitting.');
       return;
     }
     setState(() {
@@ -59,11 +59,14 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
       );
       if (!mounted) return;
       if (result.passed) {
-        Navigator.of(context).pop(true);
+        setState(() => _result = result);
+        Future<void>.delayed(const Duration(seconds: 2), () {
+          if (mounted) Navigator.of(context).pop(true);
+        });
       } else {
         setState(() {
-          _failed = true;
-          _message = 'You scored ${result.score}/10. You need at least 7/10 to unlock lessons.';
+          _result = result;
+          _message = null;
         });
       }
     } on CourseVerificationFailure catch (error) {
@@ -88,7 +91,7 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
         setState(() {
           _quiz = quiz;
           _answers = List<int?>.filled(quiz.questions.length, null);
-          _failed = false;
+          _result = null;
         });
       }
     } on CourseVerificationFailure catch (error) {
@@ -99,45 +102,166 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Course Creator Verification'),
-    content: SizedBox(
-      width: 560,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Answer at least 7 of 10 questions correctly to unlock lesson uploads.'),
-            const SizedBox(height: 12),
-            for (var i = 0; i < _quiz.questions.length; i++) ...[
-              Text('${i + 1}. ${_quiz.questions[i].question}', style: const TextStyle(fontWeight: FontWeight.w700)),
-              for (var option = 0; option < 4; option++)
-                RadioListTile<int>(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  value: option,
-                  groupValue: _answers[i],
-                  onChanged: _busy || _failed
-                      ? null
-                      : (value) => setState(() => _answers[i] = value),
-                  title: Text(_quiz.questions[i].options[option]),
+  Widget build(BuildContext context) {
+    final result = _result;
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      constraints: BoxConstraints(maxWidth: result == null ? 560 : 360),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (result == null)
+            const Expanded(child: Text('Course Creator Verification'))
+          else
+            const SizedBox(width: 36),
+          IconButton(
+            tooltip: 'Close quiz',
+            onPressed: () => Navigator.of(context).pop(false),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+      content: result != null
+          ? _QuizResultCard(result: result, total: _quiz.questions.length)
+          : SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Answer at least 4 of 5 questions correctly to unlock lesson uploads.'),
+                    const SizedBox(height: 12),
+                    for (var i = 0; i < _quiz.questions.length; i++) ...[
+                      Text('${i + 1}. ${_quiz.questions[i].question}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      for (var option = 0; option < 4; option++)
+                        RadioListTile<int>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          value: option,
+                          groupValue: _answers[i],
+                          onChanged: _busy ? null : (value) => setState(() => _answers[i] = value),
+                          title: Text(_quiz.questions[i].options[option]),
+                        ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (_message != null) Text(_message!, style: const TextStyle(color: Colors.red)),
+                  ],
                 ),
-              const SizedBox(height: 8),
-            ],
-            if (_message != null)
-              Text(_message!, style: TextStyle(color: _failed ? Colors.red : Colors.red)),
+              ),
+            ),
+      actions: [
+        if (result?.passed == false)
+          FilledButton.icon(
+            onPressed: _busy ? null : _retry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry Quiz'),
+            style: FilledButton.styleFrom(backgroundColor: OnboardingScreenLayout.primaryBlue),
+          )
+        else if (result == null)
+          FilledButton(
+            onPressed: _busy ? null : _submit,
+            style: FilledButton.styleFrom(backgroundColor: OnboardingScreenLayout.primaryBlue),
+            child: Text(_busy ? 'Checking…' : 'Submit Quiz'),
+          ),
+      ],
+    );
+  }
+}
+
+class _QuizResultCard extends StatelessWidget {
+  const _QuizResultCard({required this.result, required this.total});
+
+  final VerificationResult result;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final passed = result.passed;
+    final accent = passed ? OnboardingScreenLayout.primaryBlue : const Color(0xFFE56C2F);
+    final pill = passed ? const Color(0xFFE5F4EA) : const Color(0xFFFFEAE2);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (passed) const _SuccessConfetti(),
+        Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(color: accent.withValues(alpha: .12), shape: BoxShape.circle),
+          child: Icon(passed ? Icons.workspace_premium_outlined : Icons.refresh_rounded, color: accent, size: 32),
+        ),
+        const SizedBox(height: 14),
+        Text(passed ? 'Congratulations!' : 'Not Quite There', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: pill, borderRadius: BorderRadius.circular(24)),
+          child: Text(
+            passed ? 'Quiz Passed' : 'Quiz Failed',
+            style: TextStyle(color: accent, fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text('${result.score} / $total', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: accent)),
+        const SizedBox(height: 8),
+        Text(
+          passed ? "You're verified!" : 'You need at least 4/5 to get verified.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.black54),
+        ),
+      ],
+    );
+  }
+}
+
+class _SuccessConfetti extends StatelessWidget {
+  const _SuccessConfetti();
+
+  @override
+  Widget build(BuildContext context) {
+    const colors = [
+      OnboardingScreenLayout.primaryBlue,
+      Color(0xFF17A2A4),
+      Color(0xFFF3A330),
+      Color(0xFF4B86D1),
+    ];
+    const positions = [12.0, 49.0, 86.0, 125.0, 164.0, 204.0, 242.0];
+    return SizedBox(
+      height: 48,
+      width: 270,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1400),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => Stack(
+          children: [
+            for (var i = 0; i < positions.length; i++)
+              Positioned(
+                left: positions[i],
+                top: 5 + value * (i.isEven ? 32 : 22),
+                child: Opacity(
+                  opacity: (1 - value).clamp(0, 1),
+                  child: Transform.rotate(
+                    angle: value * (i.isEven ? 5 : -5),
+                    child: Container(
+                      width: 6,
+                      height: 11,
+                      decoration: BoxDecoration(
+                        color: colors[i % colors.length],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
-    ),
-    actions: [
-      if (_failed)
-        FilledButton(onPressed: _busy ? null : _retry, child: const Text('Retry Quiz'))
-      else
-        FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Checking…' : 'Submit Quiz')),
-    ],
-  );
+    );
+  }
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
@@ -396,7 +520,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         _busy = true;
         _operation = 'Saving verified course details…';
       });
-      await _upload(_cover!);
       await _service.save(
         _buildCourse(CourseStatus.draft, includeLessons: false),
         isNew: true,
