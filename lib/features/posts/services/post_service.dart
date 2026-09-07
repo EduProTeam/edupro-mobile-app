@@ -62,6 +62,7 @@ class PublishedPost {
     required this.commentCount,
     required this.createdAt,
     this.userProfileImage,
+    this.likedBy = const [],
   });
 
   factory PublishedPost.fromDocument(
@@ -82,6 +83,7 @@ class PublishedPost {
       attachmentName: _stringValue(data['attachmentName']),
       linkUrl: _stringValue(data['linkUrl']),
       likeCount: _countValue(data['likeCount']),
+      likedBy: _stringList(data['likedBy']),
       commentCount: _countValue(data['commentCount']),
       createdAt: data['createdAt'] is Timestamp
           ? data['createdAt'] as Timestamp
@@ -101,6 +103,7 @@ class PublishedPost {
   final String? attachmentName;
   final String? linkUrl;
   final int likeCount;
+  final List<String> likedBy;
   final int commentCount;
   final Timestamp? createdAt;
 
@@ -139,6 +142,39 @@ class PostService {
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+
+  Future<void> setPostLiked(String postId, {required bool liked}) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to like a post.');
+    }
+
+    final reference = _firestore.collection('posts').doc(postId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(reference);
+        final data = snapshot.data();
+        if (data == null || data['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        final likedBy = PublishedPost._stringList(data['likedBy']);
+        if (likedBy.contains(user.uid) == liked) return;
+
+        transaction.update(reference, {
+          'likedBy': liked
+              ? FieldValue.arrayUnion([user.uid])
+              : FieldValue.arrayRemove([user.uid]),
+          'likeCount':
+              (PublishedPost._countValue(data['likeCount']) + (liked ? 1 : -1))
+                  .clamp(0, 0x7FFFFFFFFFFFFFFF),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to update like. Please try again.');
+    }
+  }
 
   Stream<List<PublishedPost>> watchPublishedPosts() {
     return _firestore
@@ -224,6 +260,7 @@ class PostService {
         'linkUrl': linkUrl,
         'status': status,
         'likeCount': 0,
+        'likedBy': <String>[],
         'commentCount': 0,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),

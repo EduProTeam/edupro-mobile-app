@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/post_service.dart';
+import 'post_like_button.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({super.key, required this.post});
@@ -107,11 +109,16 @@ class PostCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Icon(Icons.favorite_border, color: _textPrimary),
-              const SizedBox(width: 6),
-              Text(
-                '${post.likeCount}',
-                style: const TextStyle(color: _textPrimary),
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                initialData: FirebaseAuth.instance.currentUser,
+                builder: (context, snapshot) => PostLikeButton(
+                  key: ValueKey('${post.id}:${snapshot.data?.uid}'),
+                  likeCount: post.likeCount,
+                  isLiked: post.likedBy.contains(snapshot.data?.uid),
+                  onLike: (liked) =>
+                      PostService().setPostLiked(post.id, liked: liked),
+                ),
               ),
               const SizedBox(width: 24),
               const Icon(Icons.chat_bubble_outline, color: _textPrimary),
