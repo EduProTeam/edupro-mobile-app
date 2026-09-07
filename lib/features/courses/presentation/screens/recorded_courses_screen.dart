@@ -3,12 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
 import '../../services/course_service.dart';
+import '../widgets/my_courses_tab.dart';
+import 'create_course_screen.dart';
 import 'view_course_screen.dart';
 
 class RecordedCoursesScreen extends StatefulWidget {
-  const RecordedCoursesScreen({super.key, required this.onCreateCoursePressed});
+  const RecordedCoursesScreen({
+    super.key,
+    required this.onCreateCoursePressed,
+    this.service,
+  });
 
   final VoidCallback onCreateCoursePressed;
+  final CourseService? service;
 
   @override
   State<RecordedCoursesScreen> createState() => _RecordedCoursesScreenState();
@@ -16,12 +23,14 @@ class RecordedCoursesScreen extends StatefulWidget {
 
 class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
     with SingleTickerProviderStateMixin {
-  final _service = CourseService();
+  late final _service = widget.service ?? CourseService();
+  final Set<String> _deletingIds = <String>{};
   final _searchController = TextEditingController();
   final Set<String> _savedIds = <String>{};
-  final Map<String, int> _completedLessons = <String, int>{};
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 4, vsync: this);
   late Stream<List<CourseDraft>> _owned = _service.watchCourses(owned: true);
+  late final Stream<Map<String, CourseEnrollment>> _enrollments = _service
+      .watchEnrollments();
   late Stream<List<CourseDraft>> _published = _service.watchCourses(
     owned: false,
   );
@@ -50,8 +59,68 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
 
   void _openCourse(CourseDraft course) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => ViewCourseScreen(course: course)),
+      MaterialPageRoute<void>(
+        builder: (_) => ViewCourseScreen(course: course, service: _service),
+      ),
     );
+  }
+
+  void _editCourse(CourseDraft course) {
+    Navigator.of(context).push<CourseDraft>(
+      MaterialPageRoute(
+        builder: (_) => CreateCourseScreen(course: course, service: _service),
+      ),
+    );
+  }
+
+  Future<void> _deleteCourse(CourseDraft course) async {
+    if (_deletingIds.contains(course.id)) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Course?'),
+        content: Text(
+          'Are you sure you want to delete “${course.title.isEmpty ? 'Untitled course' : course.title}”? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true || _deletingIds.contains(course.id)) {
+      return;
+    }
+    setState(() => _deletingIds.add(course.id));
+    try {
+      await _service.delete(course);
+      if (!mounted) return;
+      setState(() {
+        _savedIds.remove(course.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Course deleted successfully.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is CourseFailure
+                ? error.message
+                : 'Could not delete the course. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingIds.remove(course.id));
+    }
   }
 
   List<CourseDraft> _publicCourses(List<CourseDraft> remoteCourses) {
@@ -65,6 +134,7 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
       return [
         course.title,
         course.category,
+        course.status.name,
         course.instructorName,
         course.level,
       ].any((value) => value.toLowerCase().contains(query));
@@ -173,6 +243,8 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
           const SizedBox(height: 12),
           TabBar(
             controller: _tabs,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             labelColor: OnboardingScreenLayout.primaryBlue,
             unselectedLabelColor: const Color(0xFF707B94),
             labelStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -183,6 +255,7 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
               Tab(text: 'All Courses'),
               Tab(text: 'In Progress'),
               Tab(text: 'Saved'),
+              Tab(text: 'My Courses'),
             ],
           ),
           Expanded(
@@ -196,13 +269,37 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
                   onOpen: _openCourse,
                   onToggleSaved: _toggleSaved,
                 ),
-                _InProgressTab(
-                  courses: _matching(
-                    publicCourses.where(_completedLessons.containsKey).toList(),
-                  ),
-                  completedLessons: _completedLessons,
-                  onOpen: _openCourse,
-                  onBrowse: _showAllCourses,
+                StreamBuilder<Map<String, CourseEnrollment>>(
+                  stream: _enrollments,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const _EmptyCourses(
+                        title: 'Could not load enrollments',
+                        message:
+                            'Check your connection and reopen Recorded Courses.',
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return _InProgressTab(
+                      courses: _matching(
+                        publicCourses
+                            .where(
+                              (course) => snapshot.data!.containsKey(course.id),
+                            )
+                            .toList(),
+                      ),
+                      completedLessons: {
+                        for (final entry in snapshot.data!.entries)
+                          entry.key: entry.value.completedLessonIds.length,
+                      },
+                      savedIds: _savedIds,
+                      onOpen: _openCourse,
+                      onToggleSaved: _toggleSaved,
+                      onBrowse: _showAllCourses,
+                    );
+                  },
                 ),
                 _SavedTab(
                   courses: _matching(
@@ -213,6 +310,16 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
                   onOpen: _openCourse,
                   onToggleSaved: _toggleSaved,
                   onBrowse: _showAllCourses,
+                ),
+                MyCoursesTab(
+                  courses: _matching(ownedCourses),
+                  searching: _searchController.text.trim().isNotEmpty,
+                  deletingIds: _deletingIds,
+                  onOpen: _openCourse,
+                  onEdit: _editCourse,
+                  onDelete: _deleteCourse,
+                  onCreate: widget.onCreateCoursePressed,
+                  onClearSearch: _searchController.clear,
                 ),
               ],
             ),
@@ -288,13 +395,17 @@ class _InProgressTab extends StatelessWidget {
   const _InProgressTab({
     required this.courses,
     required this.completedLessons,
+    required this.savedIds,
     required this.onOpen,
+    required this.onToggleSaved,
     required this.onBrowse,
   });
 
   final List<CourseDraft> courses;
   final Map<String, int> completedLessons;
+  final Set<String> savedIds;
   final ValueChanged<CourseDraft> onOpen;
+  final ValueChanged<String> onToggleSaved;
   final VoidCallback onBrowse;
 
   @override
@@ -322,7 +433,9 @@ class _InProgressTab extends StatelessWidget {
           completed: completed,
           total: total,
           progress: progress,
+          saved: savedIds.contains(course.id),
           onOpen: onOpen,
+          onToggleSaved: onToggleSaved,
         );
       },
     );
@@ -473,16 +586,18 @@ class _CourseCard extends StatelessWidget {
                                 : course.rating.toStringAsFixed(1),
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          const SizedBox(width: 9),
-                          Flexible(
-                            child: Text(
-                              course.totalDuration.isEmpty
-                                  ? 'Self paced'
-                                  : course.totalDuration,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Color(0xFF707B94)),
+                          if (course.totalDuration.isNotEmpty) ...[
+                            const SizedBox(width: 9),
+                            Flexible(
+                              child: Text(
+                                course.totalDuration,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF707B94),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                           const Spacer(),
                           _PriceBadge(course: course, draft: draft),
                         ],
@@ -505,83 +620,148 @@ class _ProgressCourseCard extends StatelessWidget {
     required this.completed,
     required this.total,
     required this.progress,
+    required this.saved,
     required this.onOpen,
+    required this.onToggleSaved,
   });
 
   final CourseDraft course;
   final int completed;
   final int total;
   final double progress;
+  final bool saved;
   final ValueChanged<CourseDraft> onOpen;
+  final ValueChanged<String> onToggleSaved;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(22),
-    child: InkWell(
+  Widget build(BuildContext context) {
+    final remoteThumbnail =
+        Uri.tryParse(course.thumbnail?.url ?? '')?.hasScheme == true;
+    return Material(
+      color: Colors.white,
+      elevation: 2,
+      shadowColor: const Color(0x180E2145),
       borderRadius: BorderRadius.circular(22),
-      onTap: () => onOpen(course),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: _CourseThumbnail(course: course),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => onOpen(course),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 104,
+                  height: 104,
+                  child: remoteThumbnail
+                      ? Image.network(
+                          course.thumbnail!.url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              _CourseThumbnail(course: course),
+                        )
+                      : _CourseThumbnail(course: course),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    course.title,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$completed of $total lessons completed',
-              style: const TextStyle(color: Color(0xFF707B94)),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '${(progress * 100).round()}%',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => onOpen(course),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Continue Learning'),
               ),
-            ),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            course.title.isEmpty
+                                ? 'Untitled course'
+                                : course.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              height: 1.15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF111B35),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: saved ? 'Remove from saved' : 'Save course',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          onPressed: () => onToggleSaved(course.id),
+                          icon: Icon(
+                            saved ? Icons.favorite : Icons.favorite_border,
+                            color: saved
+                                ? OnboardingScreenLayout.primaryBlue
+                                : const Color(0xFF59647B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 10,
+                            color: OnboardingScreenLayout.primaryBlue,
+                            backgroundColor: const Color(0xFFE2E7F0),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Text(
+                          '${(progress * 100).round()}%',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111B35),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 9),
+                    Text(
+                      '$completed of $total lessons completed',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF707B94),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 13),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => onOpen(course),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                        label: const Text('Continue Learning'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: OnboardingScreenLayout.primaryBlue,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(44),
+                          shape: const StadiumBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _CourseThumbnail extends StatelessWidget {

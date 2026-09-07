@@ -58,7 +58,7 @@ void main() {
     expect(course.toMap().containsKey('modules'), isFalse);
     expect(() => restored.lessons.clear(), throwsUnsupportedError);
   });
-  testWidgets('mobile lesson add, edit, remove and numbering', (tester) async {
+  testWidgets('new-course lessons stay locked until verification', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -76,42 +76,15 @@ void main() {
           )
           .first,
     );
+    expect(find.text('Verify to Unlock Lessons'), findsOneWidget);
     expect(find.text('Lesson 01'), findsOneWidget);
     expect(find.text('Remove Lesson'), findsNothing);
     await tester.tap(find.text('Add Another Lesson'));
     await tester.pumpAndSettle();
-    expect(find.text('Create Lesson'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).at(2), 'Second lesson');
-    await tester.tap(find.text('Save Lesson'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Second lesson'),
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const ValueKey('course-scroll')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    expect(find.text('Second lesson'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Remove Lesson').first,
-      -200,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const ValueKey('course-scroll')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.tap(find.text('Remove Lesson').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Lesson 02'), findsNothing);
-    expect(find.text('Remove Lesson'), findsNothing);
+    expect(find.text('Create Lesson'), findsNothing);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('incomplete draft saves but incomplete publish is blocked', (
+  testWidgets('new course cannot save before verification', (
     tester,
   ) async {
     final service = MemoryCourseService();
@@ -122,12 +95,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(InlineLessonEditor), findsOneWidget);
     expect(service.saved, isNull);
+    await tester.ensureVisible(find.text('Cancel'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save as Draft'));
     await tester.pumpAndSettle();
-    expect(service.saved?.status, CourseStatus.draft);
-    expect(service.saved?.lessons.length, 1);
+    expect(service.saved, isNull);
+    expect(find.text('Pass the course verification quiz before saving lessons.'), findsOneWidget);
   });
   testWidgets('price fields only appear for Paid', (tester) async {
     await tester.pumpWidget(
