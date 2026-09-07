@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/post_service.dart';
 import 'post_like_button.dart';
+import 'post_comments_sheet.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({super.key, required this.post});
@@ -125,7 +126,25 @@ class PostCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 24),
-              const Icon(Icons.chat_bubble_outline, color: _textPrimary),
+              IconButton(
+                tooltip: 'View comments',
+                icon: const Icon(
+                  Icons.chat_bubble_outline,
+                  color: _textPrimary,
+                ),
+                onPressed: () {
+                  final service = PostService();
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (_) => PostCommentsSheet(
+                      watchComments: () => service.watchComments(post.id),
+                      onSubmit: (text) => service.addComment(post.id, text),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(width: 6),
               Text(
                 '${post.commentCount}',

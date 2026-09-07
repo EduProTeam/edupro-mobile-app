@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../supabase_options.dart';
+import '../models/post_comment.dart';
 
 enum PostAttachmentType { image, video, file, link }
 
@@ -145,6 +146,69 @@ class PostService {
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+
+  Stream<List<PostComment>> watchComments(String postId) {
+    return _firestore
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .orderBy('createdAt')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(PostComment.fromDocument)
+              .toList(growable: false),
+        );
+  }
+
+  Future<void> addComment(String postId, String text) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to comment.');
+    }
+    final content = text.trim();
+    if (content.isEmpty || content.length > 2000) {
+      throw const PostFailure(
+        'Enter a comment between 1 and 2,000 characters.',
+      );
+    }
+    try {
+      final profile = await _firestore.collection('users').doc(user.uid).get();
+      final post = _firestore.collection('posts').doc(postId);
+      final comment = post.collection('comments').doc();
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(post);
+        final data = snapshot.data();
+        if (data == null || data['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        transaction.set(comment, {
+          'userId': user.uid,
+          'userName':
+              _firstNonEmpty([
+                profile.data()?['fullName'],
+                user.displayName,
+                user.email?.split('@').first,
+              ]) ??
+              'EduPro user',
+          'profileImageUrl': _firstNonEmpty([
+            profile.data()?['profileImageUrl'],
+            user.photoURL,
+          ]),
+          'text': content,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        transaction.update(post, {
+          'commentCount': PublishedPost._countValue(data['commentCount']) + 1,
+          'lastCommentId': comment.id,
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to send comment. Please try again.');
+    }
+  }
 
   Future<void> setPostLiked(String postId, {required bool liked}) async {
     final user = _firebaseAuth.currentUser;
