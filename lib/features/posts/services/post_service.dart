@@ -62,6 +62,7 @@ class PublishedPost {
     required this.commentCount,
     required this.createdAt,
     this.userProfileImage,
+    this.userId,
     this.likedBy = const [],
   });
 
@@ -73,6 +74,7 @@ class PublishedPost {
     return PublishedPost(
       id: _stringValue(data['postId']) ?? document.id,
       userName: _stringValue(data['userName']) ?? 'EduPro user',
+      userId: _stringValue(data['userId']),
       userProfileImage: _stringValue(data['userProfileImage']),
       title: _stringValue(data['title']) ?? 'Untitled post',
       category: _stringValue(data['category']) ?? 'General',
@@ -93,6 +95,7 @@ class PublishedPost {
 
   final String id;
   final String userName;
+  final String? userId;
   final String? userProfileImage;
   final String title;
   final String category;

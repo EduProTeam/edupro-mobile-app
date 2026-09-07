@@ -39,7 +39,11 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _PostAvatar(imageUrl: post.userProfileImage),
+              _PostAuthorAvatar(
+                key: ValueKey(post.userId ?? post.id),
+                userId: post.userId,
+                savedImageUrl: post.userProfileImage,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -173,6 +177,49 @@ class PostCard extends StatelessWidget {
       return 'Yesterday';
     }
     return '${difference.inDays}d ago';
+  }
+}
+
+class _PostAuthorAvatar extends StatefulWidget {
+  const _PostAuthorAvatar({
+    super.key,
+    required this.userId,
+    required this.savedImageUrl,
+  });
+
+  final String? userId;
+  final String? savedImageUrl;
+
+  @override
+  State<_PostAuthorAvatar> createState() => _PostAuthorAvatarState();
+}
+
+class _PostAuthorAvatarState extends State<_PostAuthorAvatar> {
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>>? _profile =
+      widget.userId == null
+      ? null
+      : FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.userId)
+            .snapshots();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _profile,
+      builder: (context, snapshot) {
+        final profile = snapshot.data?.data();
+        // Explicit null means the author removed their photo. Only use the
+        // post's saved photo when the current profile field is unavailable.
+        final value = profile != null && profile.containsKey('profileImageUrl')
+            ? profile['profileImageUrl']
+            : widget.savedImageUrl;
+        final imageUrl = value is String && value.trim().isNotEmpty
+            ? value.trim()
+            : null;
+        return _PostAvatar(imageUrl: imageUrl);
+      },
+    );
   }
 }
 
