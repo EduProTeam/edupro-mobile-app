@@ -56,14 +56,20 @@ match /users/{studentId}/courseEnrollments/{courseId} {
   function student() { return request.auth != null && request.auth.uid == studentId; }
   allow read: if student();
   allow create: if student()
-    && request.resource.data.keys().hasOnly(['courseId', 'userId', 'enrolledAt'])
+    && request.resource.data.keys().hasOnly(['courseId', 'userId', 'enrolledAt', 'completedLessonIds'])
     && request.resource.data.courseId == courseId
     && request.resource.data.userId == studentId
     && request.resource.data.enrolledAt == request.time
+    && request.resource.data.completedLessonIds == []
     && get(/databases/$(database)/documents/courses/$(courseId)).data.status == 'published'
     && getAfter(/databases/$(database)/documents/courses/$(courseId)).data.enrollmentCount
        == get(/databases/$(database)/documents/courses/$(courseId)).data.get('enrollmentCount', 0) + 1;
-  allow update, delete: if false;
+  allow update: if student()
+    && request.resource.data.diff(resource.data).affectedKeys()
+       .hasOnly(['completedLessonIds', 'lastProgressAt'])
+    && request.resource.data.completedLessonIds is list
+    && request.resource.data.completedLessonIds.size() >= resource.data.completedLessonIds.size();
+  allow delete: if false;
 }
 ```
 
@@ -77,11 +83,11 @@ My Courses searches title, category and status (as well as the existing instruct
 
 ## Enrollment
 
-`users/{studentId}/courseEnrollments/{courseId}` is the unique enrollment record. `courses/{courseId}.enrollmentCount` starts at zero for new courses; legacy courses display zero until their first enrollment initializes the field. A Firestore transaction checks for an existing enrollment before creating it and incrementing the count. Concurrent requests and retries therefore count the same student once. The overview subscribes to the authenticated student's records and shows Continue Learning for existing enrollments, including after restarting the app. In Progress uses those same records. See [Firebase transaction documentation](https://firebase.google.com/docs/firestore/manage-data/transactions) for atomic updates and `getAfter` validation.
+`users/{studentId}/courseEnrollments/{courseId}` is the unique enrollment record. `courses/{courseId}.enrollmentCount` starts at zero for new courses; legacy courses display zero until their first enrollment initializes the field. A Firestore transaction checks for an existing enrollment before creating it and incrementing the count. Concurrent requests and retries therefore count the same student once. The enrollment record also stores `completedLessonIds`; marking a lesson complete is idempotent and updates this list in a transaction. The overview subscribes to the authenticated student's record and shows Continue Learning for existing enrollments, including after restarting the app. In Progress calculates its lesson count and percentage from the stored IDs. See [Firebase transaction documentation](https://firebase.google.com/docs/firestore/manage-data/transactions) for atomic updates and `getAfter` validation.
 
 Merge **both** rule matches above into the actual project's rules before enabling enrollment. Existing owner-only update rules cannot authorize a student's counter update. Remove conflicting broad recursive grants that would let clients modify counts or enrollment records independently. These examples have not been deployed or tested against a live project. A deployed rules/emulator test must check anonymous access, another student's record, repeated enrollment, concurrent enrollment, forged counts, and owner edits preserving the count.
 
-Previously simulated enrollments were held only in widget memory and cannot be recovered or backfilled. No bulk migration or live database write was performed. Course deletion retains enrollment records as well as media; deleted courses are excluded from In Progress by joining against existing published courses. Use trusted backend cleanup for retained records. Enrollment is registration only: payment processing, paid-content authorization and lesson completion tracking remain outside the existing architecture. Creators can also enroll through the overview and are counted once, like any authenticated account.
+Previously simulated enrollments were held only in widget memory and cannot be recovered or backfilled. No bulk migration or live database write was performed. Course deletion retains enrollment records as well as media; deleted courses are excluded from In Progress by joining against existing published courses. Use trusted backend cleanup for retained records. The client lets an enrolled student mark a lesson complete after playback is available; it does not prove watch time. Firestore rules cannot validate that arbitrary lesson IDs belong to an array on the course document, so trusted backend validation is needed if fraudulent completion must be prevented. Creators can also enroll through the overview and are counted once, like any authenticated account.
 
 ## Supabase access
 

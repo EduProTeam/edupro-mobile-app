@@ -124,15 +124,31 @@ class StudentService extends CourseService {
 class EnrollmentUiService extends CourseService {
   bool enrolled = false;
   int attempts = 0;
+  int completionAttempts = 0;
+  Set<String> completedLessonIds = <String>{};
   Completer<void>? pending;
   @override
-  Stream<Set<String>> watchEnrolledCourseIds() =>
-      Stream.value(enrolled ? {'course'} : <String>{});
+  Stream<Map<String, CourseEnrollment>> watchEnrollments() => Stream.value(
+    enrolled
+        ? {
+            'course': CourseEnrollment(
+              courseId: 'course',
+              completedLessonIds: completedLessonIds,
+            ),
+          }
+        : <String, CourseEnrollment>{},
+  );
   @override
   Future<void> enroll(String courseId) async {
     attempts++;
     await pending?.future;
     enrolled = true;
+  }
+
+  @override
+  Future<void> completeLesson(String courseId, String lessonId) async {
+    completionAttempts++;
+    completedLessonIds = {...completedLessonIds, lessonId};
   }
 }
 
@@ -152,6 +168,13 @@ void main() {
       );
       await StudentService(db, 'another').enroll('course');
       expect(db.docs['courses/course']!['enrollmentCount'], 2);
+      await student.completeLesson('course', 'lesson-one');
+      await student.completeLesson('course', 'lesson-one');
+      await student.completeLesson('course', 'lesson-two');
+      expect(
+        db.docs['users/student/courseEnrollments/course']!['completedLessonIds'],
+        ['lesson-one', 'lesson-two'],
+      );
     },
   );
 
@@ -170,6 +193,10 @@ void main() {
         throwsA(isA<CourseFailure>()),
       );
       expect(db.docs['courses/course']!['enrollmentCount'], 3);
+      await expectLater(
+        student.completeLesson('course', 'lesson'),
+        throwsA(isA<CourseFailure>()),
+      );
       expect(
         db.docs.containsKey('users/student/courseEnrollments/course'),
         isFalse,
@@ -243,4 +270,36 @@ void main() {
       expect(find.text('Enroll for Free'), findsNothing);
     },
   );
+
+  testWidgets('marking a lesson complete persists its completed state', (
+    tester,
+  ) async {
+    final service = EnrollmentUiService()..enrolled = true;
+    final lesson = CourseLesson(id: 'lesson', title: 'Introduction');
+    final course = CourseDraft(
+      id: 'course',
+      title: 'Course',
+      category: 'Design',
+      description: 'Description',
+      language: 'English',
+      type: CourseType.free,
+      currency: 'USD',
+      price: 0,
+      status: CourseStatus.published,
+      lessons: [lesson],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ViewCourseScreen(course: course, service: service),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Introduction'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mark as Complete'), findsOneWidget);
+    await tester.tap(find.text('Mark as Complete'));
+    await tester.pumpAndSettle();
+    expect(service.completionAttempts, 1);
+    expect(find.text('Completed'), findsOneWidget);
+  });
 }

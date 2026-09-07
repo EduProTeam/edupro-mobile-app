@@ -176,15 +176,26 @@ class CourseService {
     }
   }
 
-  Stream<Set<String>> watchEnrolledCourseIds() {
-    if (userId.isEmpty) return Stream.value(<String>{});
+  Stream<Map<String, CourseEnrollment>> watchEnrollments() {
+    if (userId.isEmpty) return Stream.value(<String, CourseEnrollment>{});
     return _db
         .collection('users')
         .doc(userId)
         .collection('courseEnrollments')
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
+        .map(
+          (snapshot) => {
+            for (final document in snapshot.docs)
+              document.id: CourseEnrollment.fromMap(
+                document.id,
+                document.data(),
+              ),
+          },
+        );
   }
+
+  Stream<Set<String>> watchEnrolledCourseIds() =>
+      watchEnrollments().map((enrollments) => enrollments.keys.toSet());
 
   Future<void> enroll(String courseId) async {
     final studentId = userId;
@@ -212,6 +223,7 @@ class CourseService {
           'courseId': courseId,
           'userId': studentId,
           'enrolledAt': FieldValue.serverTimestamp(),
+          'completedLessonIds': <String>[],
         });
         transaction.update(courseRef, {'enrollmentCount': count + 1});
       });
@@ -221,6 +233,45 @@ class CourseService {
       debugPrint('Course enrollment error: $error');
       throw const CourseFailure(
         'Could not enroll. Check your connection and try again.',
+      );
+    }
+  }
+
+  Future<void> completeLesson(String courseId, String lessonId) async {
+    final studentId = userId;
+    if (studentId.isEmpty) {
+      throw const CourseFailure('Sign in to track lesson progress.');
+    }
+    if (lessonId.trim().isEmpty) {
+      throw const CourseFailure('This lesson cannot be marked as complete.');
+    }
+    final enrollmentRef = _db
+        .collection('users')
+        .doc(studentId)
+        .collection('courseEnrollments')
+        .doc(courseId);
+    try {
+      await _db.runTransaction((transaction) async {
+        final enrollment = await transaction.get(enrollmentRef);
+        if (!enrollment.exists) {
+          throw const CourseFailure('Enroll in this course to track progress.');
+        }
+        final existing =
+            (enrollment.data()?['completedLessonIds'] as List? ?? [])
+                .whereType<String>()
+                .toSet();
+        if (!existing.add(lessonId)) return;
+        transaction.update(enrollmentRef, {
+          'completedLessonIds': existing.toList()..sort(),
+          'lastProgressAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on CourseFailure {
+      rethrow;
+    } catch (error) {
+      debugPrint('Course lesson progress error: $error');
+      throw const CourseFailure(
+        'Could not save lesson progress. Check your connection and try again.',
       );
     }
   }
@@ -273,4 +324,23 @@ class CourseService {
 class CourseFailure implements Exception {
   const CourseFailure(this.message);
   final String message;
+}
+
+class CourseEnrollment {
+  const CourseEnrollment({
+    required this.courseId,
+    required this.completedLessonIds,
+  });
+
+  final String courseId;
+  final Set<String> completedLessonIds;
+
+  factory CourseEnrollment.fromMap(String courseId, Map<String, dynamic> data) {
+    return CourseEnrollment(
+      courseId: courseId,
+      completedLessonIds: Set.unmodifiable(
+        (data['completedLessonIds'] as List? ?? []).whereType<String>(),
+      ),
+    );
+  }
 }

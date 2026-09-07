@@ -30,6 +30,7 @@ class CoursesService extends CourseService {
   int deletions = 0;
   bool failDelete = false;
   bool? lastSaveWasNew;
+  Set<String> enrolledCourseIds = <String>{};
   @override
   Future<void> save(CourseDraft course, {required bool isNew}) async {
     lastSaveWasNew = isNew;
@@ -45,7 +46,16 @@ class CoursesService extends CourseService {
   @override
   String get userId => 'owner';
   @override
-  Stream<Set<String>> watchEnrolledCourseIds() => Stream.value(<String>{});
+  Stream<Set<String>> watchEnrolledCourseIds() =>
+      Stream.value(enrolledCourseIds);
+  @override
+  Stream<Map<String, CourseEnrollment>> watchEnrollments() => Stream.value({
+    for (final courseId in enrolledCourseIds)
+      courseId: CourseEnrollment(
+        courseId: courseId,
+        completedLessonIds: const <String>{},
+      ),
+  });
   @override
   Stream<List<CourseDraft>> watchCourses({required bool owned}) async* {
     if (owned) {
@@ -66,6 +76,35 @@ class CoursesService extends CourseService {
 }
 
 void main() {
+  testWidgets(
+    'In Progress uses the illustrated card with progress and play action',
+    (tester) async {
+      final service = CoursesService()..enrolledCourseIds = {'Other course'};
+      addTearDown(service.changes.close);
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecordedCoursesScreen(
+            service: service,
+            onCreateCoursePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('In Progress'));
+      await tester.pumpAndSettle();
+      expect(find.text('Other course'), findsOneWidget);
+      expect(find.text('0%'), findsOneWidget);
+      expect(find.text('0 of 1 lessons completed'), findsOneWidget);
+      expect(find.text('Continue Learning'), findsOneWidget);
+      expect(find.byTooltip('Save course'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'My Courses lists owned drafts and published courses and opens editor',
     (tester) async {
