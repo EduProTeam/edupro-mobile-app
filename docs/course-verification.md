@@ -1,11 +1,10 @@
 # Course creator verification
 
-New courses are not saved until their creator scores at least 7 out of 10 on an AI-generated subject quiz. For this academic-demo version, Flutter calls Gemini directly and keeps the answer key only in the running app's memory.
+New courses are not saved until their creator scores at least 4 out of 5 on a predefined, topic-specific quiz. No external AI service or API key is used.
 
 ## One-time setup
 
-1. Create a Gemini API key in Google AI Studio.
-2. Run `flutter pub get` in the project root.
-3. Start the app with `flutter run --dart-define=GEMINI_API_KEY=your_key_here`.
+1. Run `flutter pub get` in the project root.
+2. Start the app with `flutter run`.
 
-The app uses `gemini-2.0-flash`, generating only ten concise questions per attempt to preserve free-tier usage. Retrying generates a fresh quiz. This direct-client implementation is deliberately not production-secure: a determined user can inspect the compiled app and bypass client-side scoring.
+The course title chooses the quiz topic within its selected category. Development supports Python, Java, JavaScript, C#, SQL, Flutter, Dart, HTML, CSS, and React. Design & UI/UX, Marketing, and Business each have ten supported subtopics; Other has five general-skills topics. Each topic has five predefined questions. Retrying restarts the same topic quiz. This client-side implementation is suitable for an academic demonstration, not production security.
