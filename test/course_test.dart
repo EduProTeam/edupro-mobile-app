@@ -122,6 +122,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(InlineLessonEditor), findsOneWidget);
     expect(service.saved, isNull);
+    await tester.ensureVisible(find.text('Cancel'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save as Draft'));

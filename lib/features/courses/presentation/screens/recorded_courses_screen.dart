@@ -3,12 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
 import '../../services/course_service.dart';
+import '../widgets/my_courses_tab.dart';
+import 'create_course_screen.dart';
 import 'view_course_screen.dart';
 
 class RecordedCoursesScreen extends StatefulWidget {
-  const RecordedCoursesScreen({super.key, required this.onCreateCoursePressed});
+  const RecordedCoursesScreen({
+    super.key,
+    required this.onCreateCoursePressed,
+    this.service,
+  });
 
   final VoidCallback onCreateCoursePressed;
+  final CourseService? service;
 
   @override
   State<RecordedCoursesScreen> createState() => _RecordedCoursesScreenState();
@@ -16,12 +23,15 @@ class RecordedCoursesScreen extends StatefulWidget {
 
 class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
     with SingleTickerProviderStateMixin {
-  final _service = CourseService();
+  late final _service = widget.service ?? CourseService();
+  final Set<String> _deletingIds = <String>{};
   final _searchController = TextEditingController();
   final Set<String> _savedIds = <String>{};
   final Map<String, int> _completedLessons = <String, int>{};
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 4, vsync: this);
   late Stream<List<CourseDraft>> _owned = _service.watchCourses(owned: true);
+  late final Stream<Set<String>> _enrollments = _service
+      .watchEnrolledCourseIds();
   late Stream<List<CourseDraft>> _published = _service.watchCourses(
     owned: false,
   );
@@ -50,8 +60,69 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
 
   void _openCourse(CourseDraft course) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => ViewCourseScreen(course: course)),
+      MaterialPageRoute<void>(
+        builder: (_) => ViewCourseScreen(course: course, service: _service),
+      ),
     );
+  }
+
+  void _editCourse(CourseDraft course) {
+    Navigator.of(context).push<CourseDraft>(
+      MaterialPageRoute(
+        builder: (_) => CreateCourseScreen(course: course, service: _service),
+      ),
+    );
+  }
+
+  Future<void> _deleteCourse(CourseDraft course) async {
+    if (_deletingIds.contains(course.id)) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Course?'),
+        content: Text(
+          'Are you sure you want to delete “${course.title.isEmpty ? 'Untitled course' : course.title}”? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true || _deletingIds.contains(course.id)) {
+      return;
+    }
+    setState(() => _deletingIds.add(course.id));
+    try {
+      await _service.delete(course);
+      if (!mounted) return;
+      setState(() {
+        _savedIds.remove(course.id);
+        _completedLessons.remove(course.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Course deleted successfully.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is CourseFailure
+                ? error.message
+                : 'Could not delete the course. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingIds.remove(course.id));
+    }
   }
 
   List<CourseDraft> _publicCourses(List<CourseDraft> remoteCourses) {
@@ -65,6 +136,7 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
       return [
         course.title,
         course.category,
+        course.status.name,
         course.instructorName,
         course.level,
       ].any((value) => value.toLowerCase().contains(query));
@@ -173,6 +245,8 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
           const SizedBox(height: 12),
           TabBar(
             controller: _tabs,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             labelColor: OnboardingScreenLayout.primaryBlue,
             unselectedLabelColor: const Color(0xFF707B94),
             labelStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -183,6 +257,7 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
               Tab(text: 'All Courses'),
               Tab(text: 'In Progress'),
               Tab(text: 'Saved'),
+              Tab(text: 'My Courses'),
             ],
           ),
           Expanded(
@@ -196,13 +271,32 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
                   onOpen: _openCourse,
                   onToggleSaved: _toggleSaved,
                 ),
-                _InProgressTab(
-                  courses: _matching(
-                    publicCourses.where(_completedLessons.containsKey).toList(),
-                  ),
-                  completedLessons: _completedLessons,
-                  onOpen: _openCourse,
-                  onBrowse: _showAllCourses,
+                StreamBuilder<Set<String>>(
+                  stream: _enrollments,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const _EmptyCourses(
+                        title: 'Could not load enrollments',
+                        message:
+                            'Check your connection and reopen Recorded Courses.',
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return _InProgressTab(
+                      courses: _matching(
+                        publicCourses
+                            .where(
+                              (course) => snapshot.data!.contains(course.id),
+                            )
+                            .toList(),
+                      ),
+                      completedLessons: _completedLessons,
+                      onOpen: _openCourse,
+                      onBrowse: _showAllCourses,
+                    );
+                  },
                 ),
                 _SavedTab(
                   courses: _matching(
@@ -213,6 +307,16 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
                   onOpen: _openCourse,
                   onToggleSaved: _toggleSaved,
                   onBrowse: _showAllCourses,
+                ),
+                MyCoursesTab(
+                  courses: _matching(ownedCourses),
+                  searching: _searchController.text.trim().isNotEmpty,
+                  deletingIds: _deletingIds,
+                  onOpen: _openCourse,
+                  onEdit: _editCourse,
+                  onDelete: _deleteCourse,
+                  onCreate: widget.onCreateCoursePressed,
+                  onClearSearch: _searchController.clear,
                 ),
               ],
             ),

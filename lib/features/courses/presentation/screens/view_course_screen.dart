@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
@@ -6,11 +6,11 @@ import '../../models/course_draft.dart';
 import '../../services/course_service.dart';
 import '../widgets/course_form_widgets.dart';
 import '../widgets/lesson_video_player.dart';
-import 'create_course_screen.dart';
 
 class ViewCourseScreen extends StatefulWidget {
-  const ViewCourseScreen({super.key, required this.course});
+  const ViewCourseScreen({super.key, required this.course, this.service});
   final CourseDraft course;
+  final CourseService? service;
 
   @override
   State<ViewCourseScreen> createState() => _ViewCourseScreenState();
@@ -18,42 +18,86 @@ class ViewCourseScreen extends StatefulWidget {
 
 class _ViewCourseScreenState extends State<ViewCourseScreen>
     with SingleTickerProviderStateMixin {
-  late CourseDraft _course = widget.course;
+  late final CourseDraft _course = widget.course;
   late final TabController _tabs = TabController(length: 2, vsync: this);
-  final CourseService _courseService = CourseService();
+  late final CourseService _courseService = widget.service ?? CourseService();
+  StreamSubscription<Set<String>>? _enrollmentSubscription;
+  bool _checkingEnrollment = true;
+  bool _enrolling = false;
+  bool _enrollmentError = false;
   bool _saved = false;
   bool _enrolled = false;
   int? _selectedLessonIndex;
 
-  bool get _isOwner =>
-      _course.userId.isNotEmpty &&
-      _course.userId == FirebaseAuth.instance.currentUser?.uid;
+  @override
+  void initState() {
+    super.initState();
+    _watchEnrollment();
+  }
+
+  void _watchEnrollment() {
+    _enrollmentSubscription?.cancel();
+    _enrollmentSubscription = _courseService.watchEnrolledCourseIds().listen(
+      (ids) {
+        if (!mounted) return;
+        setState(() {
+          _enrolled = ids.contains(_course.id);
+          _checkingEnrollment = false;
+          _enrollmentError = false;
+        });
+      },
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() {
+          _checkingEnrollment = false;
+          _enrollmentError = true;
+        });
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _enrollmentSubscription?.cancel();
     _tabs.dispose();
     super.dispose();
   }
 
-  Future<void> _edit() async {
-    final result = await Navigator.push<CourseDraft>(
-      context,
-      MaterialPageRoute(builder: (_) => CreateCourseScreen(course: _course)),
-    );
-    if (mounted && result != null) setState(() => _course = result);
-  }
-
-  void _enrollOrContinue() {
-    if (_isOwner) {
-      _edit();
+  Future<void> _enrollOrContinue() async {
+    if (_checkingEnrollment || _enrolling) return;
+    if (_enrollmentError) {
+      setState(() => _checkingEnrollment = true);
+      _watchEnrollment();
       return;
     }
     if (_enrolled && _course.lessons.isNotEmpty) {
       _showLesson(0);
       return;
     }
-    setState(() => _enrolled = true);
-    _tabs.animateTo(0);
+    if (_enrolled) return;
+    setState(() => _enrolling = true);
+    try {
+      await _courseService.enroll(_course.id);
+      if (!mounted) return;
+      setState(() => _enrolled = true);
+      _tabs.animateTo(0);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enrolled successfully.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is CourseFailure
+                ? error.message
+                : 'Could not enroll. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _enrolling = false);
+    }
   }
 
   void _showLesson(int index) {
@@ -153,7 +197,12 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
                         ),
                         const SizedBox(width: 12),
                         FilledButton(
-                          onPressed: _enrollOrContinue,
+                          onPressed:
+                              _checkingEnrollment ||
+                                  _enrolling ||
+                                  _course.status == CourseStatus.draft
+                              ? null
+                              : _enrollOrContinue,
                           style: FilledButton.styleFrom(
                             backgroundColor: OnboardingScreenLayout.primaryBlue,
                             minimumSize: const Size(148, 52),
@@ -173,7 +222,10 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
   }
 
   String get _bottomLabel {
-    if (_isOwner) return 'Edit Course';
+    if (_course.status == CourseStatus.draft) return 'Draft Course';
+    if (_checkingEnrollment) return 'Checking...';
+    if (_enrollmentError) return 'Retry Enrollment';
+    if (_enrolling) return 'Enrolling...';
     if (_enrolled) return 'Continue Learning';
     return _course.type == CourseType.free ? 'Enroll for Free' : 'Enroll Now';
   }

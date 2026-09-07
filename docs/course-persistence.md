@@ -31,17 +31,57 @@ match /courses/{courseId} {
         && (d.type != 'paid' || d.price > 0)
       ));
   }
-  allow read: if owner() || resource.data.status == 'published';
-  allow create: if signedIn() && validCourse();
+  function enrollmentIncrement() {
+    let enrollmentPath = /databases/$(database)/documents/users/$(request.auth.uid)/courseEnrollments/$(courseId);
+    return resource.data.status == 'published'
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrollmentCount'])
+      && request.resource.data.enrollmentCount == resource.data.get('enrollmentCount', 0) + 1
+      && !exists(enrollmentPath)
+      && getAfter(enrollmentPath).data.userId == request.auth.uid
+      && getAfter(enrollmentPath).data.courseId == courseId;
+  }
+  allow get: if owner() || resource.data.status == 'published'
+    || (signedIn() && !exists(/databases/$(database)/documents/courses/$(courseId)));
+  allow list: if owner() || resource.data.status == 'published';
+  allow create: if signedIn() && validCourse()
+    && request.resource.data.enrollmentCount == 0;
   allow update: if owner() && validCourse()
-    && request.resource.data.userId == resource.data.userId;
+    && request.resource.data.userId == resource.data.userId
+    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['enrollmentCount', 'createdAt']);
+  allow update: if signedIn() && enrollmentIncrement();
   allow delete: if owner();
+}
+
+match /users/{studentId}/courseEnrollments/{courseId} {
+  function student() { return request.auth != null && request.auth.uid == studentId; }
+  allow read: if student();
+  allow create: if student()
+    && request.resource.data.keys().hasOnly(['courseId', 'userId', 'enrolledAt'])
+    && request.resource.data.courseId == courseId
+    && request.resource.data.userId == studentId
+    && request.resource.data.enrolledAt == request.time
+    && get(/databases/$(database)/documents/courses/$(courseId)).data.status == 'published'
+    && getAfter(/databases/$(database)/documents/courses/$(courseId)).data.enrollmentCount
+       == get(/databases/$(database)/documents/courses/$(courseId)).data.get('enrollmentCount', 0) + 1;
+  allow update, delete: if false;
 }
 ```
 
 Firestore rules cannot iterate arbitrary lesson arrays to validate every lesson. The app validates lesson titles and videos on publish; if publish integrity must be protected against modified clients, enforce full nested validation in a trusted backend. Avoid any broad catch-all rule that grants access to private drafts.
 
 The list uses separate `userId == currentUser` and `status == published` queries; the default single-field indexes suffice. It sorts by update time on the client.
+
+The My Courses tab lists all courses owned by the signed-in account, including drafts and published courses, and uses the same search filter. Edit opens the existing course editor. Delete requires confirmation and verifies the stored owner in a Firestore transaction before removing the course document. The live query updates the list after deletion. Deletion currently retains uploaded media in Supabase; the owner-aware orphan cleanup described below must also cover deleted courses.
+
+My Courses searches title, category and status (as well as the existing instructor/level fields). Newest/Oldest sort by `createdAt`, falling back to `updatedAt` for legacy documents; title and status sorts are also available. Editing preserves status with Save Changes; drafts have a separate Publish Course action. Published courses can explicitly be saved as drafts. Existing course updates never recreate deleted documents, change IDs, or write the enrollment count.
+
+## Enrollment
+
+`users/{studentId}/courseEnrollments/{courseId}` is the unique enrollment record. `courses/{courseId}.enrollmentCount` starts at zero for new courses; legacy courses display zero until their first enrollment initializes the field. A Firestore transaction checks for an existing enrollment before creating it and incrementing the count. Concurrent requests and retries therefore count the same student once. The overview subscribes to the authenticated student's records and shows Continue Learning for existing enrollments, including after restarting the app. In Progress uses those same records. See [Firebase transaction documentation](https://firebase.google.com/docs/firestore/manage-data/transactions) for atomic updates and `getAfter` validation.
+
+Merge **both** rule matches above into the actual project's rules before enabling enrollment. Existing owner-only update rules cannot authorize a student's counter update. Remove conflicting broad recursive grants that would let clients modify counts or enrollment records independently. These examples have not been deployed or tested against a live project. A deployed rules/emulator test must check anonymous access, another student's record, repeated enrollment, concurrent enrollment, forged counts, and owner edits preserving the count.
+
+Previously simulated enrollments were held only in widget memory and cannot be recovered or backfilled. No bulk migration or live database write was performed. Course deletion retains enrollment records as well as media; deleted courses are excluded from In Progress by joining against existing published courses. Use trusted backend cleanup for retained records. Enrollment is registration only: payment processing, paid-content authorization and lesson completion tracking remain outside the existing architecture. Creators can also enroll through the overview and are counted once, like any authenticated account.
 
 ## Supabase access
 
