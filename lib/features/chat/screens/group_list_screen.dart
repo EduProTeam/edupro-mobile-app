@@ -70,13 +70,13 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
             const SizedBox(height: 20),
 
-            // My Groups title
+            // Groups title
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'My Groups',
+                  'Groups',
                   style: TextStyle(
                     color: darkText,
                     fontSize: 18,
@@ -416,7 +416,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
         // true = only current user's groups
         // false = all groups
-        onlyMyGroups: true,
+        onlyMyGroups: false,
       ),
 
       builder: (context, snapshot) {

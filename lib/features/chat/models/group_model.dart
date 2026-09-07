@@ -7,6 +7,7 @@ class GroupModel {
   final String category;
   final String imageUrl;
   final String createdBy;
+  final List<String> admins;
   final List<String> members;
   final DateTime? createdAt;
 
@@ -17,6 +18,7 @@ class GroupModel {
     required this.category,
     required this.imageUrl,
     required this.createdBy,
+    required this.admins,
     required this.members,
     this.createdAt,
   });
@@ -28,6 +30,7 @@ class GroupModel {
       'category': category,
       'imageUrl': imageUrl,
       'createdBy': createdBy,
+      'admins': admins,
       'members': members,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
@@ -37,13 +40,23 @@ class GroupModel {
 
   factory GroupModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+
+    final createdBy = data['createdBy']?.toString() ?? '';
+
+    final admins = data['admins'] != null
+        ? List<String>.from(data['admins'])
+        : createdBy.isNotEmpty
+        ? [createdBy]
+        : <String>[];
+
     return GroupModel(
       id: doc.id,
       groupName: data['groupName'] ?? '',
       description: data['description'] ?? '',
       category: data['category'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
-      createdBy: data['createdBy'] ?? '',
+      createdBy: createdBy,
+      admins: admins,
       members: List<String>.from(data['members'] ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
