@@ -75,11 +75,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     final screens = [
-      _SimpleHomeScreen(
-        onLogout: _logout,
-        onOpenChatGroups: _openChatGroups,
-      ),
+      _SimpleHomeScreen(onLogout: _logout, onOpenChatGroups: _openChatGroups),
       RecordedCoursesScreen(onCreateCoursePressed: _openCreateCourseScreen),
+      const GroupListScreen(),
       _SimpleProfileScreen(user: user),
     ];
 
@@ -98,6 +96,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -113,6 +112,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             icon: Icon(Icons.video_library_outlined),
             activeIcon: Icon(Icons.video_library),
             label: 'Videos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

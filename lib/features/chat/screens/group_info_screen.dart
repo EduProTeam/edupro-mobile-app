@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/group_model.dart';
 import '../models/group_member_model.dart';
 import '../services/group_service.dart';
-import 'group_list_screen.dart';
+
+// import 'group_list_screen.dart';
 
 class GroupInfoScreen extends StatefulWidget {
   final GroupModel group;
@@ -192,10 +193,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
         return;
       }
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const GroupListScreen()),
-        (route) => false,
-      );
+      final navigator = Navigator.of(context);
+      navigator.pop();
+      navigator.pop();
     } catch (e) {
       if (!mounted) {
         return;
@@ -280,10 +280,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
         return;
       }
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const GroupListScreen()),
-        (route) => false,
-      );
+      final navigator = Navigator.of(context);
+      navigator.pop();
+      navigator.pop();
     } catch (e) {
       if (!mounted) {
         return;

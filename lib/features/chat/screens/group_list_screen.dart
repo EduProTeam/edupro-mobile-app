@@ -98,8 +98,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
           ],
         ),
       ),
-
-      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
@@ -867,76 +865,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
         ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // BOTTOM NAVIGATION
-  // UI ONLY FOR NOW
-  // ============================================================
-
-  Widget _buildBottomNavigation() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-
-        border: Border(top: BorderSide(color: Color(0xFFE4E7EC))),
-      ),
-
-      child: BottomNavigationBar(
-        currentIndex: 1,
-
-        type: BottomNavigationBarType.fixed,
-
-        backgroundColor: Colors.white,
-
-        elevation: 0,
-
-        selectedItemColor: primaryBlue,
-
-        unselectedItemColor: const Color(0xFFA6AFBD),
-
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-
-        showUnselectedLabels: true,
-
-        onTap: (index) {
-          // Bottom navigation logic later
-        },
-
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
-            activeIcon: Icon(Icons.chat_bubble_rounded),
-            label: 'Chat',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.memory_outlined),
-            activeIcon: Icon(Icons.memory_rounded),
-            label: 'Skills',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.insert_drive_file_outlined),
-            activeIcon: Icon(Icons.insert_drive_file_rounded),
-            label: 'Files',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }
