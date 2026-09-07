@@ -17,16 +17,15 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   static const _backgroundColor = Color(0xFF3D8FEF);
+  Timer? _routeTimer;
 
   @override
   void initState() {
     super.initState();
-    _routeFromSplash();
+    _routeTimer = Timer(const Duration(milliseconds: 1500), _routeFromSplash);
   }
 
-  Future<void> _routeFromSplash() async {
-    await Future<void>.delayed(const Duration(milliseconds: 1500));
-
+  void _routeFromSplash() {
     if (!mounted) {
       return;
     }
@@ -35,11 +34,15 @@ class _SplashScreenState extends State<SplashScreen> {
         ? const HomeShellScreen()
         : const OnboardingScreen1();
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => nextScreen,
-      ),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => nextScreen));
+  }
+
+  @override
+  void dispose() {
+    _routeTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -56,8 +59,9 @@ class _SplashScreenState extends State<SplashScreen> {
         backgroundColor: _backgroundColor,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final brandingWidth =
-                (constraints.maxWidth * 0.6).clamp(225.0, 300.0).toDouble();
+            final brandingWidth = (constraints.maxWidth * 0.6)
+                .clamp(225.0, 300.0)
+                .toDouble();
 
             return Center(
               child: SizedBox(

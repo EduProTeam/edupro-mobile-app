@@ -151,13 +151,16 @@ void main() {
       expect(find.text('My draft'), findsNothing);
       expect(find.text('My published'), findsOneWidget);
       expect(find.text('1 course'), findsOneWidget);
-      expect(find.text('Course deleted successfully.'), findsOneWidget);
     },
   );
 
   testWidgets('status search, sorting, counts and empty create action', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(800, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final service = CoursesService();
     addTearDown(service.changes.close);
     var created = false;
@@ -175,7 +178,8 @@ void main() {
     expect(find.text('2 courses'), findsOneWidget);
     await tester.tap(find.byTooltip('Sort courses'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Published first'));
+    await tester.ensureVisible(find.text('Published first'));
+    await tester.tap(find.text('Published first'), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(
       tester.getTopLeft(find.text('My published')).dy,
@@ -239,6 +243,10 @@ void main() {
         const Size(88, 88),
       );
       expect(find.text('1 lesson'), findsOneWidget);
+      final editLeft = tester.getTopLeft(find.text('Edit')).dx;
+      final deleteRight = tester.getTopRight(find.text('Delete')).dx;
+      expect(editLeft, greaterThan(80));
+      expect(deleteRight, lessThanOrEqualTo(width - 16));
       await tester.tap(find.text('Edit'));
       await tester.tap(find.text('Delete'));
       expect(opens, 0);

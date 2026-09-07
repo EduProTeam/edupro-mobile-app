@@ -248,6 +248,10 @@ class MyCourseCard extends StatelessWidget {
         ),
       ],
     );
+    final rightAlignedActions = Align(
+      alignment: Alignment.centerRight,
+      child: actions,
+    );
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
@@ -393,14 +397,17 @@ class MyCourseCard extends StatelessWidget {
                               ),
                               if (!compact) ...[
                                 const SizedBox(height: 10),
-                                actions,
+                                rightAlignedActions,
                               ],
                             ],
                           ),
                         ),
                       ],
                     ),
-                    if (compact) ...[const SizedBox(height: 10), actions],
+                    if (compact) ...[
+                      const SizedBox(height: 10),
+                      rightAlignedActions,
+                    ],
                   ],
                 );
               },
