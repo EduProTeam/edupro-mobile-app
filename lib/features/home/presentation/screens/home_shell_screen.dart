@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import '../../../chat/screens/group_list_screen.dart';
 import '../../../courses/models/course_draft.dart';
 import '../../../courses/presentation/screens/create_course_screen.dart';
 import '../../../courses/presentation/screens/recorded_courses_screen.dart';
@@ -63,12 +64,21 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  void _openChatGroups() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const GroupListScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     final screens = [
-      _SimpleHomeScreen(onLogout: _logout),
+      _SimpleHomeScreen(
+        onLogout: _logout,
+        onOpenChatGroups: _openChatGroups,
+      ),
       RecordedCoursesScreen(onCreateCoursePressed: _openCreateCourseScreen),
       _SimpleProfileScreen(user: user),
     ];
@@ -116,9 +126,13 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 }
 
 class _SimpleHomeScreen extends StatefulWidget {
-  const _SimpleHomeScreen({required this.onLogout});
+  const _SimpleHomeScreen({
+    required this.onLogout,
+    required this.onOpenChatGroups,
+  });
 
   final Future<void> Function() onLogout;
+  final VoidCallback onOpenChatGroups;
 
   @override
   State<_SimpleHomeScreen> createState() => _SimpleHomeScreenState();
@@ -159,6 +173,11 @@ class _SimpleHomeScreenState extends State<_SimpleHomeScreen> {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
+          IconButton(
+            onPressed: widget.onOpenChatGroups,
+            icon: const Icon(Icons.groups_outlined),
+            tooltip: 'Chat Groups',
+          ),
           TextButton(
             onPressed: () => widget.onLogout(),
             child: const Text('Logout'),
