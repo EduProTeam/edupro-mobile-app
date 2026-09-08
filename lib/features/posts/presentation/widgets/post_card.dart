@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/post_service.dart';
 import '../screens/new_post_screen.dart';
+import 'post_actions_menu.dart';
 import 'post_like_button.dart';
 import 'post_comments_sheet.dart';
 
@@ -81,13 +82,10 @@ class PostCard extends StatelessWidget {
                       snapshot.data!.uid != post.userId) {
                     return const SizedBox.shrink();
                   }
-                  return PopupMenuButton<String>(
-                    tooltip: 'Post options',
-                    icon: const Icon(Icons.more_horiz, color: _textPrimary),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit post')),
-                    ],
-                    onSelected: (_) => Navigator.of(context).push(
+                  return PostActionsMenu(
+                    isOwner: true,
+                    onDelete: () => PostService().deletePost(post.id),
+                    onEdit: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => NewPostScreen(post: post),
                       ),

@@ -13,6 +13,7 @@ Deployed rules are not tracked here. Merge this owner-only update condition into
 ```text
 allow update: if request.auth != null
   && resource.data.userId == request.auth.uid
+  && resource.data.status != 'deleted'
   && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
     'title', 'category', 'content', 'tags', 'visibility', 'updatedAt',
     'attachmentType', 'attachmentUrl', 'attachmentPath', 'attachmentName', 'linkUrl'

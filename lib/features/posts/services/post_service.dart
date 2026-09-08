@@ -150,6 +150,37 @@ class PostService {
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
 
+  Future<void> deletePost(String postId) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to delete your post.');
+    }
+    final reference = _firestore.collection('posts').doc(postId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(reference);
+        if (!snapshot.exists) {
+          throw const PostFailure('This post is no longer available.');
+        }
+        final data = snapshot.data()!;
+        if (data['userId'] != user.uid) {
+          throw const PostFailure('You can only delete your own posts.');
+        }
+        if (data['status'] == 'deleted') return;
+        // Keep related comments together; published-feed queries exclude it.
+        transaction.update(reference, {
+          'status': 'deleted',
+          'deletedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to delete post. Please try again.');
+    }
+  }
+
   Stream<List<PostComment>> watchComments(String postId) {
     return _firestore
         .collection('posts')
@@ -464,6 +495,9 @@ class PostService {
       }
       if (snapshot.data()?['userId'] != user.uid) {
         throw const PostFailure('You can only edit your own posts.');
+      }
+      if (snapshot.data()?['status'] == 'deleted') {
+        throw const PostFailure('This post has been deleted.');
       }
     }
 

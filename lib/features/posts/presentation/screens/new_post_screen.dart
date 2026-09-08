@@ -435,18 +435,14 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   initialValue: _selectedCategory,
                   decoration: _inputDecoration(hintText: 'Select a category'),
                   hint: const Text('Select a category'),
-                  items:
-                      {
-                            ..._categories,
-                            ?_selectedCategory,
-                          }
-                          .map(
-                            (category) => DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            ),
-                          )
-                          .toList(),
+                  items: {..._categories, ?_selectedCategory}
+                      .map(
+                        (category) => DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      )
+                      .toList(),
                   onChanged: _isSubmitting
                       ? null
                       : (value) {
