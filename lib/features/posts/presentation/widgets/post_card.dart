@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/post_service.dart';
+import '../screens/new_post_screen.dart';
+import 'post_actions_menu.dart';
+import 'post_like_button.dart';
+import 'post_comments_sheet.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({super.key, required this.post});
@@ -37,7 +42,11 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _PostAvatar(imageUrl: post.userProfileImage),
+              _PostAuthorAvatar(
+                key: ValueKey(post.userId ?? post.id),
+                userId: post.userId,
+                savedImageUrl: post.userProfileImage,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -65,11 +74,24 @@ class PostCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.more_horiz),
-                tooltip: 'Post options',
-                color: _textPrimary,
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                initialData: FirebaseAuth.instance.currentUser,
+                builder: (context, snapshot) {
+                  if (snapshot.data == null ||
+                      snapshot.data!.uid != post.userId) {
+                    return const SizedBox.shrink();
+                  }
+                  return PostActionsMenu(
+                    isOwner: true,
+                    onDelete: () => PostService().deletePost(post.id),
+                    onEdit: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => NewPostScreen(post: post),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -107,14 +129,46 @@ class PostCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Icon(Icons.favorite_border, color: _textPrimary),
-              const SizedBox(width: 6),
-              Text(
-                '${post.likeCount}',
-                style: const TextStyle(color: _textPrimary),
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                initialData: FirebaseAuth.instance.currentUser,
+                builder: (context, snapshot) => PostLikeButton(
+                  key: ValueKey('${post.id}:${snapshot.data?.uid}'),
+                  likeCount: post.likeCount,
+                  isLiked: post.likedBy.contains(snapshot.data?.uid),
+                  onLike: (liked) =>
+                      PostService().setPostLiked(post.id, liked: liked),
+                ),
               ),
               const SizedBox(width: 24),
-              const Icon(Icons.chat_bubble_outline, color: _textPrimary),
+              IconButton(
+                tooltip: 'View comments',
+                icon: const Icon(
+                  Icons.chat_bubble_outline,
+                  color: _textPrimary,
+                ),
+                onPressed: () {
+                  final service = PostService();
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (_) => StreamBuilder<User?>(
+                      stream: FirebaseAuth.instance.authStateChanges(),
+                      initialData: FirebaseAuth.instance.currentUser,
+                      builder: (context, snapshot) => PostCommentsSheet(
+                        key: ValueKey(snapshot.data?.uid),
+                        currentUserId: snapshot.data?.uid,
+                        watchComments: () => service.watchComments(post.id),
+                        onSubmit: (text) => service.addComment(post.id, text),
+                        onEdit: (id, text) =>
+                            service.editComment(post.id, id, text),
+                        onDelete: (id) => service.deleteComment(post.id, id),
+                      ),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(width: 6),
               Text(
                 '${post.commentCount}',
@@ -166,6 +220,49 @@ class PostCard extends StatelessWidget {
       return 'Yesterday';
     }
     return '${difference.inDays}d ago';
+  }
+}
+
+class _PostAuthorAvatar extends StatefulWidget {
+  const _PostAuthorAvatar({
+    super.key,
+    required this.userId,
+    required this.savedImageUrl,
+  });
+
+  final String? userId;
+  final String? savedImageUrl;
+
+  @override
+  State<_PostAuthorAvatar> createState() => _PostAuthorAvatarState();
+}
+
+class _PostAuthorAvatarState extends State<_PostAuthorAvatar> {
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>>? _profile =
+      widget.userId == null
+      ? null
+      : FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.userId)
+            .snapshots();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _profile,
+      builder: (context, snapshot) {
+        final profile = snapshot.data?.data();
+        // Explicit null means the author removed their photo. Only use the
+        // post's saved photo when the current profile field is unavailable.
+        final value = profile != null && profile.containsKey('profileImageUrl')
+            ? profile['profileImageUrl']
+            : widget.savedImageUrl;
+        final imageUrl = value is String && value.trim().isNotEmpty
+            ? value.trim()
+            : null;
+        return _PostAvatar(imageUrl: imageUrl);
+      },
+    );
   }
 }
 
