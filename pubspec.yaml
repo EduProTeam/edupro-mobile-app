@@ -35,8 +35,13 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   firebase_core: ^4.13.0
+  firebase_auth: ^6.1.0
   cloud_firestore: ^6.8.0
   flutter_svg: ^2.2.1
+  image_picker: ^1.2.1
+  file_picker: ^12.0.0
+  supabase_flutter: ^2.12.0
+  video_player: ^2.9.2
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +66,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/edupro_logo.svg
+    - assets/images/google_logo.svg
+    - assets/images/auth/forgot_password.jpg
+    - assets/images/chat/group_chat.png
     - assets/images/onboarding/onboarding_1.jpg
     - assets/images/onboarding/onboarding_2.jpg
 

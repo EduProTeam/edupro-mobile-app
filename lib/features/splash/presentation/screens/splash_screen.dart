@@ -1,11 +1,49 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class SplashScreen extends StatelessWidget {
+import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
+import '../../../home/presentation/screens/home_shell_screen.dart';
+
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
   static const _backgroundColor = Color(0xFF3D8FEF);
+  Timer? _routeTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _routeTimer = Timer(const Duration(milliseconds: 1500), _routeFromSplash);
+  }
+
+  void _routeFromSplash() {
+    if (!mounted) {
+      return;
+    }
+
+    final nextScreen = FirebaseAuth.instance.currentUser != null
+        ? const HomeShellScreen()
+        : const OnboardingScreen1();
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => nextScreen));
+  }
+
+  @override
+  void dispose() {
+    _routeTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +59,9 @@ class SplashScreen extends StatelessWidget {
         backgroundColor: _backgroundColor,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final brandingWidth =
-                (constraints.maxWidth * 0.6).clamp(225.0, 300.0);
+            final brandingWidth = (constraints.maxWidth * 0.6)
+                .clamp(225.0, 300.0)
+                .toDouble();
 
             return Center(
               child: SizedBox(
