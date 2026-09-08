@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../supabase_options.dart';
+import '../models/post_comment.dart';
 
 enum PostAttachmentType { image, video, file, link }
 
@@ -62,6 +63,9 @@ class PublishedPost {
     required this.commentCount,
     required this.createdAt,
     this.userProfileImage,
+    this.userId,
+    this.likedBy = const [],
+    this.visibility = 'public',
   });
 
   factory PublishedPost.fromDocument(
@@ -72,6 +76,8 @@ class PublishedPost {
     return PublishedPost(
       id: _stringValue(data['postId']) ?? document.id,
       userName: _stringValue(data['userName']) ?? 'EduPro user',
+      userId: _stringValue(data['userId']),
+      visibility: _stringValue(data['visibility']) ?? 'public',
       userProfileImage: _stringValue(data['userProfileImage']),
       title: _stringValue(data['title']) ?? 'Untitled post',
       category: _stringValue(data['category']) ?? 'General',
@@ -82,6 +88,7 @@ class PublishedPost {
       attachmentName: _stringValue(data['attachmentName']),
       linkUrl: _stringValue(data['linkUrl']),
       likeCount: _countValue(data['likeCount']),
+      likedBy: _stringList(data['likedBy']),
       commentCount: _countValue(data['commentCount']),
       createdAt: data['createdAt'] is Timestamp
           ? data['createdAt'] as Timestamp
@@ -91,6 +98,8 @@ class PublishedPost {
 
   final String id;
   final String userName;
+  final String? userId;
+  final String visibility;
   final String? userProfileImage;
   final String title;
   final String category;
@@ -101,6 +110,7 @@ class PublishedPost {
   final String? attachmentName;
   final String? linkUrl;
   final int likeCount;
+  final List<String> likedBy;
   final int commentCount;
   final Timestamp? createdAt;
 
@@ -140,6 +150,202 @@ class PostService {
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
 
+  Future<void> deletePost(String postId) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to delete your post.');
+    }
+    final reference = _firestore.collection('posts').doc(postId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(reference);
+        if (!snapshot.exists) {
+          throw const PostFailure('This post is no longer available.');
+        }
+        final data = snapshot.data()!;
+        if (data['userId'] != user.uid) {
+          throw const PostFailure('You can only delete your own posts.');
+        }
+        if (data['status'] == 'deleted') return;
+        // Keep related comments together; published-feed queries exclude it.
+        transaction.update(reference, {
+          'status': 'deleted',
+          'deletedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to delete post. Please try again.');
+    }
+  }
+
+  Stream<List<PostComment>> watchComments(String postId) {
+    return _firestore
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .orderBy('createdAt')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(PostComment.fromDocument)
+              .toList(growable: false),
+        );
+  }
+
+  Future<void> addComment(String postId, String text) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to comment.');
+    }
+    final content = text.trim();
+    if (content.isEmpty || content.length > 2000) {
+      throw const PostFailure(
+        'Enter a comment between 1 and 2,000 characters.',
+      );
+    }
+    try {
+      final profile = await _firestore.collection('users').doc(user.uid).get();
+      final post = _firestore.collection('posts').doc(postId);
+      final comment = post.collection('comments').doc();
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(post);
+        final data = snapshot.data();
+        if (data == null || data['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        transaction.set(comment, {
+          'userId': user.uid,
+          'userName':
+              _firstNonEmpty([
+                profile.data()?['fullName'],
+                user.displayName,
+                user.email?.split('@').first,
+              ]) ??
+              'EduPro user',
+          'profileImageUrl': _firstNonEmpty([
+            profile.data()?['profileImageUrl'],
+            user.photoURL,
+          ]),
+          'text': content,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        transaction.update(post, {
+          'commentCount': PublishedPost._countValue(data['commentCount']) + 1,
+          'lastCommentId': comment.id,
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to send comment. Please try again.');
+    }
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to delete your comment.');
+    }
+    final post = _firestore.collection('posts').doc(postId);
+    final comment = post.collection('comments').doc(commentId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final postSnapshot = await transaction.get(post);
+        final snapshot = await transaction.get(comment);
+        if (!snapshot.exists) return;
+        if (snapshot.data()?['userId'] != user.uid) {
+          throw const PostFailure('You can only delete your own comments.');
+        }
+        if (postSnapshot.data()?['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        transaction.delete(comment);
+        transaction.update(post, {
+          'commentCount':
+              (PublishedPost._countValue(postSnapshot.data()?['commentCount']) -
+                      1)
+                  .clamp(0, 0x7FFFFFFFFFFFFFFF),
+          'lastDeletedCommentId': comment.id,
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to delete comment. Please try again.');
+    }
+  }
+
+  Future<void> editComment(String postId, String commentId, String text) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to edit your comment.');
+    }
+    final content = text.trim();
+    if (content.isEmpty || content.length > 2000) {
+      throw const PostFailure(
+        'Enter a comment between 1 and 2,000 characters.',
+      );
+    }
+    final post = _firestore.collection('posts').doc(postId);
+    final comment = post.collection('comments').doc(commentId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final postSnapshot = await transaction.get(post);
+        final snapshot = await transaction.get(comment);
+        if (postSnapshot.data()?['status'] != 'published' || !snapshot.exists) {
+          throw const PostFailure('This comment is no longer available.');
+        }
+        if (snapshot.data()?['userId'] != user.uid) {
+          throw const PostFailure('You can only edit your own comments.');
+        }
+        transaction.update(comment, {
+          'text': content,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to save comment. Please try again.');
+    }
+  }
+
+  Future<void> setPostLiked(String postId, {required bool liked}) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to like a post.');
+    }
+
+    final reference = _firestore.collection('posts').doc(postId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(reference);
+        final data = snapshot.data();
+        if (data == null || data['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        final likedBy = PublishedPost._stringList(data['likedBy']);
+        if (likedBy.contains(user.uid) == liked) return;
+
+        transaction.update(reference, {
+          'likedBy': liked
+              ? FieldValue.arrayUnion([user.uid])
+              : FieldValue.arrayRemove([user.uid]),
+          'likeCount':
+              (PublishedPost._countValue(data['likeCount']) + (liked ? 1 : -1))
+                  .clamp(0, 0x7FFFFFFFFFFFFFFF),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to update like. Please try again.');
+    }
+  }
+
   Stream<List<PublishedPost>> watchPublishedPosts() {
     return _firestore
         .collection('posts')
@@ -168,6 +374,8 @@ class PostService {
   );
 
   Future<void> savePost({
+    String? postId,
+    bool removeAttachment = false,
     required String title,
     required String category,
     required String content,
@@ -176,6 +384,18 @@ class PostService {
     required String status,
     PostAttachment? attachment,
   }) async {
+    if (postId != null) {
+      return _updatePost(
+        postId: postId,
+        title: title,
+        category: category,
+        content: content,
+        tags: tags,
+        visibility: visibility,
+        attachment: attachment,
+        removeAttachment: removeAttachment,
+      );
+    }
     final user = _firebaseAuth.currentUser;
     if (user == null) {
       throw const PostFailure('You must be logged in to publish a post.');
@@ -224,6 +444,7 @@ class PostService {
         'linkUrl': linkUrl,
         'status': status,
         'likeCount': 0,
+        'likedBy': <String>[],
         'commentCount': 0,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -243,6 +464,78 @@ class PostService {
         );
       }
       throw const PostFailure('Unable to publish post. Please try again.');
+    }
+  }
+
+  Future<void> _updatePost({
+    required String postId,
+    required String title,
+    required String category,
+    required String content,
+    required List<String> tags,
+    required String visibility,
+    required bool removeAttachment,
+    PostAttachment? attachment,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to edit your post.');
+    }
+    if (title.trim().isEmpty ||
+        title.trim().length > 100 ||
+        content.trim().isEmpty ||
+        category.trim().isEmpty ||
+        !['public', 'followers'].contains(visibility)) {
+      throw const PostFailure('Please complete the required post fields.');
+    }
+    final reference = _firestore.collection('posts').doc(postId);
+    void verifyOwner(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+      if (!snapshot.exists) {
+        throw const PostFailure('This post is no longer available.');
+      }
+      if (snapshot.data()?['userId'] != user.uid) {
+        throw const PostFailure('You can only edit your own posts.');
+      }
+      if (snapshot.data()?['status'] == 'deleted') {
+        throw const PostFailure('This post has been deleted.');
+      }
+    }
+
+    try {
+      verifyOwner(await reference.get());
+      final changes = <String, dynamic>{
+        'title': title.trim(),
+        'category': category,
+        'content': content.trim(),
+        'tags': tags,
+        'visibility': visibility,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (attachment != null || removeAttachment) {
+        final stored = attachment?.needsStorageUpload == true
+            ? await _uploadAttachment(
+                userId: user.uid,
+                postId: postId,
+                attachment: attachment!,
+              )
+            : null;
+        final link = attachment?.linkUrl;
+        changes.addAll({
+          'attachmentType': attachment?.type.value ?? 'none',
+          'attachmentUrl': stored?.url ?? link,
+          'attachmentPath': stored?.path,
+          'attachmentName': stored?.name ?? attachment?.name,
+          'linkUrl': link,
+        });
+      }
+      await _firestore.runTransaction((transaction) async {
+        verifyOwner(await transaction.get(reference));
+        transaction.update(reference, changes);
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to update post. Please try again.');
     }
   }
 

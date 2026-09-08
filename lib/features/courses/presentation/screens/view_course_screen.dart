@@ -30,6 +30,8 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
   Set<String> _completedLessonIds = <String>{};
   final Set<String> _completingLessonIds = <String>{};
   int? _selectedLessonIndex;
+  CourseLesson? _activeLesson;
+  bool get _canAccess => _enrolled && !_checkingEnrollment && !_enrollmentError;
 
   @override
   void initState() {
@@ -45,6 +47,10 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
         final enrollment = enrollments[_course.id];
         setState(() {
           _enrolled = enrollment != null;
+          if (!_enrolled) {
+            _selectedLessonIndex = null;
+            _activeLesson = null;
+          }
           _completedLessonIds = enrollment?.completedLessonIds ?? <String>{};
           _checkingEnrollment = false;
           _enrollmentError = false;
@@ -55,6 +61,9 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
         setState(() {
           _checkingEnrollment = false;
           _enrollmentError = true;
+          _enrolled = false;
+          _selectedLessonIndex = null;
+          _activeLesson = null;
         });
       },
     );
@@ -65,6 +74,12 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
     _enrollmentSubscription?.cancel();
     _tabs.dispose();
     super.dispose();
+  }
+
+  void _message(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _enrollOrContinue() async {
@@ -81,6 +96,10 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
     if (_enrolled) return;
     setState(() => _enrolling = true);
     try {
+      if (_course.type == CourseType.paid) {
+        final confirmed = await _showDemoPayment();
+        if (!confirmed || !mounted) return;
+      }
       await _courseService.enroll(_course.id);
       if (!mounted) return;
       setState(() => _enrolled = true);
@@ -104,9 +123,58 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
     }
   }
 
-  void _showLesson(int index) {
+  Future<bool> _showDemoPayment() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Demo Payment'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_course.currency} ${_course.price.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 10),
+                const Text('This is a demo payment screen. No money will be charged.'),
+                const SizedBox(height: 14),
+                const ListTile(
+                  leading: Icon(Icons.credit_card),
+                  title: Text('Demo card ending in 4242'),
+                  subtitle: Text('Test payment method'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Complete Demo Payment'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _showLesson(int index) async {
+    if (!_canAccess) {
+      _message(
+        _checkingEnrollment
+            ? 'Checking enrollment...'
+            : 'Enroll in this course to unlock the lessons.',
+      );
+      return;
+    }
     if (index < 0 || index >= _course.lessons.length) return;
-    setState(() => _selectedLessonIndex = index);
+    setState(() {
+      _activeLesson = _course.lessons[index];
+      _selectedLessonIndex = index;
+    });
   }
 
   void _showCourseOverview() {
@@ -173,6 +241,7 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
           ? _LessonDetailView(
               key: ValueKey(_selectedLessonIndex),
               course: _course,
+              lesson: _activeLesson!,
               lessonIndex: _selectedLessonIndex!,
               onSelectLesson: _showLesson,
               refreshMediaUrl: _courseService.refreshMediaUrl,
@@ -209,7 +278,11 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
                         child: TabBarView(
                           controller: _tabs,
                           children: [
-                            _LessonsTab(course: _course, onPlay: _showLesson),
+                            _LessonsTab(
+                              course: _course,
+                              onPlay: _showLesson,
+                              locked: !_canAccess,
+                            ),
                             _DescriptionTab(course: _course),
                           ],
                         ),
@@ -273,6 +346,7 @@ class _LessonDetailView extends StatelessWidget {
   const _LessonDetailView({
     super.key,
     required this.course,
+    required this.lesson,
     required this.lessonIndex,
     required this.onSelectLesson,
     required this.refreshMediaUrl,
@@ -283,6 +357,7 @@ class _LessonDetailView extends StatelessWidget {
   });
 
   final CourseDraft course;
+  final CourseLesson lesson;
   final int lessonIndex;
   final ValueChanged<int> onSelectLesson;
   final Future<String> Function(String path) refreshMediaUrl;
@@ -293,7 +368,6 @@ class _LessonDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lesson = course.lessons[lessonIndex];
     final video = lesson.video;
     final nextLessonIndexes = List<int>.generate(
       course.lessons.length - lessonIndex - 1,
@@ -694,9 +768,14 @@ class _InfoPill extends StatelessWidget {
 }
 
 class _LessonsTab extends StatelessWidget {
-  const _LessonsTab({required this.course, required this.onPlay});
+  const _LessonsTab({
+    required this.course,
+    required this.onPlay,
+    required this.locked,
+  });
   final CourseDraft course;
   final ValueChanged<int> onPlay;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -721,8 +800,8 @@ class _LessonsTab extends StatelessWidget {
               padding: const EdgeInsets.all(13),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.play_circle_outline,
+                  Icon(
+                    locked ? Icons.lock_outline : Icons.play_circle_outline,
                     color: OnboardingScreenLayout.primaryBlue,
                   ),
                   const SizedBox(width: 12),
