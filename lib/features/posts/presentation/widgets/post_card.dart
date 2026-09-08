@@ -138,9 +138,18 @@ class PostCard extends StatelessWidget {
                     context: context,
                     isScrollControlled: true,
                     useSafeArea: true,
-                    builder: (_) => PostCommentsSheet(
-                      watchComments: () => service.watchComments(post.id),
-                      onSubmit: (text) => service.addComment(post.id, text),
+                    builder: (_) => StreamBuilder<User?>(
+                      stream: FirebaseAuth.instance.authStateChanges(),
+                      initialData: FirebaseAuth.instance.currentUser,
+                      builder: (context, snapshot) => PostCommentsSheet(
+                        key: ValueKey(snapshot.data?.uid),
+                        currentUserId: snapshot.data?.uid,
+                        watchComments: () => service.watchComments(post.id),
+                        onSubmit: (text) => service.addComment(post.id, text),
+                        onEdit: (id, text) =>
+                            service.editComment(post.id, id, text),
+                        onDelete: (id) => service.deleteComment(post.id, id),
+                      ),
                     ),
                   );
                 },

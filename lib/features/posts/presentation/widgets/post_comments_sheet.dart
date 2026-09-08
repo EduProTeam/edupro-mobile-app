@@ -8,10 +8,16 @@ class PostCommentsSheet extends StatefulWidget {
     super.key,
     required this.watchComments,
     required this.onSubmit,
+    this.currentUserId,
+    this.onEdit,
+    this.onDelete,
   });
 
   final Stream<List<PostComment>> Function() watchComments;
   final Future<void> Function(String text) onSubmit;
+  final String? currentUserId;
+  final Future<void> Function(String commentId, String text)? onEdit;
+  final Future<void> Function(String commentId)? onDelete;
 
   @override
   State<PostCommentsSheet> createState() => _PostCommentsSheetState();
@@ -21,7 +27,83 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
   final _text = TextEditingController();
   late Stream<List<PostComment>> _comments = widget.watchComments();
   bool _sending = false;
+  bool _deleting = false;
   String? _error;
+  String? _editingId;
+  String _newCommentDraft = '';
+
+  Future<void> _delete(PostComment comment) async {
+    if (_sending ||
+        widget.onDelete == null ||
+        widget.currentUserId == null ||
+        comment.userId != widget.currentUserId) {
+      return;
+    }
+    setState(() {
+      _sending = true;
+      _deleting = true;
+      _error = null;
+    });
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete comment?'),
+          content: const Text('This will permanently remove your comment.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+      await widget.onDelete!(comment.id);
+      if (mounted && _editingId == comment.id) _finishEditing();
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error is PostFailure
+              ? error.message
+              : 'Unable to delete comment. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+          _deleting = false;
+        });
+      }
+    }
+  }
+
+  void _edit(PostComment comment) {
+    if (_sending ||
+        widget.onEdit == null ||
+        widget.currentUserId == null ||
+        comment.userId != widget.currentUserId) {
+      return;
+    }
+    setState(() {
+      if (_editingId == null) _newCommentDraft = _text.text;
+      _editingId = comment.id;
+      _text.text = comment.text;
+      _error = null;
+    });
+  }
+
+  void _finishEditing() {
+    _editingId = null;
+    _text.text = _newCommentDraft;
+    _newCommentDraft = '';
+    _error = null;
+  }
 
   @override
   void dispose() {
@@ -37,14 +119,19 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
       _error = null;
     });
     try {
-      await widget.onSubmit(text);
-      if (mounted) _text.clear();
+      if (_editingId != null) {
+        await widget.onEdit!(_editingId!, text);
+        if (mounted) _finishEditing();
+      } else {
+        await widget.onSubmit(text);
+        if (mounted) _text.clear();
+      }
     } catch (error) {
       if (mounted) {
         setState(() {
           _error = error is PostFailure
               ? error.message
-              : 'Unable to send comment. Please try again.';
+              : 'Unable to save comment. Please try again.';
         });
       }
     } finally {
@@ -126,6 +213,39 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                           ),
                         );
                         return ListTile(
+                          trailing:
+                              widget.currentUserId != null &&
+                                  comment.userId == widget.currentUserId &&
+                                  (widget.onEdit != null ||
+                                      widget.onDelete != null)
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (widget.onEdit != null)
+                                      IconButton(
+                                        tooltip: 'Edit comment',
+                                        onPressed: _sending
+                                            ? null
+                                            : () => _edit(comment),
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    if (widget.onDelete != null)
+                                      IconButton(
+                                        tooltip: 'Delete comment',
+                                        onPressed: _sending
+                                            ? null
+                                            : () => _delete(comment),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          size: 20,
+                                        ),
+                                      ),
+                                  ],
+                                )
+                              : null,
                           isThreeLine: false,
                           leading: photo == null || photo.isEmpty
                               ? fallback
@@ -148,7 +268,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              comment.text,
+                              '${comment.text}${comment.updatedAt != null ? ' (edited)' : ''}',
                               style: const TextStyle(
                                 color: Color(0xFF1E1E1E),
                                 height: 1.4,
@@ -162,6 +282,21 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                 ),
               ),
               const Divider(height: 1),
+              if (_editingId != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Expanded(child: Text('Editing your comment')),
+                      TextButton(
+                        onPressed: _sending
+                            ? null
+                            : () => setState(_finishEditing),
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
+                ),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -184,20 +319,24 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                         minLines: 1,
                         maxLines: 4,
                         maxLength: 2000,
-                        decoration: const InputDecoration(
-                          hintText: 'Add a comment…',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          hintText: _editingId == null
+                              ? 'Add a comment…'
+                              : 'Edit your comment…',
+                          border: const OutlineInputBorder(),
                         ),
                         onChanged: (_) => setState(() {}),
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Send comment',
+                      tooltip: _editingId == null
+                          ? 'Send comment'
+                          : 'Save comment',
                       onPressed: _sending || _text.text.trim().isEmpty
                           ? null
                           : _send,
                       color: const Color(0xFF5B2CCF),
-                      icon: _sending
+                      icon: _sending && !_deleting
                           ? const SizedBox(
                               width: 22,
                               height: 22,

@@ -210,6 +210,75 @@ class PostService {
     }
   }
 
+  Future<void> deleteComment(String postId, String commentId) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to delete your comment.');
+    }
+    final post = _firestore.collection('posts').doc(postId);
+    final comment = post.collection('comments').doc(commentId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final postSnapshot = await transaction.get(post);
+        final snapshot = await transaction.get(comment);
+        if (!snapshot.exists) return;
+        if (snapshot.data()?['userId'] != user.uid) {
+          throw const PostFailure('You can only delete your own comments.');
+        }
+        if (postSnapshot.data()?['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        transaction.delete(comment);
+        transaction.update(post, {
+          'commentCount':
+              (PublishedPost._countValue(postSnapshot.data()?['commentCount']) -
+                      1)
+                  .clamp(0, 0x7FFFFFFFFFFFFFFF),
+          'lastDeletedCommentId': comment.id,
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to delete comment. Please try again.');
+    }
+  }
+
+  Future<void> editComment(String postId, String commentId, String text) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to edit your comment.');
+    }
+    final content = text.trim();
+    if (content.isEmpty || content.length > 2000) {
+      throw const PostFailure(
+        'Enter a comment between 1 and 2,000 characters.',
+      );
+    }
+    final post = _firestore.collection('posts').doc(postId);
+    final comment = post.collection('comments').doc(commentId);
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final postSnapshot = await transaction.get(post);
+        final snapshot = await transaction.get(comment);
+        if (postSnapshot.data()?['status'] != 'published' || !snapshot.exists) {
+          throw const PostFailure('This comment is no longer available.');
+        }
+        if (snapshot.data()?['userId'] != user.uid) {
+          throw const PostFailure('You can only edit your own comments.');
+        }
+        transaction.update(comment, {
+          'text': content,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to save comment. Please try again.');
+    }
+  }
+
   Future<void> setPostLiked(String postId, {required bool liked}) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
