@@ -65,6 +65,7 @@ class PublishedPost {
     this.userProfileImage,
     this.userId,
     this.likedBy = const [],
+    this.visibility = 'public',
   });
 
   factory PublishedPost.fromDocument(
@@ -76,6 +77,7 @@ class PublishedPost {
       id: _stringValue(data['postId']) ?? document.id,
       userName: _stringValue(data['userName']) ?? 'EduPro user',
       userId: _stringValue(data['userId']),
+      visibility: _stringValue(data['visibility']) ?? 'public',
       userProfileImage: _stringValue(data['userProfileImage']),
       title: _stringValue(data['title']) ?? 'Untitled post',
       category: _stringValue(data['category']) ?? 'General',
@@ -97,6 +99,7 @@ class PublishedPost {
   final String id;
   final String userName;
   final String? userId;
+  final String visibility;
   final String? userProfileImage;
   final String title;
   final String category;
@@ -340,6 +343,8 @@ class PostService {
   );
 
   Future<void> savePost({
+    String? postId,
+    bool removeAttachment = false,
     required String title,
     required String category,
     required String content,
@@ -348,6 +353,18 @@ class PostService {
     required String status,
     PostAttachment? attachment,
   }) async {
+    if (postId != null) {
+      return _updatePost(
+        postId: postId,
+        title: title,
+        category: category,
+        content: content,
+        tags: tags,
+        visibility: visibility,
+        attachment: attachment,
+        removeAttachment: removeAttachment,
+      );
+    }
     final user = _firebaseAuth.currentUser;
     if (user == null) {
       throw const PostFailure('You must be logged in to publish a post.');
@@ -416,6 +433,75 @@ class PostService {
         );
       }
       throw const PostFailure('Unable to publish post. Please try again.');
+    }
+  }
+
+  Future<void> _updatePost({
+    required String postId,
+    required String title,
+    required String category,
+    required String content,
+    required List<String> tags,
+    required String visibility,
+    required bool removeAttachment,
+    PostAttachment? attachment,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to edit your post.');
+    }
+    if (title.trim().isEmpty ||
+        title.trim().length > 100 ||
+        content.trim().isEmpty ||
+        category.trim().isEmpty ||
+        !['public', 'followers'].contains(visibility)) {
+      throw const PostFailure('Please complete the required post fields.');
+    }
+    final reference = _firestore.collection('posts').doc(postId);
+    void verifyOwner(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+      if (!snapshot.exists) {
+        throw const PostFailure('This post is no longer available.');
+      }
+      if (snapshot.data()?['userId'] != user.uid) {
+        throw const PostFailure('You can only edit your own posts.');
+      }
+    }
+
+    try {
+      verifyOwner(await reference.get());
+      final changes = <String, dynamic>{
+        'title': title.trim(),
+        'category': category,
+        'content': content.trim(),
+        'tags': tags,
+        'visibility': visibility,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (attachment != null || removeAttachment) {
+        final stored = attachment?.needsStorageUpload == true
+            ? await _uploadAttachment(
+                userId: user.uid,
+                postId: postId,
+                attachment: attachment!,
+              )
+            : null;
+        final link = attachment?.linkUrl;
+        changes.addAll({
+          'attachmentType': attachment?.type.value ?? 'none',
+          'attachmentUrl': stored?.url ?? link,
+          'attachmentPath': stored?.path,
+          'attachmentName': stored?.name ?? attachment?.name,
+          'linkUrl': link,
+        });
+      }
+      await _firestore.runTransaction((transaction) async {
+        verifyOwner(await transaction.get(reference));
+        transaction.update(reference, changes);
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw const PostFailure('Unable to update post. Please try again.');
     }
   }
 

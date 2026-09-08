@@ -7,7 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/post_service.dart';
 
 class NewPostScreen extends StatefulWidget {
-  const NewPostScreen({super.key});
+  const NewPostScreen({super.key, this.post, this.postService});
+
+  final PublishedPost? post;
+  final PostService? postService;
 
   @override
   State<NewPostScreen> createState() => _NewPostScreenState();
@@ -37,7 +40,26 @@ class _NewPostScreenState extends State<NewPostScreen> {
   final _contentController = TextEditingController();
   final _tagsController = TextEditingController();
   final _mediaPicker = ImagePicker();
-  final _postService = PostService();
+  late final _postService = widget.postService ?? PostService();
+  bool _removeExistingAttachment = false;
+  bool get _isEditing => widget.post != null;
+  bool get _hasExistingAttachment =>
+      _isEditing &&
+      widget.post!.attachmentType != 'none' &&
+      !_removeExistingAttachment;
+
+  @override
+  void initState() {
+    super.initState();
+    final post = widget.post;
+    if (post != null) {
+      _titleController.text = post.title;
+      _contentController.text = post.content;
+      _tagsController.text = post.tags.join(', ');
+      _selectedCategory = post.category;
+      _visibility = post.visibility == 'followers' ? 'Followers' : 'Public';
+    }
+  }
 
   String? _selectedCategory;
   String _visibility = 'Public';
@@ -69,7 +91,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
     if (_isSubmitting) {
       return false;
     }
-    if (_attachment != null) {
+    if (_attachment != null || _hasExistingAttachment) {
       _showSnackBar('Only one attachment can be added to a post.');
       return false;
     }
@@ -256,6 +278,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
 
     try {
       await _postService.savePost(
+        postId: widget.post?.id,
+        removeAttachment: _removeExistingAttachment,
         title: _titleController.text,
         category: _selectedCategory!,
         content: _contentController.text,
@@ -272,13 +296,17 @@ class _NewPostScreenState extends State<NewPostScreen> {
         return;
       }
       _showSnackBar(
-        isDraft ? 'Post saved as draft' : 'Post published successfully',
+        _isEditing
+            ? 'Post updated successfully'
+            : isDraft
+            ? 'Post saved as draft'
+            : 'Post published successfully',
       );
       Navigator.of(context).pop();
     } on PostFailure catch (error) {
       _showSnackBar(error.message);
     } catch (_) {
-      _showSnackBar('Unable to publish post. Please try again.');
+      _showSnackBar('Unable to save post. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -365,9 +393,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back),
         ),
-        title: const Text(
-          'New Post',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          _isEditing ? 'Edit Post' : 'New Post',
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -407,14 +435,18 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   initialValue: _selectedCategory,
                   decoration: _inputDecoration(hintText: 'Select a category'),
                   hint: const Text('Select a category'),
-                  items: _categories
-                      .map(
-                        (category) => DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
-                        ),
-                      )
-                      .toList(),
+                  items:
+                      {
+                            ..._categories,
+                            ?_selectedCategory,
+                          }
+                          .map(
+                            (category) => DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(category),
+                            ),
+                          )
+                          .toList(),
                   onChanged: _isSubmitting
                       ? null
                       : (value) {
@@ -482,6 +514,41 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   _SelectedAttachmentPreview(
                     attachment: attachment,
                     onRemove: _isSubmitting ? null : _removeAttachment,
+                  ),
+                ],
+                if (_hasExistingAttachment) ...[
+                  const SizedBox(height: 16),
+                  if (widget.post!.attachmentType == 'image' &&
+                      widget.post!.attachmentUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        widget.post!.attachmentUrl!,
+                        height: 160,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox(
+                          height: 80,
+                          child: Center(child: Text('Image unavailable')),
+                        ),
+                      ),
+                    ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.attachment),
+                    title: Text(
+                      widget.post!.attachmentName ??
+                          widget.post!.linkUrl ??
+                          'Current attachment',
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Remove current attachment',
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => setState(() {
+                              _removeExistingAttachment = true;
+                            }),
+                      icon: const Icon(Icons.close),
+                    ),
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -554,6 +621,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _isSubmitting
                             ? null
+                            : _isEditing
+                            ? () => Navigator.of(context).pop()
                             : () => _savePost('draft'),
                         icon: _isSubmitting && _isSavingDraft
                             ? const SizedBox(
@@ -567,6 +636,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
                         label: Text(
                           _isSubmitting && _isSavingDraft
                               ? 'Saving draft...'
+                              : _isEditing
+                              ? 'Cancel'
                               : 'Save as Draft',
                         ),
                         style: OutlinedButton.styleFrom(
@@ -597,7 +668,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                             : const Icon(Icons.send_outlined),
                         label: Text(
                           _isSubmitting && !_isSavingDraft
-                              ? 'Publishing...'
+                              ? 'Saving...'
+                              : _isEditing
+                              ? 'Save Changes'
                               : 'Post',
                         ),
                         style: FilledButton.styleFrom(

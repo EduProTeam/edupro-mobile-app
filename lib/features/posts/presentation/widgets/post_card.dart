@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/post_service.dart';
+import '../screens/new_post_screen.dart';
 import 'post_like_button.dart';
 import 'post_comments_sheet.dart';
 
@@ -72,11 +73,27 @@ class PostCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.more_horiz),
-                tooltip: 'Post options',
-                color: _textPrimary,
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                initialData: FirebaseAuth.instance.currentUser,
+                builder: (context, snapshot) {
+                  if (snapshot.data == null ||
+                      snapshot.data!.uid != post.userId) {
+                    return const SizedBox.shrink();
+                  }
+                  return PopupMenuButton<String>(
+                    tooltip: 'Post options',
+                    icon: const Icon(Icons.more_horiz, color: _textPrimary),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit post')),
+                    ],
+                    onSelected: (_) => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => NewPostScreen(post: post),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
