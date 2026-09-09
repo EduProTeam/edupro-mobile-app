@@ -1,181 +1,526 @@
 # EduPro
 
-**A community skill exchange and microlearning mobile application built with Flutter, Firebase, and Supabase.**
+> **Community Skill-Exchange & Micro-Learning Mobile Application**
 
-EduPro brings educational posts, recorded courses, and group discussions into one app. Learners can share knowledge, interact with posts, enroll in courses, and track lesson completion. Creators can publish learning materials and manage their own content.
+EduPro is a mobile learning platform designed to connect learners, peer tutors, skill providers, and educational content creators in one place. The application combines **skill sharing**, **micro-learning**, **recorded courses**, **educational posts**, **community discussions**, and planned **AI-assisted learning support**.
 
-## Features
+The project is built with **Flutter**, **Firebase**, and **Supabase**.
 
-### Accounts and profiles
+---
 
-- Email and password registration, sign-in, and sign-out using Firebase Authentication.
-- Onboarding and a profile editor.
+## Project Overview
+
+Many learners need affordable, flexible, and easy-to-access learning opportunities, while skilled people often have no simple platform to share their knowledge and reach learners.
+
+EduPro aims to solve this by providing a mobile-first community where users can:
+
+- Learn practical or academic skills.
+- Discover and share educational content.
+- Publish and follow recorded courses.
+- Join educational discussion groups.
+- Share learning materials.
+- Build profiles as learners, tutors, or skill providers.
+- Interact with educational posts through likes and comments.
+- Track course progress.
+- Access planned notification and AI-chatbot support.
+
+The product concept supports **SDG 4 – Quality Education** and **SDG 8 – Decent Work and Economic Growth**.
+
+---
+
+## Main Users
+
+EduPro is designed around four main user types:
+
+- **Skill Seekers** – users looking for affordable and trustworthy learning opportunities.
+- **Skill Providers** – experienced people who want to teach their skills and reach learners.
+- **Micro-Entrepreneurs** – small business owners who may need quick and affordable skill development.
+- **Peer Tutors** – students or professionals who want to teach others and build a reputation.
+
+---
+
+## Core Features
+
+### 1. Authentication & Onboarding
+
+- Email and password registration.
+- Sign in and sign out using Firebase Authentication.
+- User onboarding flow.
+- User profile setup and editing.
 - Profile photo upload, replacement, and removal.
-- Educational post cards display the author's current profile photo.
 
-### Educational posts
+### 2. Educational Posts
 
-- Create posts with a title, category, content, tags, and a visibility selection.
-- Attach an image, video, document, or link; one attachment per post.
-- Publish posts or save drafts.
-- Like and unlike posts, with at most one active like per user per post.
-- Read and submit comments with live comment counts.
+- Create educational posts with:
+  - Title
+  - Category
+  - Content
+  - Tags
+  - Visibility
+- Attach one image, video, document, or link.
+- Publish posts or save them as drafts.
+- Like and unlike posts.
+- Read and add comments.
 - Edit or delete your own comments.
-- Edit your own posts, including retaining, removing, or replacing attachments.
-- Delete your own posts after confirmation. Post deletion is a **soft delete**: it removes the post from the feed while retaining database records and uploaded files.
+- Edit your own posts.
+- Delete posts using soft deletion.
+- Display the author's latest profile photo.
+- Search and browse educational content.
 
-### Recorded courses
+### 3. Recorded Courses
 
-- Create free or paid course listings with thumbnails, lesson videos, and supporting files.
-- Save drafts, publish courses, and manage your own courses.
-- Search and sort course listings.
-- Complete a topic-specific creator verification quiz before saving a new course; the required score is 4 out of 5.
-- Enroll in courses and persist lesson completion and learning progress.
-- Play lesson videos within the app.
+- Create free or paid course listings.
+- Add course thumbnails.
+- Add lesson videos and supporting files.
+- Save courses as drafts or publish them.
+- Search and sort courses.
+- Enroll in courses.
+- Track completed lessons.
+- Track learning progress.
+- Play lesson videos inside the application.
+- Manage created courses.
+- Creator verification quiz before saving a new course.
 
-Paid-course checkout is currently a demonstration and does not charge money. Creator verification uses predefined, client-side questions rather than an external AI service.
+> Paid-course checkout is currently a demonstration and does not process real payments.
 
-### Group discussions
+### 4. Skill Sharing
 
-- Browse and search groups, including category and My Groups filters.
-- Create, join, and leave groups.
+The Skill Sharing module is designed to support:
+
+- Browsing available skills.
+- Searching skills.
+- Skill categories.
+- Skill provider information.
+- Ratings.
+- A **Share Your Skill** flow.
+- Future support for availability, pricing, and session types.
+
+> Some skill-sharing functionality is still under development.
+
+### 5. Educational Chat Groups
+
+- Browse and search educational groups.
+- Filter by category.
+- View joined groups.
+- Create groups.
+- Join and leave groups.
 - Exchange text messages in real time.
-- Manage group details and administrators through the group management screens.
+- Manage group information.
+- Manage group administrators.
 
-## Technology
+### 6. Learning Materials
+
+EduPro supports learning-material sharing through educational posts and course content, including:
+
+- Documents
+- Images
+- Videos
+- Links
+- Course supporting files
+
+### 7. Notifications & AI Chatbot
+
+The project scope includes:
+
+- Educational notifications.
+- Quick access to an AI-assisted learning chatbot/tutor.
+- Support for students who need on-demand academic help.
+
+> These features are part of the project roadmap and may not be fully implemented yet.
+
+---
+
+## Jira Epics
+
+The project is organized into the following main Jira epics:
+
+| Epic | Name |
+|---|---|
+| EP-1 | Project Setup & Agile Planning |
+| EP-2 | Authentication & Onboarding |
+| EP-3 | Recorded Courses |
+| EP-4 | Profile & Settings |
+| EP-5 | Skill Sharing |
+| EP-6 | Educational Chat Groups |
+| EP-7 | Notifications & AI Chatbot |
+| EP-8 | Home Navigation & Educational Posts |
+| EP-9 | Learning Materials |
+| EP-10 | Integration & Testing |
+
+---
+
+## UX Design Approach
+
+The user experience was designed using:
+
+1. User research
+2. Personas
+3. Empathy maps
+4. User stories
+5. User flows
+6. Service blueprinting
+7. Alternative sketches
+8. Wireframes
+9. Final wireframe selection
+
+The design focuses on:
+
+- Simple navigation
+- Clear information hierarchy
+- Low user effort
+- Easy content discovery
+- Visible actions
+- Consistent navigation
+- Mobile-first usability
+- Scalability for future features
+
+---
+
+## Important UX Flows
+
+The product research and design process identified these major flows:
+
+### Learner Skill Discovery
+
+`Open App → Select Learner → Set Location & Language → Browse Skills → Filter → View Provider → Select Session / Book`
+
+### Become a Skill Provider
+
+`Teach a Skill → Complete Profile → Add Rates → Verification → Review → Approval → Profile Goes Live`
+
+### Booking & Payment
+
+`Select Provider → View Time Slots → Confirm Booking → Payment → Confirmation → Calendar`
+
+### Session Completion
+
+`Attend Session → Mark Complete → Rate & Review → Rating Updates → Next Skill Suggestion`
+
+> These flows represent the broader product design. Some booking, payment, and provider features are not yet fully implemented in the current application.
+
+---
+
+## Technology Stack
 
 | Component | Technology |
-| --- | --- |
-| Application | Flutter and Dart, Material 3 |
+|---|---|
+| Mobile Application | Flutter & Dart |
+| UI | Material 3 |
 | Authentication | Firebase Authentication |
-| Database and live updates | Cloud Firestore |
-| Uploaded media | Supabase Storage, private `edupro-media` bucket |
-| Media selection | `image_picker`, `file_picker` |
-| Lesson playback | `video_player` |
-| SVG assets | `flutter_svg` |
-| Testing and linting | `flutter_test`, `flutter_lints` |
+| Database | Cloud Firestore |
+| Real-time Updates | Cloud Firestore |
+| Media Storage | Supabase Storage |
+| Media Selection | `image_picker`, `file_picker` |
+| Video Playback | `video_player` |
+| SVG Support | `flutter_svg` |
+| Testing | `flutter_test` |
+| Linting | `flutter_lints` |
+| Project Management | Jira |
+| Version Control | Git & GitHub |
 
-Firebase user tokens are used to access Supabase through its Firebase third-party authentication integration. Media metadata and signed URLs are stored in Firestore.
+Firebase user tokens are used to access Supabase through Firebase third-party authentication integration.
 
-## Getting started
+---
 
-### Requirements
-
-- Flutter with a Dart SDK compatible with `^3.12.2`, as specified in `pubspec.yaml`.
-- Android Studio and an Android emulator, or a connected Android device with debugging enabled.
-- Access to the Firebase and Supabase projects used by the app, or your own configured projects.
-- For iOS builds, macOS with Xcode and the required Flutter iOS tooling.
-
-Android is the straightforward starting target. Platform folders are also present for iOS, web, Windows, macOS, and Linux, but their presence does not establish full feature compatibility. Linux Firebase options are not configured, and file-based features use `dart:io`, so web support needs additional work.
-
-### Install dependencies
-
-From the repository root:
-
-```sh
-flutter doctor
-flutter pub get
-```
-
-### Configure Firebase
-
-1. Enable Email/Password sign-in in Firebase Authentication.
-2. Create or use a Cloud Firestore database.
-3. Check the existing project configuration in `lib/firebase_options.dart`, `firebase.json`, and the platform configuration files. For a different Firebase project, regenerate the configuration using the FlutterFire CLI rather than reusing the existing project identifiers.
-4. Configure and deploy Firestore rules for profiles, posts, comments, courses, enrollments, groups, and messages.
-
-Feature-specific rule examples are linked below. **Deployed Firestore rules are not tracked in this repository.** Merge and validate the examples against your actual project; a client-side ownership check alone does not secure database access. Group membership and administrator permissions also need corresponding database rules.
-
-### Configure Supabase
-
-1. Set the project URL, publishable key, and bucket name in `lib/supabase_options.dart`.
-2. Create the private `edupro-media` storage bucket.
-3. Enable Firebase third-party authentication for the Firebase project used by the app.
-4. Configure authenticated storage policies for uploads, signed URL creation, and deletion, using the Firebase user ID in the first segment of each object path.
-
-See [course persistence setup](docs/course-persistence.md) for storage policy requirements and media limitations. Use a publishable client key in the app; never add a Supabase service-role key to client code.
-
-### Run the app
-
-```sh
-flutter devices
-flutter run
-```
-
-When multiple devices are connected, select one with `flutter run -d <device-id>`.
-
-To create a release APK after configuring the Android build environment:
-
-```sh
-flutter build apk --release
-```
-
-## Project structure
+## Project Structure
 
 ```text
 lib/
-  main.dart                 App startup and Firebase initialization
-  firebase_options.dart     Firebase platform configuration
-  supabase_options.dart     Supabase client and bucket configuration
-  features/
-    auth/                   Registration and sign-in
-    onboarding/             Introductory screens
-    splash/                 Startup screen
-    home/                   Main navigation and educational feed
-    profile/                Profile editing and photos
-    posts/                  Post publishing, likes, comments, and owner actions
-    courses/                Course creation, enrollment, progress, and playback
-    chat/                   Groups, membership, and messaging
-    settings/               Settings interface
-assets/                     App illustrations and logos
-docs/                       Feature setup and backend rule guidance
-test/                       Automated tests
+├── main.dart
+├── firebase_options.dart
+├── supabase_options.dart
+│
+├── features/
+│   ├── auth/
+│   ├── onboarding/
+│   ├── splash/
+│   ├── home/
+│   ├── profile/
+│   ├── posts/
+│   ├── courses/
+│   ├── chat/
+│   └── settings/
+│
+assets/
+docs/
+test/
 ```
 
-## Data overview
+### Main Folders
 
-| Firestore path | Purpose |
-| --- | --- |
-| `users/{userId}` | User profile and profile photo metadata |
-| `posts/{postId}` | Educational content, author, attachment metadata, likes, and counts |
-| `posts/{postId}/comments/{commentId}` | Comments and their authors |
-| `courses/{courseId}` | Course details, lessons, media references, and enrollment count |
-| `users/{userId}/courseEnrollments/{courseId}` | Enrollment and completed lesson IDs |
+| Folder | Purpose |
+|---|---|
+| `auth/` | Registration and sign-in |
+| `onboarding/` | Introductory screens |
+| `splash/` | Application startup screen |
+| `home/` | Home navigation and feed |
+| `profile/` | User profile management |
+| `posts/` | Educational post functionality |
+| `courses/` | Recorded courses, enrollment, and progress |
+| `chat/` | Groups and messaging |
+| `settings/` | Application settings |
+| `assets/` | Logos, illustrations, and other assets |
+| `docs/` | Feature and backend documentation |
+| `test/` | Automated tests |
+
+---
+
+## Data Overview
+
+Main Firestore collections and paths:
+
+| Firestore Path | Purpose |
+|---|---|
+| `users/{userId}` | User profile and profile-photo metadata |
+| `posts/{postId}` | Educational posts, attachments, likes, and counts |
+| `posts/{postId}/comments/{commentId}` | Post comments |
+| `courses/{courseId}` | Course details, lessons, and media references |
+| `users/{userId}/courseEnrollments/{courseId}` | Enrollment and lesson progress |
 | `groups/{groupId}` | Group details, members, and administrators |
 | `groups/{groupId}/messages/{messageId}` | Group messages |
-| `categories/{categoryId}` | Group category names |
+| `categories/{categoryId}` | Group category data |
 
-## Tests and checks
+---
 
-```sh
+## Getting Started
+
+### Requirements
+
+Before running the application, install or configure:
+
+- Flutter with a Dart SDK compatible with `^3.12.2`
+- Android Studio
+- Android Emulator or a physical Android device
+- Firebase project
+- Supabase project
+- FlutterFire CLI when configuring a new Firebase project
+
+For iOS development, macOS and Xcode are required.
+
+---
+
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/EduProTeam/edupro-mobile-app.git
+cd edupro-mobile-app
+```
+
+### 2. Check Flutter setup
+
+```bash
+flutter doctor
+```
+
+### 3. Install dependencies
+
+```bash
+flutter pub get
+```
+
+---
+
+## Firebase Configuration
+
+1. Create or use a Firebase project.
+2. Enable **Email/Password** authentication.
+3. Create a **Cloud Firestore** database.
+4. Configure the project using FlutterFire.
+5. Check:
+   - `lib/firebase_options.dart`
+   - `firebase.json`
+   - Platform-specific Firebase files
+6. Configure and deploy proper Firestore security rules.
+
+> Do not rely only on client-side ownership checks. Database access must also be protected using Firestore rules.
+
+---
+
+## Supabase Configuration
+
+1. Create or use a Supabase project.
+2. Set the project URL and publishable key in:
+
+```text
+lib/supabase_options.dart
+```
+
+3. Create the private storage bucket:
+
+```text
+edupro-media
+```
+
+4. Enable Firebase third-party authentication.
+5. Configure authenticated storage policies for:
+   - Uploads
+   - Signed URLs
+   - File deletion
+
+> Never place a Supabase service-role key inside the Flutter client application.
+
+---
+
+## Run the Application
+
+Check connected devices:
+
+```bash
+flutter devices
+```
+
+Run the project:
+
+```bash
+flutter run
+```
+
+Run on a specific device:
+
+```bash
+flutter run -d <device-id>
+```
+
+---
+
+## Build Release APK
+
+```bash
+flutter build apk --release
+```
+
+---
+
+## Testing
+
+Run static analysis:
+
+```bash
 flutter analyze
+```
+
+Run automated tests:
+
+```bash
 flutter test
 ```
 
-To run the post feature tests:
+Example educational-post tests:
 
-```sh
-flutter test test/post_actions_menu_test.dart test/edit_post_test.dart test/post_comments_sheet_test.dart test/post_like_button_test.dart
+```bash
+flutter test \
+  test/post_actions_menu_test.dart \
+  test/edit_post_test.dart \
+  test/post_comments_sheet_test.dart \
+  test/post_like_button_test.dart
 ```
 
-Tests also cover course forms, course management, and enrollment behavior. Widget tests do not verify deployed Firebase rules or live Supabase policies; check those separately with the configured backend. No current full-suite pass is claimed by this README.
+Tests also cover course forms, course management, and enrollment behavior.
 
-## Feature documentation
+---
 
-- [Post likes and unlikes](docs/post-likes.md)
-- [Comments, editing, and deletion](docs/post-comments.md)
-- [Editing your own posts](docs/post-editing.md)
-- [Deleting your own posts](docs/post-deletion.md)
-- [Course persistence, enrollment, and media setup](docs/course-persistence.md)
-- [Course creator verification](docs/course-verification.md)
+## Current Development Status
 
-## Current limitations
+### Implemented / Available
 
-- Password reset has a screen but its backend action is not connected.
-- Profile sharing and Add Skill are placeholders; saved-course state is not yet persisted.
-- Paid checkout is a demo, and signed media links do not enforce paid-content entitlement.
-- Post visibility is selectable in the form; follower-only access must be enforced through backend rules and compatible queries.
-- Creator verification is a client-side academic demonstration, not a trusted credential check.
-- Soft-deleted posts and unused media are retained. Permanent cleanup and automatic signed URL renewal are not implemented.
+- Firebase authentication
+- Onboarding
+- Profile management
+- Profile photos
+- Educational post creation and management
+- Post likes
+- Post comments
+- Recorded course creation
+- Course enrollment
+- Course progress tracking
+- Lesson video playback
+- Group creation and membership
+- Real-time group messaging
+- Firebase + Supabase integration
 
-This repository is under active development. Consult the feature documentation before enabling backend writes in a shared environment.
+### In Progress / Planned
+
+- Complete Skill Sharing workflow
+- AI educational chatbot
+- Notifications
+- Production-ready paid-course checkout
+- Provider verification workflow
+- Booking and session management
+- Full payment workflow
+- Saved-course persistence
+- Password reset backend integration
+
+---
+
+## Current Limitations
+
+- Password reset UI exists, but the backend action is not connected.
+- Profile sharing is not fully implemented.
+- Add Skill functionality is still incomplete.
+- Saved-course state is not yet persisted.
+- Paid checkout is only a demonstration.
+- Signed media links do not currently enforce paid-content entitlement.
+- Post visibility requires compatible backend security rules and queries.
+- Course creator verification uses predefined client-side questions.
+- Soft-deleted posts and unused media are retained.
+- Automatic signed URL renewal is not implemented.
+- Web support needs additional work because some file features depend on `dart:io`.
+
+---
+
+## Team
+
+| Member | Student ID | Primary UX Feature |
+|---|---|---|
+| Perera H. C. T. | IT23727472 | Recorded Courses |
+| Dilhara H. S. | IT23815896 | Skill Share |
+| D. M. T. Shamendra | IT23664012 | Educational Post & Material Sharing |
+| De Silva A. Y. R. | IT23549104 | Community Chat Groups & AI Chatbot |
+
+**Group:** 051  
+**Academic Year:** 2026
+
+---
+
+## Feature Documentation
+
+Additional documentation is available in the `docs/` directory for areas such as:
+
+- Post likes and unlikes
+- Comments, editing, and deletion
+- Post editing
+- Post deletion
+- Course persistence and enrollment
+- Course media setup
+- Course creator verification
+
+---
+
+## Future Improvements
+
+- Complete the Skill Sharing module.
+- Add provider booking and availability management.
+- Add ratings and reviews for skill providers.
+- Implement production payment integration.
+- Add push notifications.
+- Implement AI-powered educational assistance.
+- Improve accessibility for users with low digital literacy.
+- Add better moderation and reporting tools.
+- Improve multi-platform compatibility.
+- Expand automated and integration testing.
+
+---
+
+## Repository
+
+**GitHub:** https://github.com/EduProTeam/edupro-mobile-app
+
+---
+
+## Project Note
+
+EduPro is an academic project under active development. Some features represent the final product vision and UX design while others are already implemented in the current Flutter application.
+
+Always validate Firebase and Supabase security rules before using the application in a production or shared environment.
