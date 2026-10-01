@@ -4,6 +4,7 @@ import '../models/group_model.dart';
 import '../services/group_service.dart';
 import 'chat_room_screen.dart';
 import 'create_group_screen.dart';
+import 'ai_tutor_screen.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -312,16 +313,11 @@ class _GroupListScreenState extends State<GroupListScreen> {
           borderRadius: BorderRadius.circular(14),
 
           onTap: () {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(
-                  content: Text('AI Tutor will be added later.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AiTutorScreen()),
+            );
           },
-
           child: Container(
             width: double.infinity,
 
