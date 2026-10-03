@@ -5,17 +5,44 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/group_model.dart';
 import '../models/group_member_model.dart';
+import '../../notifications/services/notification_service.dart';
 
 class GroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  final NotificationService _notificationService = NotificationService();
+
   // ============================================================
   // CURRENT USER
   // ============================================================
 
   String? get currentUserId => _auth.currentUser?.uid;
+
+  // ============================================================
+  // GET USER NAME
+  // ============================================================
+
+  Future<String> _getUserName(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+
+    final data = doc.data();
+
+    final fullName = data?['fullName']?.toString().trim() ?? '';
+
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+
+    final email = data?['email']?.toString().trim() ?? '';
+
+    if (email.isNotEmpty) {
+      return email.split('@').first;
+    }
+
+    return 'A member';
+  }
 
   // ============================================================
   // CATEGORIES
@@ -153,9 +180,59 @@ class GroupService {
       throw Exception('User not logged in');
     }
 
-    await _firestore.collection('groups').doc(groupId).update({
+    final groupRef = _firestore.collection('groups').doc(groupId);
+
+    final snapshot = await groupRef.get();
+
+    if (!snapshot.exists) {
+      throw Exception('Group not found');
+    }
+
+    final data = snapshot.data();
+
+    if (data == null) {
+      throw Exception('Group data not found');
+    }
+
+    final members = List<String>.from(data['members'] ?? []);
+
+    // Already joined
+    if (members.contains(uid)) {
+      return;
+    }
+
+    final createdBy = data['createdBy']?.toString() ?? '';
+
+    final admins = data['admins'] != null
+        ? List<String>.from(data['admins'])
+        : createdBy.isNotEmpty
+        ? [createdBy]
+        : <String>[];
+
+    final groupName = data['groupName']?.toString() ?? 'Group';
+
+    // Add member
+    await groupRef.update({
       'members': FieldValue.arrayUnion([uid]),
     });
+
+    final memberName = await _getUserName(uid);
+
+    // Notify all admins
+    for (final adminId in admins.toSet()) {
+      if (adminId == uid) {
+        continue;
+      }
+
+      await _notificationService.createNotification(
+        userId: adminId,
+        type: 'member_joined',
+        title: 'New Member Joined',
+        message: '$memberName joined $groupName.',
+        groupId: groupId,
+        groupName: groupName,
+      );
+    }
   }
 
   // ============================================================
@@ -362,7 +439,39 @@ class GroupService {
       throw Exception('Only an admin can delete this group.');
     }
 
-    await groupRef.delete();
+    final members = List<String>.from(data['members'] ?? []);
+
+    final groupName = data['groupName']?.toString() ?? 'Group';
+
+    // ------------------------------------------------------------
+    // Create notifications + delete group in one batch
+    // ------------------------------------------------------------
+
+    final batch = _firestore.batch();
+
+    for (final memberId in members.toSet()) {
+      // User deleting the group doesn't need notification
+      if (memberId == uid) {
+        continue;
+      }
+
+      final notificationRef = _firestore.collection('notifications').doc();
+
+      batch.set(notificationRef, {
+        'userId': memberId,
+        'type': 'group_deleted',
+        'title': 'Group Deleted',
+        'message': '$groupName was deleted by an admin.',
+        'groupId': groupId,
+        'groupName': groupName,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    batch.delete(groupRef);
+
+    await batch.commit();
   }
 
   Future<List<GroupMemberModel>> getGroupMembers(GroupModel group) async {
@@ -413,6 +522,10 @@ class GroupService {
     return members;
   }
 
+  // ============================================================
+  // MAKE MEMBER ADMIN
+  // ============================================================
+
   Future<void> makeMemberAdmin({
     required String groupId,
     required String memberId,
@@ -424,6 +537,8 @@ class GroupService {
     }
 
     final groupRef = _firestore.collection('groups').doc(groupId);
+
+    String? notificationGroupName;
 
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(groupRef);
@@ -448,16 +563,15 @@ class GroupService {
 
       final members = List<String>.from(data['members'] ?? []);
 
-      // Current user must be an admin
       if (!admins.contains(currentUid)) {
         throw Exception('Only an admin can make another member an admin.');
       }
 
-      // Selected user must be a member
       if (!members.contains(memberId)) {
         throw Exception('This user is not a member of the group.');
       }
 
+      // Already admin
       if (admins.contains(memberId)) {
         return;
       }
@@ -465,6 +579,20 @@ class GroupService {
       admins.add(memberId);
 
       transaction.update(groupRef, {'admins': admins});
+
+      notificationGroupName = data['groupName']?.toString() ?? 'Group';
     });
+
+    // Notify new admin
+    if (notificationGroupName != null) {
+      await _notificationService.createNotification(
+        userId: memberId,
+        type: 'admin_changed',
+        title: 'You Are Now an Admin',
+        message: 'You are now an admin of $notificationGroupName.',
+        groupId: groupId,
+        groupName: notificationGroupName!,
+      );
+    }
   }
 }

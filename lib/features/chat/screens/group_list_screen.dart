@@ -5,6 +5,8 @@ import '../services/group_service.dart';
 import 'chat_room_screen.dart';
 import 'create_group_screen.dart';
 import 'ai_tutor_screen.dart';
+import '../../notifications/screens/notification_screen.dart';
+import '../../notifications/services/notification_service.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -15,6 +17,8 @@ class GroupListScreen extends StatefulWidget {
 
 class _GroupListScreenState extends State<GroupListScreen> {
   final GroupService _groupService = GroupService();
+
+  final NotificationService _notificationService = NotificationService();
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -130,15 +134,67 @@ class _GroupListScreenState extends State<GroupListScreen> {
             ),
           ),
 
-          IconButton(
-            onPressed: () {
-              // Notification page can be added later
+          StreamBuilder<int>(
+            stream: _notificationService.getUnreadCount(),
+
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+
+              return Stack(
+                clipBehavior: Clip.none,
+
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationScreen(),
+                        ),
+                      );
+                    },
+
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: darkText,
+                      size: 27,
+                    ),
+                  ),
+
+                  if (count > 0)
+                    Positioned(
+                      right: 3,
+                      top: 2,
+
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+
+                        alignment: Alignment.center,
+
+                        child: Text(
+                          count > 99 ? '99+' : count.toString(),
+
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: darkText,
-              size: 27,
-            ),
           ),
         ],
       ),
