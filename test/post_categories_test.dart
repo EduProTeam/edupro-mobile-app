@@ -14,6 +14,7 @@ import 'package:firebase_auth_platform_interface/firebase_auth_platform_interfac
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MemoryFirestore implements FirebaseFirestore {
@@ -196,9 +197,30 @@ PublishedPost _post(
   String id,
   Object? category, {
   List<String> tags = const [],
+  String content = '',
 }) => PublishedPost.fromDocument(
-  _Snapshot(id, {'title': id, 'category': ?category, 'tags': tags}),
+  _Snapshot(id, {
+    'title': id,
+    'category': ?category,
+    'content': content,
+    'tags': tags,
+  }),
 );
+
+void _configureHomeTest(WidgetTester tester) {
+  final originalCore = FirebasePlatform.instance;
+  final originalAuth = FirebaseAuthPlatform.instance;
+  FirebasePlatform.instance = _FirebasePlatform();
+  FirebaseAuthPlatform.instance = _AuthPlatform();
+  addTearDown(() {
+    FirebasePlatform.instance = originalCore;
+    FirebaseAuthPlatform.instance = originalAuth;
+  });
+  tester.view.physicalSize = const Size(1200, 1600);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
 
 Future<void> _save(PostService service, String category) => service.savePost(
   title: 'A lesson',
@@ -343,18 +365,7 @@ void main() {
   testWidgets(
     'Home filters by saved category, keeps All and handles live posts',
     (tester) async {
-      final originalCore = FirebasePlatform.instance;
-      final originalAuth = FirebaseAuthPlatform.instance;
-      FirebasePlatform.instance = _FirebasePlatform();
-      FirebaseAuthPlatform.instance = _AuthPlatform();
-      addTearDown(() {
-        FirebasePlatform.instance = originalCore;
-        FirebaseAuthPlatform.instance = originalAuth;
-      });
-      tester.view.physicalSize = const Size(1200, 1600);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      _configureHomeTest(tester);
       final changes = StreamController<List<PublishedPost>>();
       addTearDown(changes.close);
       final posts = [
@@ -402,7 +413,7 @@ void main() {
       await tester.tap(find.widgetWithText(ChoiceChip, 'AI'));
       await tester.pumpAndSettle();
       expect(find.byType(PostCard), findsNothing);
-      expect(find.text('No posts in AI yet'), findsOneWidget);
+      expect(find.text('No posts found'), findsOneWidget);
       expect(find.widgetWithText(ChoiceChip, 'All'), findsOneWidget);
       await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'All'));
       await tester.pumpAndSettle();
@@ -412,4 +423,291 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'Home searches titles and content together with category and live updates',
+    (tester) async {
+      _configureHomeTest(tester);
+      final changes = StreamController<List<PublishedPost>>();
+      addTearDown(changes.close);
+      final posts = [
+        _post('Flutter Widgets Basics', 'Flutter'),
+        _post(
+          'Layout lesson',
+          'Flutter',
+          content: 'Build reusable WIDGETS from scratch.',
+        ),
+        _post('Dart futures', 'Flutter', content: 'Asynchronous programming'),
+        _post('Web widgets', 'Web Development'),
+        _post('Legacy lesson', null, content: 'Widgets in an older post'),
+      ];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomePostFeed(
+              postsStream: changes.stream,
+              onRefresh: () async {},
+              onRetry: () {},
+            ),
+          ),
+        ),
+      );
+      changes.add(posts);
+      await tester.pumpAndSettle();
+
+      final search = find.byType(TextField);
+      final searchField = tester.widget<TextField>(search);
+      expect(searchField.decoration!.hintText, 'Search posts...');
+      expect(
+        find.descendant(of: search, matching: find.byIcon(Icons.search)),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Clear search'), findsNothing);
+      expect(
+        tester.getRect(search).bottom,
+        lessThan(tester.getRect(find.widgetWithText(ChoiceChip, 'All')).top),
+      );
+      expect(
+        tester.getRect(find.widgetWithText(ChoiceChip, 'All')).bottom,
+        lessThan(tester.getRect(find.text('Educational Posts')).top),
+      );
+
+      Iterable<String> displayedIds() => tester
+          .widgetList<PostCard>(find.byType(PostCard))
+          .map((card) => card.post.id);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Flutter'));
+      await tester.pumpAndSettle();
+      expect(displayedIds(), [
+        'Flutter Widgets Basics',
+        'Layout lesson',
+        'Dart futures',
+      ]);
+      await tester.enterText(search, ' WiDgEtS ');
+      await tester.pumpAndSettle();
+      expect(displayedIds(), ['Flutter Widgets Basics', 'Layout lesson']);
+      expect(find.byTooltip('Clear search'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'All'));
+      await tester.pumpAndSettle();
+      expect(displayedIds(), [
+        'Flutter Widgets Basics',
+        'Layout lesson',
+        'Web widgets',
+        'Legacy lesson',
+      ]);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Web Development'));
+      await tester.pumpAndSettle();
+      expect(displayedIds(), ['Web widgets']);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Flutter'));
+      await tester.pumpAndSettle();
+      expect(displayedIds(), ['Flutter Widgets Basics', 'Layout lesson']);
+
+      await tester.enterText(search, 'no matching lesson');
+      await tester.pumpAndSettle();
+      expect(find.byType(PostCard), findsNothing);
+      expect(find.text('No posts found'), findsOneWidget);
+      await tester.tap(find.byTooltip('Clear search'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(search).controller!.text, isEmpty);
+      expect(find.byTooltip('Clear search'), findsNothing);
+      expect(displayedIds(), [
+        'Flutter Widgets Basics',
+        'Layout lesson',
+        'Dart futures',
+      ]);
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Flutter'))
+            .selected,
+        isTrue,
+      );
+
+      await tester.enterText(search, 'widget');
+      await tester.pumpAndSettle();
+      changes.add([
+        ...posts,
+        _post('Live lesson', 'Flutter', content: 'A new widget example'),
+        _post('Other live lesson', 'AI', content: 'A widget example'),
+      ]);
+      await tester.pumpAndSettle();
+      expect(displayedIds(), [
+        'Flutter Widgets Basics',
+        'Layout lesson',
+        'Live lesson',
+      ]);
+
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
+      expect(find.text('Search posts...'), findsOneWidget);
+      expect(find.byTooltip('Clear search'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'filters collapse down and reveal up smoothly without losing state',
+    (tester) async {
+      _configureHomeTest(tester);
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(title: const Text('Home')),
+            bottomNavigationBar: BottomNavigationBar(
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ],
+            ),
+            body: HomePostFeed(
+              postsStream: Stream.value([
+                for (var index = 0; index < 24; index++)
+                  _post(
+                    'Flutter lesson $index',
+                    'Flutter',
+                    content: 'Widgets tutorial',
+                  ),
+                _post(
+                  'Unrelated lesson',
+                  'Web Development',
+                  content: 'Widgets tutorial',
+                ),
+              ]),
+              onRefresh: () async {},
+              onRetry: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final search = find.byType(TextField);
+      final view = find.byType(CustomScrollView);
+      final verticalScrollable = find
+          .descendant(of: view, matching: find.byType(Scrollable))
+          .first;
+      final position = tester
+          .state<ScrollableState>(verticalScrollable)
+          .position;
+      final header = tester.renderObject<RenderSliver>(
+        find.byType(SliverFloatingHeader),
+      );
+      final expandedHeight = header.geometry!.paintExtent;
+      expect(expandedHeight, greaterThan(0));
+      expect(
+        find.widgetWithText(ChoiceChip, 'All').hitTestable(),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Flutter'));
+      await tester.enterText(search, 'Widgets');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final firstPost = find.byWidgetPredicate(
+        (widget) => widget is PostCard && widget.post.id == 'Flutter lesson 0',
+      );
+      final firstPostTop = tester.getTopLeft(firstPost).dy;
+      final headerRect = tester.getRect(find.byType(AppBar));
+      final navigationRect = tester.getRect(find.byType(BottomNavigationBar));
+
+      final downGesture = await tester.startGesture(const Offset(195, 600));
+      await downGesture.moveBy(const Offset(0, -60));
+      await tester.pump();
+      expect(position.pixels, greaterThan(0));
+      expect(header.geometry!.paintExtent, inExclusiveRange(0, expandedHeight));
+      expect(
+        tester.getTopLeft(firstPost).dy,
+        closeTo(firstPostTop - position.pixels, 1),
+      );
+      await downGesture.up();
+      await tester.pumpAndSettle();
+      await tester.drag(view, const Offset(0, -430));
+      await tester.pumpAndSettle();
+      expect(header.geometry!.paintExtent, 0);
+      expect(search.hitTestable(), findsNothing);
+      expect(
+        find.widgetWithText(ChoiceChip, 'Flutter').hitTestable(),
+        findsNothing,
+      );
+      expect(position.pixels, greaterThan(expandedHeight));
+
+      final upGesture = await tester.startGesture(const Offset(195, 300));
+      await upGesture.moveBy(const Offset(0, 40));
+      await tester.pump();
+      final partialHeight = header.geometry!.paintExtent;
+      expect(partialHeight, inExclusiveRange(0, expandedHeight));
+      expect(position.pixels, greaterThan(expandedHeight));
+      await upGesture.up();
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(header.geometry!.paintExtent, greaterThanOrEqualTo(partialHeight));
+      await tester.pumpAndSettle();
+      expect(header.geometry!.paintExtent, closeTo(expandedHeight, 1));
+      expect(search.hitTestable(), findsOneWidget);
+      expect(
+        find.widgetWithText(ChoiceChip, 'Flutter').hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.widget<TextField>(search).controller!.text, 'Widgets');
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Flutter'))
+            .selected,
+        isTrue,
+      );
+      expect(
+        tester
+            .widgetList<PostCard>(find.byType(PostCard))
+            .every((card) => card.post.category == 'Flutter'),
+        isTrue,
+      );
+      expect(tester.getRect(find.byType(AppBar)), headerRect);
+      expect(tester.getRect(find.byType(BottomNavigationBar)), navigationRect);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('filters, retry and refresh remain usable in feed states', (
+    tester,
+  ) async {
+    _configureHomeTest(tester);
+    tester.view.physicalSize = const Size(390, 844);
+    final changes = StreamController<List<PublishedPost>>();
+    addTearDown(changes.close);
+    var retries = 0;
+    var refreshes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomePostFeed(
+            postsStream: changes.stream,
+            onRefresh: () async {
+              refreshes++;
+            },
+            onRetry: () {
+              retries++;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Loading posts...'), findsOneWidget);
+    expect(find.byType(TextField).hitTestable(), findsOneWidget);
+    changes.addError(StateError('Offline'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unable to load posts.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    expect(retries, 1);
+    changes.add(const []);
+    await tester.pumpAndSettle();
+    expect(find.text('No posts found'), findsOneWidget);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(refreshes, 1);
+    expect(find.byType(TextField).hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
