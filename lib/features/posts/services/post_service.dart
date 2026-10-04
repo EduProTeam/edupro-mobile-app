@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../supabase_options.dart';
+import '../models/post_categories.dart';
 import '../models/post_comment.dart';
 
 enum PostAttachmentType { image, video, file, link }
@@ -384,6 +385,9 @@ class PostService {
     required String status,
     PostAttachment? attachment,
   }) async {
+    if (!postCategories.contains(category)) {
+      throw const PostFailure('Please select a category.');
+    }
     if (postId != null) {
       return _updatePost(
         postId: postId,

@@ -7,13 +7,13 @@ import '../../../chat/screens/group_list_screen.dart';
 import '../../../courses/models/course_draft.dart';
 import '../../../courses/presentation/screens/create_course_screen.dart';
 import '../../../courses/presentation/screens/recorded_courses_screen.dart';
-import '../../../posts/presentation/widgets/post_card.dart';
 import '../../../posts/presentation/screens/new_post_screen.dart';
 import '../../../posts/services/post_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../splash/presentation/screens/splash_screen.dart';
+import '../widgets/home_post_feed.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -188,146 +188,10 @@ class _SimpleHomeScreenState extends State<_SimpleHomeScreen> {
           ),
         ],
       ),
-      body: StreamBuilder<List<PublishedPost>>(
-        stream: _postsStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Published posts feed error: ${snapshot.error}');
-            return _FeedMessage(
-              message: 'Unable to load posts.',
-              actionLabel: 'Try again',
-              onAction: _retryPosts,
-              onRefresh: _refreshPosts,
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const _FeedLoading();
-          }
-
-          final posts = snapshot.data ?? const <PublishedPost>[];
-          if (posts.isEmpty) {
-            return _FeedMessage(
-              message: 'No posts yet',
-              detail:
-                  'Be the first to share something with the EduPro community.',
-              onRefresh: _refreshPosts,
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _refreshPosts,
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 104),
-              itemCount: posts.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return const Padding(
-                    padding: EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      'Educational Posts',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  );
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: PostCard(post: posts[index - 1]),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _FeedLoading extends StatelessWidget {
-  const _FeedLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 104),
-      children: const [
-        Text(
-          'Educational Posts',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-        ),
-        SizedBox(height: 96),
-        Center(child: CircularProgressIndicator()),
-        SizedBox(height: 14),
-        Center(child: Text('Loading posts...')),
-      ],
-    );
-  }
-}
-
-class _FeedMessage extends StatelessWidget {
-  const _FeedMessage({
-    required this.message,
-    required this.onRefresh,
-    this.detail,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final String message;
-  final String? detail;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  final Future<void> Function() onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 104),
-        children: [
-          const Text(
-            'Educational Posts',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 96),
-          Center(
-            child: Column(
-              children: [
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (detail != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    detail!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFF6B7280)),
-                  ),
-                ],
-                if (actionLabel != null) ...[
-                  const SizedBox(height: 14),
-                  OutlinedButton(
-                    onPressed: onAction,
-                    child: Text(actionLabel!),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
+      body: HomePostFeed(
+        postsStream: _postsStream,
+        onRefresh: _refreshPosts,
+        onRetry: _retryPosts,
       ),
     );
   }
