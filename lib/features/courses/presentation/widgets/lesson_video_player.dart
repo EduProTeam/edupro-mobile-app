@@ -82,6 +82,7 @@ class _LessonVideoPlayerState extends State<LessonVideoPlayer> {
   Future<void> _openFullscreen() async {
     if (!_controller.value.isInitialized || !mounted) return;
     await _controller.pause();
+    if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => _FullscreenLessonVideo(url: _url),
@@ -335,7 +336,7 @@ class _VideoMessage extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ),
-              if (action != null) action!,
+              ?action,
             ],
           ),
         ),

@@ -68,6 +68,7 @@ flutter:
     - assets/images/edupro_logo.svg
     - assets/images/google_logo.svg
     - assets/images/auth/forgot_password.jpg
+    - assets/images/chat/group_chat.png
     - assets/images/onboarding/onboarding_1.jpg
     - assets/images/onboarding/onboarding_2.jpg
 

@@ -1,1 +1,25 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"edupro-b2b9d","appId":"1:1000010005213:android:25aa05f81e19d642783934","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"edupro-b2b9d","configurations":{"android":"1:1000010005213:android:25aa05f81e19d642783934","ios":"1:1000010005213:ios:fd3cfdf0df05c057783934","macos":"1:1000010005213:ios:fd3cfdf0df05c057783934","web":"1:1000010005213:web:1d75ea2cb1e764dc783934","windows":"1:1000010005213:web:965e9c9262e28c02783934"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "edupro-b2b9d",
+          "appId": "1:1000010005213:android:25aa05f81e19d642783934",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "edupro-b2b9d",
+          "configurations": {
+            "android": "1:1000010005213:android:25aa05f81e19d642783934",
+            "ios": "1:1000010005213:ios:fd3cfdf0df05c057783934",
+            "macos": "1:1000010005213:ios:fd3cfdf0df05c057783934",
+            "web": "1:1000010005213:web:1d75ea2cb1e764dc783934",
+            "windows": "1:1000010005213:web:965e9c9262e28c02783934"
+          }
+        }
+      }
+    }
+  }
+}

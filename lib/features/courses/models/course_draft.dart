@@ -70,6 +70,8 @@ class CourseDraft {
     this.totalDuration = '',
     this.userId = '',
     this.updatedAt = 0,
+    this.createdAt = 0,
+    this.enrollmentCount = 0,
   }) : lessons = List.unmodifiable(lessons);
   final String id, title, category, description, language, currency, userId;
   final String instructorName, level, totalDuration;
@@ -80,6 +82,8 @@ class CourseDraft {
   final CourseMedia? thumbnail;
   final List<CourseLesson> lessons;
   final int updatedAt;
+  final int createdAt;
+  final int enrollmentCount;
   Map<String, dynamic> toMap() => {
     'title': title,
     'category': category,
@@ -102,6 +106,7 @@ class CourseDraft {
     String id,
     Map<String, dynamic> data, {
     int updatedAt = 0,
+    int createdAt = 0,
   }) {
     final rawLessons = data['lessons'] as List? ?? [];
     final price = double.tryParse('${data['price'] ?? 0}') ?? 0;
@@ -123,6 +128,8 @@ class CourseDraft {
           : CourseStatus.draft,
       userId: data['userId'] as String? ?? '',
       updatedAt: updatedAt,
+      createdAt: createdAt,
+      enrollmentCount: (data['enrollmentCount'] as num?)?.toInt() ?? 0,
       thumbnail: data['thumbnail'] is Map
           ? CourseMedia.fromMap(
               Map<String, dynamic>.from(data['thumbnail'] as Map),

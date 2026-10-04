@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
@@ -6,11 +6,11 @@ import '../../models/course_draft.dart';
 import '../../services/course_service.dart';
 import '../widgets/course_form_widgets.dart';
 import '../widgets/lesson_video_player.dart';
-import 'create_course_screen.dart';
 
 class ViewCourseScreen extends StatefulWidget {
-  const ViewCourseScreen({super.key, required this.course});
+  const ViewCourseScreen({super.key, required this.course, this.service});
   final CourseDraft course;
+  final CourseService? service;
 
   @override
   State<ViewCourseScreen> createState() => _ViewCourseScreenState();
@@ -18,51 +18,193 @@ class ViewCourseScreen extends StatefulWidget {
 
 class _ViewCourseScreenState extends State<ViewCourseScreen>
     with SingleTickerProviderStateMixin {
-  late CourseDraft _course = widget.course;
+  late final CourseDraft _course = widget.course;
   late final TabController _tabs = TabController(length: 2, vsync: this);
-  final CourseService _courseService = CourseService();
+  late final CourseService _courseService = widget.service ?? CourseService();
+  StreamSubscription<Map<String, CourseEnrollment>>? _enrollmentSubscription;
+  bool _checkingEnrollment = true;
+  bool _enrolling = false;
+  bool _enrollmentError = false;
   bool _saved = false;
   bool _enrolled = false;
+  Set<String> _completedLessonIds = <String>{};
+  final Set<String> _completingLessonIds = <String>{};
   int? _selectedLessonIndex;
+  CourseLesson? _activeLesson;
+  bool get _canAccess => _enrolled && !_checkingEnrollment && !_enrollmentError;
 
-  bool get _isOwner =>
-      _course.userId.isNotEmpty &&
-      _course.userId == FirebaseAuth.instance.currentUser?.uid;
+  @override
+  void initState() {
+    super.initState();
+    _watchEnrollment();
+  }
+
+  void _watchEnrollment() {
+    _enrollmentSubscription?.cancel();
+    _enrollmentSubscription = _courseService.watchEnrollments().listen(
+      (enrollments) {
+        if (!mounted) return;
+        final enrollment = enrollments[_course.id];
+        setState(() {
+          _enrolled = enrollment != null;
+          if (!_enrolled) {
+            _selectedLessonIndex = null;
+            _activeLesson = null;
+          }
+          _completedLessonIds = enrollment?.completedLessonIds ?? <String>{};
+          _checkingEnrollment = false;
+          _enrollmentError = false;
+        });
+      },
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() {
+          _checkingEnrollment = false;
+          _enrollmentError = true;
+          _enrolled = false;
+          _selectedLessonIndex = null;
+          _activeLesson = null;
+        });
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _enrollmentSubscription?.cancel();
     _tabs.dispose();
     super.dispose();
   }
 
-  Future<void> _edit() async {
-    final result = await Navigator.push<CourseDraft>(
+  void _message(String message) {
+    ScaffoldMessenger.of(
       context,
-      MaterialPageRoute(builder: (_) => CreateCourseScreen(course: _course)),
-    );
-    if (mounted && result != null) setState(() => _course = result);
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _enrollOrContinue() {
-    if (_isOwner) {
-      _edit();
+  Future<void> _enrollOrContinue() async {
+    if (_checkingEnrollment || _enrolling) return;
+    if (_enrollmentError) {
+      setState(() => _checkingEnrollment = true);
+      _watchEnrollment();
       return;
     }
     if (_enrolled && _course.lessons.isNotEmpty) {
       _showLesson(0);
       return;
     }
-    setState(() => _enrolled = true);
-    _tabs.animateTo(0);
+    if (_enrolled) return;
+    setState(() => _enrolling = true);
+    try {
+      if (_course.type == CourseType.paid) {
+        final confirmed = await _showDemoPayment();
+        if (!confirmed || !mounted) return;
+      }
+      await _courseService.enroll(_course.id);
+      if (!mounted) return;
+      setState(() => _enrolled = true);
+      _tabs.animateTo(0);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enrolled successfully.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is CourseFailure
+                ? error.message
+                : 'Could not enroll. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _enrolling = false);
+    }
   }
 
-  void _showLesson(int index) {
+  Future<bool> _showDemoPayment() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Demo Payment'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_course.currency} ${_course.price.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 10),
+                const Text('This is a demo payment screen. No money will be charged.'),
+                const SizedBox(height: 14),
+                const ListTile(
+                  leading: Icon(Icons.credit_card),
+                  title: Text('Demo card ending in 4242'),
+                  subtitle: Text('Test payment method'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Complete Demo Payment'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _showLesson(int index) async {
+    if (!_canAccess) {
+      _message(
+        _checkingEnrollment
+            ? 'Checking enrollment...'
+            : 'Enroll in this course to unlock the lessons.',
+      );
+      return;
+    }
     if (index < 0 || index >= _course.lessons.length) return;
-    setState(() => _selectedLessonIndex = index);
+    setState(() {
+      _activeLesson = _course.lessons[index];
+      _selectedLessonIndex = index;
+    });
   }
 
   void _showCourseOverview() {
     setState(() => _selectedLessonIndex = null);
+  }
+
+  Future<void> _markLessonComplete(CourseLesson lesson) async {
+    if (!_enrolled || _completingLessonIds.contains(lesson.id)) return;
+    setState(() => _completingLessonIds.add(lesson.id));
+    try {
+      await _courseService.completeLesson(_course.id, lesson.id);
+      if (!mounted) return;
+      setState(() => _completedLessonIds = {..._completedLessonIds, lesson.id});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lesson marked as complete.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is CourseFailure
+                ? error.message
+                : 'Could not save lesson progress. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _completingLessonIds.remove(lesson.id));
+    }
   }
 
   @override
@@ -99,9 +241,18 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
           ? _LessonDetailView(
               key: ValueKey(_selectedLessonIndex),
               course: _course,
+              lesson: _activeLesson!,
               lessonIndex: _selectedLessonIndex!,
               onSelectLesson: _showLesson,
               refreshMediaUrl: _courseService.refreshMediaUrl,
+              enrolled: _enrolled,
+              completed: _completedLessonIds.contains(
+                _course.lessons[_selectedLessonIndex!].id,
+              ),
+              completing: _completingLessonIds.contains(
+                _course.lessons[_selectedLessonIndex!].id,
+              ),
+              onMarkComplete: _markLessonComplete,
             )
           : Column(
               children: [
@@ -127,7 +278,11 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
                         child: TabBarView(
                           controller: _tabs,
                           children: [
-                            _LessonsTab(course: _course, onPlay: _showLesson),
+                            _LessonsTab(
+                              course: _course,
+                              onPlay: _showLesson,
+                              locked: !_canAccess,
+                            ),
                             _DescriptionTab(course: _course),
                           ],
                         ),
@@ -153,7 +308,12 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
                         ),
                         const SizedBox(width: 12),
                         FilledButton(
-                          onPressed: _enrollOrContinue,
+                          onPressed:
+                              _checkingEnrollment ||
+                                  _enrolling ||
+                                  _course.status == CourseStatus.draft
+                              ? null
+                              : _enrollOrContinue,
                           style: FilledButton.styleFrom(
                             backgroundColor: OnboardingScreenLayout.primaryBlue,
                             minimumSize: const Size(148, 52),
@@ -173,7 +333,10 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
   }
 
   String get _bottomLabel {
-    if (_isOwner) return 'Edit Course';
+    if (_course.status == CourseStatus.draft) return 'Draft Course';
+    if (_checkingEnrollment) return 'Checking...';
+    if (_enrollmentError) return 'Retry Enrollment';
+    if (_enrolling) return 'Enrolling...';
     if (_enrolled) return 'Continue Learning';
     return _course.type == CourseType.free ? 'Enroll for Free' : 'Enroll Now';
   }
@@ -183,19 +346,28 @@ class _LessonDetailView extends StatelessWidget {
   const _LessonDetailView({
     super.key,
     required this.course,
+    required this.lesson,
     required this.lessonIndex,
     required this.onSelectLesson,
     required this.refreshMediaUrl,
+    required this.enrolled,
+    required this.completed,
+    required this.completing,
+    required this.onMarkComplete,
   });
 
   final CourseDraft course;
+  final CourseLesson lesson;
   final int lessonIndex;
   final ValueChanged<int> onSelectLesson;
   final Future<String> Function(String path) refreshMediaUrl;
+  final bool enrolled;
+  final bool completed;
+  final bool completing;
+  final ValueChanged<CourseLesson> onMarkComplete;
 
   @override
   Widget build(BuildContext context) {
-    final lesson = course.lessons[lessonIndex];
     final video = lesson.video;
     final nextLessonIndexes = List<int>.generate(
       course.lessons.length - lessonIndex - 1,
@@ -218,6 +390,34 @@ class _LessonDetailView extends StatelessWidget {
                 )
               else
                 const _UnavailableLessonVideo(),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: !enrolled || completed || completing
+                      ? null
+                      : () => onMarkComplete(lesson),
+                  icon: Icon(
+                    completed ? Icons.check_circle : Icons.done_rounded,
+                  ),
+                  label: Text(
+                    completed
+                        ? 'Completed'
+                        : completing
+                        ? 'Saving progress...'
+                        : enrolled
+                        ? 'Mark as Complete'
+                        : 'Enroll to Track Progress',
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: OnboardingScreenLayout.primaryBlue,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 18),
               Text(
                 lessonLabel(lessonIndex),
@@ -498,12 +698,11 @@ class _CourseHeader extends StatelessWidget {
                     : course.rating.toStringAsFixed(1),
                 color: const Color(0xFFFFBC00),
               ),
-              _InfoPill(
-                icon: Icons.schedule_outlined,
-                label: course.totalDuration.isEmpty
-                    ? 'Self paced'
-                    : course.totalDuration,
-              ),
+              if (course.totalDuration.isNotEmpty)
+                _InfoPill(
+                  icon: Icons.schedule_outlined,
+                  label: course.totalDuration,
+                ),
               _InfoPill(
                 icon: Icons.play_lesson_outlined,
                 label: '${course.lessons.length} lessons',
@@ -569,9 +768,14 @@ class _InfoPill extends StatelessWidget {
 }
 
 class _LessonsTab extends StatelessWidget {
-  const _LessonsTab({required this.course, required this.onPlay});
+  const _LessonsTab({
+    required this.course,
+    required this.onPlay,
+    required this.locked,
+  });
   final CourseDraft course;
   final ValueChanged<int> onPlay;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -596,8 +800,8 @@ class _LessonsTab extends StatelessWidget {
               padding: const EdgeInsets.all(13),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.play_circle_outline,
+                  Icon(
+                    locked ? Icons.lock_outline : Icons.play_circle_outline,
                     color: OnboardingScreenLayout.primaryBlue,
                   ),
                   const SizedBox(width: 12),
