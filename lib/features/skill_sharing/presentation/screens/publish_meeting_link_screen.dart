@@ -24,8 +24,7 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
       widget.store ?? SkillSharingStore.instance;
   final _formKey = GlobalKey<FormState>();
   late final _linkController = TextEditingController(
-    text:
-        widget.session.meetingLink ?? 'https://zoom.us/j/9876543210?pwd=abc123',
+    text: widget.session.meetingLink ?? '',
   );
   final _idController = TextEditingController(text: '987 654 3210');
   final _passcodeController = TextEditingController(text: '123456');
@@ -33,7 +32,9 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
     text:
         'Hi ${widget.session.person.split(' ').first}, here is the meeting link for our session. See you then!',
   );
-  String _platform = 'Zoom';
+  late String _platform = widget.session.meetingPlatform == 'Online'
+      ? 'Google Meet'
+      : widget.session.meetingPlatform;
   bool _obscurePasscode = true;
   bool _notify = true;
 
@@ -67,6 +68,7 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                       PersonAvatar(
                         initials: widget.session.initials,
                         color: widget.session.avatarColor,
+                        imageUrl: widget.session.profileImageUrl,
                         radius: 27,
                       ),
                       const SizedBox(width: 12),
@@ -276,9 +278,10 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            PersonAvatar(
-                              initials: widget.session.initials,
-                              color: widget.session.avatarColor,
+                          PersonAvatar(
+                            initials: widget.session.initials,
+                            color: widget.session.avatarColor,
+                            imageUrl: widget.session.profileImageUrl,
                               radius: 24,
                             ),
                             const SizedBox(width: 10),
@@ -424,13 +427,22 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
   String? _required(String? value) =>
       value == null || value.trim().isEmpty ? 'This field is required' : null;
 
-  void _publish() {
+  Future<void> _publish() async {
     if (!_formKey.currentState!.validate()) return;
-    _store.publishMeetingLink(
-      sessionId: widget.session.id,
-      platform: _platform,
-      link: _linkController.text.trim(),
-    );
+    try {
+      await _store.publishMeetingLink(
+        sessionId: widget.session.id,
+        platform: _platform,
+        link: _linkController.text.trim(),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+      );
+      return;
+    }
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

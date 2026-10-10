@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
 import '../widgets/skill_ui.dart';
+import 'add_skill_request_screen.dart';
 import 'my_sessions_screen.dart';
 import 'offer_acceptance_screen.dart';
 
-enum _RequestFilter { all, newest, recommended }
+enum _RequestFilter { all, mySkills, requested }
 
 class SkillRequestsScreen extends StatefulWidget {
   const SkillRequestsScreen({super.key, this.store});
@@ -29,6 +30,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
     super.initState();
     _store.addListener(_refresh);
     _searchController.addListener(_refresh);
+    _store.initializeRemote();
   }
 
   @override
@@ -44,10 +46,12 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
 
   List<SkillRequest> get _visibleRequests {
     var items = _store.requests.toList();
-    if (_filter == _RequestFilter.recommended) {
-      items = items.where((item) => item.recommended).toList();
-    } else if (_filter == _RequestFilter.newest) {
-      items = items.take(2).toList();
+    if (_filter == _RequestFilter.mySkills) {
+      items = items.where(_store.isOwnRequest).toList();
+    } else if (_filter == _RequestFilter.requested) {
+      items = items
+          .where((item) => _store.sentOfferForRequest(item.id) != null)
+          .toList();
     }
     final query = _searchController.text.trim().toLowerCase();
     if (query.isNotEmpty) {
@@ -74,13 +78,27 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
             sliver: SliverList.separated(
               itemCount: _visibleRequests.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _RequestCard(
-                request: _visibleRequests[index],
-                saved: _store.isSaved(_visibleRequests[index].id),
-                offered: _store.hasOffered(_visibleRequests[index].id),
-                onSave: () => _store.toggleSaved(_visibleRequests[index].id),
-                onOffer: () => _sendOffer(_visibleRequests[index]),
-              ),
+              itemBuilder: (context, index) {
+                final request = _visibleRequests[index];
+                final incomingOffers = _store.offersForRequest(request.id);
+                return _RequestCard(
+                  request: request,
+                  isOwn: _store.isOwnRequest(request),
+                  incomingOfferCount: incomingOffers.length,
+                  saved: _store.isSaved(request.id),
+                  sentOffer: _store.sentOfferForRequest(request.id),
+                  onSave: () => _store.toggleSaved(request.id),
+                  onOffer: () => _sendOffer(request),
+                  onReviewOffers: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => OfferAcceptanceScreen(
+                        store: _store,
+                        request: request,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           if (_visibleRequests.isEmpty)
@@ -104,12 +122,25 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
             children: [
               const Expanded(
                 child: Text(
-                  'Skill Requests',
+                  'Skill Sharing',
                   style: TextStyle(
                     fontSize: 29,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -.5,
                   ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add skill request',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AddSkillRequestScreen(store: _store),
+                  ),
+                ),
+                icon: const Icon(
+                  Icons.add_circle_outline,
+                  color: SkillColors.primary,
+                  size: 28,
                 ),
               ),
               IconButton(
@@ -197,7 +228,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
                       ),
                       SizedBox(height: 5),
                       Text(
-                        'Explore live skill requests and share your knowledge.',
+                          'Explore skills, request a session and share your knowledge.',
                         style: TextStyle(
                           color: SkillColors.secondary,
                           height: 1.35,
@@ -214,12 +245,14 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
             children: [
               Expanded(child: _filterButton('All', _RequestFilter.all)),
               const SizedBox(width: 10),
-              Expanded(child: _filterButton('New', _RequestFilter.newest)),
+              Expanded(
+                child: _filterButton('My Skills', _RequestFilter.mySkills),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: _filterButton(
-                  'Recommended ★',
-                  _RequestFilter.recommended,
+                  'Requested',
+                  _RequestFilter.requested,
                 ),
               ),
             ],
@@ -251,40 +284,44 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
     );
   }
 
-  void _sendOffer(SkillRequest request) {
-    _store.sendOffer(request.id);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Offer sent to ${request.requester}'),
-          action: SnackBarAction(
-            label: 'VIEW OFFERS',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => OfferAcceptanceScreen(store: _store),
-              ),
-            ),
-          ),
-        ),
+  Future<void> _sendOffer(SkillRequest request) async {
+    try {
+      await _store.sendOffer(request);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text('Request sent to ${request.requester}')),
+        );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
       );
+    }
   }
 }
 
 class _RequestCard extends StatelessWidget {
   const _RequestCard({
     required this.request,
+    required this.isOwn,
+    required this.incomingOfferCount,
     required this.saved,
-    required this.offered,
+    required this.sentOffer,
     required this.onSave,
     required this.onOffer,
+    required this.onReviewOffers,
   });
 
   final SkillRequest request;
+  final bool isOwn;
+  final int incomingOfferCount;
   final bool saved;
-  final bool offered;
+  final TutorOffer? sentOffer;
   final VoidCallback onSave;
   final VoidCallback onOffer;
+  final VoidCallback onReviewOffers;
 
   @override
   Widget build(BuildContext context) {
@@ -299,6 +336,7 @@ class _RequestCard extends StatelessWidget {
                 initials: request.initials,
                 color: request.avatarColor,
                 radius: 27,
+                imageUrl: request.profileImageUrl,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -431,10 +469,28 @@ class _RequestCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: BlueButton(
-                  label: offered ? 'Offer Sent' : 'Send Offer',
-                  icon: offered ? Icons.check : Icons.send_outlined,
+                  label: isOwn && incomingOfferCount > 0
+                      ? 'View Requests ($incomingOfferCount)'
+                      : isOwn
+                      ? 'Your Skill'
+                      : sentOffer?.status == SkillRequestStatus.pending
+                      ? 'Sent • Pending'
+                      : sentOffer?.status == SkillRequestStatus.accepted
+                      ? 'Accepted'
+                      : sentOffer?.status == SkillRequestStatus.rejected
+                      ? 'Rejected'
+                      : 'Request Skill',
+                  icon: isOwn && incomingOfferCount > 0
+                      ? Icons.mark_email_unread_outlined
+                      : isOwn || sentOffer != null
+                      ? Icons.check
+                      : Icons.send_outlined,
                   compact: true,
-                  onPressed: offered ? null : onOffer,
+                  onPressed: isOwn && incomingOfferCount > 0
+                      ? onReviewOffers
+                      : isOwn || sentOffer != null
+                      ? null
+                      : onOffer,
                 ),
               ),
             ],

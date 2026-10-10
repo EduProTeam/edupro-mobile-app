@@ -6,9 +6,10 @@ import '../widgets/skill_ui.dart';
 import 'schedule_session_screen.dart';
 
 class OfferAcceptanceScreen extends StatefulWidget {
-  const OfferAcceptanceScreen({super.key, this.store});
+  const OfferAcceptanceScreen({super.key, this.store, this.request});
 
   final SkillSharingStore? store;
+  final SkillRequest? request;
 
   @override
   State<OfferAcceptanceScreen> createState() => _OfferAcceptanceScreenState();
@@ -21,7 +22,10 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final request = _store.requests.first;
+    final request = widget.request ?? _store.requests.first;
+    final receivedOffers = widget.request == null
+        ? _store.offers
+        : _store.offersForRequest(request.id);
     return SkillPage(
       appBar: const SkillAppBar(
         title: 'Offer Acceptance',
@@ -119,11 +123,11 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Received Offers (${_store.offers.length})',
+            'Skill Requests (${receivedOffers.length})',
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          ..._store.offers.map(
+          ...receivedOffers.map(
             (offer) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _OfferCard(
@@ -131,12 +135,13 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
                 selected: _selectedId == offer.id,
                 onSelect: () => setState(() => _selectedId = offer.id),
                 onAccept: () => _accept(offer),
+                onReject: () => _reject(offer),
               ),
             ),
           ),
           const InfoBanner(
             text:
-                'Once you accept an offer, you’ll move to scheduling to confirm the session details.',
+                'Accept a request to confirm the session schedule, or reject it to close the request.',
           ),
         ],
       ),
@@ -147,9 +152,28 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
     setState(() => _selectedId = offer.id);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ScheduleSessionScreen(store: _store, tutor: offer),
+        builder: (_) => ScheduleSessionScreen(
+          store: _store,
+          tutor: offer,
+          request: widget.request ?? _store.requests.first,
+        ),
       ),
     );
+  }
+
+  Future<void> _reject(TutorOffer offer) async {
+    try {
+      await _store.rejectOffer(offer);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${offer.name}\'s request was rejected.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+      );
+    }
   }
 }
 
@@ -159,12 +183,14 @@ class _OfferCard extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onAccept,
+    required this.onReject,
   });
 
   final TutorOffer offer;
   final bool selected;
   final VoidCallback onSelect;
   final VoidCallback onAccept;
+  final VoidCallback onReject;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +206,7 @@ class _OfferCard extends StatelessWidget {
                 initials: offer.initials,
                 color: offer.avatarColor,
                 radius: 27,
+                imageUrl: offer.profileImageUrl,
               ),
               const SizedBox(width: 11),
               Expanded(
@@ -294,30 +321,41 @@ class _OfferCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: BlueButton(
-                  label: 'View Profile',
-                  icon: Icons.person_outline,
-                  outlined: true,
-                  compact: true,
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${offer.name} profile opened')),
+          if (offer.status == SkillRequestStatus.pending)
+            Row(
+              children: [
+                Expanded(
+                  child: BlueButton(
+                    label: 'Reject',
+                    icon: Icons.close,
+                    outlined: true,
+                    compact: true,
+                    onPressed: onReject,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: BlueButton(
-                  label: 'Accept Offer',
-                  icon: Icons.send_outlined,
-                  compact: true,
-                  onPressed: onAccept,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: BlueButton(
+                    label: 'Accept Request',
+                    icon: Icons.check,
+                    compact: true,
+                    onPressed: onAccept,
+                  ),
                 ),
+              ],
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SoftTag(
+                label: offer.status == SkillRequestStatus.accepted
+                    ? 'Accepted'
+                    : 'Rejected',
+                icon: offer.status == SkillRequestStatus.accepted
+                    ? Icons.check_circle_outline
+                    : Icons.cancel_outlined,
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );

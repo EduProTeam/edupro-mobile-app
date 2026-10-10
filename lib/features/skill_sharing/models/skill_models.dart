@@ -4,6 +4,8 @@ enum SkillLevel { beginner, intermediate, advanced }
 
 enum SessionStatus { confirmed, awaitingLink, completed }
 
+enum SkillRequestStatus { pending, accepted, rejected }
+
 @immutable
 class SkillRequest {
   const SkillRequest({
@@ -19,6 +21,8 @@ class SkillRequest {
     required this.postedAgo,
     required this.avatarColor,
     required this.initials,
+    this.ownerId,
+    this.profileImageUrl,
     this.recommended = false,
   });
 
@@ -34,6 +38,8 @@ class SkillRequest {
   final String postedAgo;
   final Color avatarColor;
   final String initials;
+  final String? ownerId;
+  final String? profileImageUrl;
   final bool recommended;
 }
 
@@ -52,6 +58,19 @@ class TutorOffer {
     required this.tags,
     required this.avatarColor,
     required this.initials,
+    this.requestId,
+    this.senderId,
+    this.recipientId,
+    this.profileImageUrl,
+    this.status = SkillRequestStatus.pending,
+    this.requestTitle,
+    this.requestDescription,
+    this.recipientName,
+    this.recipientProfileImageUrl,
+    this.scheduledDate,
+    this.scheduledTime,
+    this.meetingPlatform,
+    this.meetingLink,
     this.recommended = false,
   });
 
@@ -67,6 +86,19 @@ class TutorOffer {
   final List<String> tags;
   final Color avatarColor;
   final String initials;
+  final String? requestId;
+  final String? senderId;
+  final String? recipientId;
+  final String? profileImageUrl;
+  final SkillRequestStatus status;
+  final String? requestTitle;
+  final String? requestDescription;
+  final String? recipientName;
+  final String? recipientProfileImageUrl;
+  final DateTime? scheduledDate;
+  final String? scheduledTime;
+  final String? meetingPlatform;
+  final String? meetingLink;
   final bool recommended;
 }
 
@@ -84,6 +116,8 @@ class SkillSession {
     required this.initials,
     this.meetingPlatform = 'Google Meet',
     this.meetingLink,
+    this.profileImageUrl,
+    this.canPublishLink = false,
   });
 
   final String id;
@@ -97,6 +131,8 @@ class SkillSession {
   final String initials;
   final String meetingPlatform;
   final String? meetingLink;
+  final String? profileImageUrl;
+  final bool canPublishLink;
 
   SkillSession copyWith({
     SessionStatus? status,
@@ -115,6 +151,8 @@ class SkillSession {
       initials: initials,
       meetingPlatform: meetingPlatform ?? this.meetingPlatform,
       meetingLink: meetingLink ?? this.meetingLink,
+      profileImageUrl: profileImageUrl,
+      canPublishLink: canPublishLink,
     );
   }
 }

@@ -144,12 +144,14 @@ class PersonAvatar extends StatelessWidget {
     required this.color,
     this.radius = 28,
     this.online = true,
+    this.imageUrl,
   });
 
   final String initials;
   final Color color;
   final double radius;
   final bool online;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -161,14 +163,17 @@ class PersonAvatar extends StatelessWidget {
           CircleAvatar(
             radius: radius,
             backgroundColor: color,
-            child: Text(
-              initials,
-              style: TextStyle(
-                color: SkillColors.navy,
-                fontWeight: FontWeight.w800,
-                fontSize: radius * .52,
-              ),
-            ),
+            backgroundImage: imageUrl == null ? null : NetworkImage(imageUrl!),
+            child: imageUrl == null
+                ? Text(
+                    initials,
+                    style: TextStyle(
+                      color: SkillColors.navy,
+                      fontWeight: FontWeight.w800,
+                      fontSize: radius * .52,
+                    ),
+                  )
+                : null,
           ),
           if (online)
             Positioned(

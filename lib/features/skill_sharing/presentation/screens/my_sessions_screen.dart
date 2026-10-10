@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
 import '../widgets/skill_ui.dart';
+import 'offer_acceptance_screen.dart';
 import 'publish_meeting_link_screen.dart';
 
 enum _SessionTab { upcoming, requests, completed }
@@ -26,6 +28,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
   void initState() {
     super.initState();
     _store.addListener(_refresh);
+    _store.initializeRemote();
   }
 
   @override
@@ -46,6 +49,20 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
     final completed = _store.sessions
         .where((session) => session.status == SessionStatus.completed)
         .toList();
+    final ownedSkillsWithRequests = _store.requests
+        .where(
+          (request) =>
+              _store.isOwnRequest(request) &&
+              _store.offersForRequest(request.id).isNotEmpty,
+        )
+        .toList();
+    final sentRequests = _store.sentOffers;
+    final pendingCount = _store.receivedOffers
+            .where((offer) => offer.status == SkillRequestStatus.pending)
+            .length +
+        sentRequests
+            .where((offer) => offer.status == SkillRequestStatus.pending)
+            .length;
     final displayed = switch (_tab) {
       _SessionTab.upcoming => upcoming,
       _SessionTab.requests => const <SkillSession>[],
@@ -136,7 +153,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
               const SizedBox(width: 9),
               Expanded(
                 child: _stat(
-                  '1',
+                  '$pendingCount',
                   'Pending\nRequests',
                   Icons.schedule,
                   SkillColors.orange,
@@ -169,7 +186,34 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          if (displayed.isEmpty)
+          if (_tab == _SessionTab.requests &&
+              (ownedSkillsWithRequests.isNotEmpty || sentRequests.isNotEmpty))
+            ...[
+              ...ownedSkillsWithRequests.map(
+                (request) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PendingRequestCard(
+                    request: request,
+                    offerCount: _store.offersForRequest(request.id).length,
+                    onOpen: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => OfferAcceptanceScreen(
+                          store: _store,
+                          request: request,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              ...sentRequests.map(
+                (offer) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _SentRequestCard(offer: offer),
+                ),
+              ),
+            ]
+          else if (displayed.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 48),
               child: Column(
@@ -282,6 +326,147 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
   }
 }
 
+class _PendingRequestCard extends StatelessWidget {
+  const _PendingRequestCard({
+    required this.request,
+    required this.offerCount,
+    required this.onOpen,
+  });
+
+  final SkillRequest request;
+  final int offerCount;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return SkillCard(
+      child: Row(
+        children: [
+          PersonAvatar(
+            initials: request.initials,
+            color: request.avatarColor,
+            imageUrl: request.profileImageUrl,
+            radius: 26,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  request.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$offerCount ${offerCount == 1 ? 'offer' : 'offers'} waiting for your response',
+                  style: const TextStyle(
+                    color: SkillColors.secondary,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Review offers',
+            onPressed: onOpen,
+            icon: const Icon(
+              Icons.arrow_forward_ios,
+              color: SkillColors.primary,
+              size: 19,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SentRequestCard extends StatelessWidget {
+  const _SentRequestCard({required this.offer});
+
+  final TutorOffer offer;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color, icon) = switch (offer.status) {
+      SkillRequestStatus.pending => (
+        'Pending',
+        SkillColors.orange,
+        Icons.schedule,
+      ),
+      SkillRequestStatus.accepted => (
+        'Accepted',
+        SkillColors.green,
+        Icons.check_circle_outline,
+      ),
+      SkillRequestStatus.rejected => (
+        'Rejected',
+        Colors.red,
+        Icons.cancel_outlined,
+      ),
+    };
+    return SkillCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      offer.requestTitle ?? 'Skill request',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      'Request sent to ${offer.recipientName ?? 'skill owner'}',
+                      style: const TextStyle(
+                        color: SkillColors.secondary,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SoftTag(label: label, icon: icon),
+            ],
+          ),
+          if (offer.status == SkillRequestStatus.accepted &&
+              offer.scheduledDate != null &&
+              offer.scheduledTime != null) ...[
+            const Divider(height: 22),
+            Text(
+              '${formatSkillDate(offer.scheduledDate!)} • ${offer.scheduledTime}',
+              style: const TextStyle(
+                color: SkillColors.secondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (offer.status == SkillRequestStatus.rejected) ...[
+            const SizedBox(height: 10),
+            const InfoBanner(
+              text:
+                  'The skill owner declined this request. No meeting link is available.',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SessionCard extends StatelessWidget {
   const _SessionCard({required this.session, required this.onPublish});
 
@@ -306,6 +491,7 @@ class _SessionCard extends StatelessWidget {
                 color: session.avatarColor,
                 radius: 28,
                 online: session.status != SessionStatus.completed,
+                imageUrl: session.profileImageUrl,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -392,44 +578,66 @@ class _SessionCard extends StatelessWidget {
             Column(
               children: [
                 InfoBanner(
-                  text:
-                      '${session.person} will receive the session link as soon as you publish it.',
+                  text: session.canPublishLink
+                      ? '${session.person} will receive the session link as soon as you publish it.'
+                      : 'The skill owner has accepted your request. The meeting link has not been published yet.',
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: BlueButton(
-                    label: 'Publish Meeting Link',
-                    icon: Icons.add_link,
-                    onPressed: onPublish,
+                if (session.canPublishLink) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: BlueButton(
+                      label: 'Publish Meeting Link',
+                      icon: Icons.add_link,
+                      onPressed: onPublish,
+                    ),
                   ),
-                ),
+                ],
               ],
             )
           else if (session.status == SessionStatus.confirmed)
-            Row(
+            Column(
               children: [
-                Expanded(
-                  child: BlueButton(
-                    label: 'View Details',
-                    icon: Icons.description_outlined,
-                    outlined: true,
-                    compact: true,
-                    onPressed: () {},
-                  ),
+                InfoBanner(
+                  text:
+                      '${session.meetingPlatform}: ${session.meetingLink ?? ''}',
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: BlueButton(
-                    label: 'Join Session',
-                    icon: Icons.videocam_outlined,
-                    compact: true,
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Opening the secure meeting link…'),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BlueButton(
+                        label: 'Copy Link',
+                        icon: Icons.copy_outlined,
+                        outlined: true,
+                        compact: true,
+                        onPressed: () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: session.meetingLink ?? ''),
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Meeting link copied.')),
+                          );
+                        },
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: BlueButton(
+                        label: 'Join Session',
+                        icon: Icons.videocam_outlined,
+                        compact: true,
+                        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Meeting link: ${session.meetingLink ?? ''}',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             )
