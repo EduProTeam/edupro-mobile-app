@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
@@ -628,13 +629,7 @@ class _SessionCard extends StatelessWidget {
                         label: 'Join Session',
                         icon: Icons.videocam_outlined,
                         compact: true,
-                        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Meeting link: ${session.meetingLink ?? ''}',
-                            ),
-                          ),
-                        ),
+                        onPressed: () => _joinSession(context, session),
                       ),
                     ),
                   ],
@@ -654,5 +649,44 @@ class _SessionCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _joinSession(
+    BuildContext context,
+    SkillSession session,
+  ) async {
+    final rawLink = session.meetingLink?.trim() ?? '';
+    final normalizedLink = rawLink.startsWith('http://') ||
+            rawLink.startsWith('https://')
+        ? rawLink
+        : 'https://$rawLink';
+    final uri = Uri.tryParse(normalizedLink);
+
+    if (rawLink.isEmpty ||
+        uri == null ||
+        !<String>{'http', 'https'}.contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The meeting link is not valid.')),
+      );
+      return;
+    }
+
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to open the meeting link.')),
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open the meeting link.')),
+      );
+    }
   }
 }
