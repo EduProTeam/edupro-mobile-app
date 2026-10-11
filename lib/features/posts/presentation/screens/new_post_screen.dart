@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../models/post_categories.dart';
 import '../../services/post_service.dart';
 
 class NewPostScreen extends StatefulWidget {
@@ -23,16 +24,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
   static const _textSecondary = Color(0xFF6D687A);
   static const _borderColor = Color(0xFFE3DDEA);
 
-  static const _categories = [
-    'Programming',
-    'Design',
-    'Business',
-    'Mathematics',
-    'Languages',
-    'Technology',
-    'Career',
-    'Other',
-  ];
   static const _fileExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'];
 
   final _formKey = GlobalKey<FormState>();
@@ -56,7 +47,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
       _titleController.text = post.title;
       _contentController.text = post.content;
       _tagsController.text = post.tags.join(', ');
-      _selectedCategory = post.category;
+      _selectedCategory = postCategories.contains(post.category)
+          ? post.category
+          : null;
       _visibility = post.visibility == 'followers' ? 'Followers' : 'Public';
     }
   }
@@ -435,7 +428,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   initialValue: _selectedCategory,
                   decoration: _inputDecoration(hintText: 'Select a category'),
                   hint: const Text('Select a category'),
-                  items: {..._categories, ?_selectedCategory}
+                  items: postCategories
                       .map(
                         (category) => DropdownMenuItem<String>(
                           value: category,
@@ -451,7 +444,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                           });
                         },
                   validator: (value) {
-                    if (value == null) {
+                    if (!postCategories.contains(value)) {
                       return 'Please select a category';
                     }
                     return null;
