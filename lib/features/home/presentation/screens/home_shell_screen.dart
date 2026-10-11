@@ -13,6 +13,7 @@ import '../../../posts/services/post_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../skill_sharing/presentation/screens/skill_requests_screen.dart';
 import '../../../splash/presentation/screens/splash_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
@@ -77,6 +78,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     final screens = [
       _SimpleHomeScreen(onLogout: _logout, onOpenChatGroups: _openChatGroups),
       RecordedCoursesScreen(onCreateCoursePressed: _openCreateCourseScreen),
+      const SkillRequestsScreen(),
       const GroupListScreen(),
       _SimpleProfileScreen(user: user),
     ];
@@ -112,6 +114,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             icon: Icon(Icons.video_library_outlined),
             activeIcon: Icon(Icons.video_library),
             label: 'Videos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group_outlined),
+            activeIcon: Icon(Icons.group),
+            label: 'Skills',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline),
