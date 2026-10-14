@@ -15,6 +15,16 @@ service cloud.firestore {
         allow read, create, update, delete: if signedIn()
                                             && request.auth.uid == userId;
       }
+
+      match /savedPosts/{postId} {
+        allow read, delete: if signedIn() && request.auth.uid == userId;
+        allow create: if signedIn() && request.auth.uid == userId
+                      && request.resource.data.keys().hasOnly(['postId', 'savedAt'])
+                      && request.resource.data.postId == postId
+                      && request.resource.data.savedAt == request.time
+                      && get(/databases/$(database)/documents/posts/$(postId)).data.status == 'published';
+        allow update: if false;
+      }
     }
 
     match /posts/{postId} {

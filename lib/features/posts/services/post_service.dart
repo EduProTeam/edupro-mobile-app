@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -150,6 +151,189 @@ class PostService {
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+
+  CollectionReference<Map<String, dynamic>> _bookmarks(String userId) =>
+      _firestore.collection('users').doc(userId).collection('savedPosts');
+
+  Stream<bool> watchPostSaved(String postId) {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return Stream.value(false);
+    return _bookmarks(
+      user.uid,
+    ).doc(postId).snapshots().map((doc) => doc.exists);
+  }
+
+  Future<void> setPostSaved(String postId, {required bool saved}) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const PostFailure('Please log in to save a post.');
+    }
+    final bookmark = _bookmarks(user.uid).doc(postId);
+    try {
+      // Removing a bookmark must also work after the original post is deleted.
+      if (!saved) {
+        await bookmark.delete();
+        return;
+      }
+      await _firestore.runTransaction((transaction) async {
+        final post = await transaction.get(
+          _firestore.collection('posts').doc(postId),
+        );
+        final existing = await transaction.get(bookmark);
+        if (post.data()?['status'] != 'published') {
+          throw const PostFailure('This post is no longer available.');
+        }
+        if (existing.exists) return;
+        transaction.set(bookmark, {
+          'postId': postId,
+          'savedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on PostFailure {
+      rethrow;
+    } catch (_) {
+      throw PostFailure(
+        saved
+            ? 'Unable to save post. Please try again.'
+            : 'Unable to remove saved post. Please try again.',
+      );
+    }
+  }
+
+  Stream<List<PublishedPost>> watchMyPosts() {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return Stream.value([]);
+    return _firestore
+        .collection('posts')
+        .where('userId', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'published')
+        .snapshots()
+        .map((snapshot) {
+          final posts = snapshot.docs.map(PublishedPost.fromDocument).toList();
+          posts.sort(
+            (a, b) => (b.createdAt?.millisecondsSinceEpoch ?? 0).compareTo(
+              a.createdAt?.millisecondsSinceEpoch ?? 0,
+            ),
+          );
+          return posts;
+        });
+  }
+
+  Stream<PublishedPost?> watchPublishedPost(String postId) => _firestore
+      .collection('posts')
+      .where(FieldPath.documentId, isEqualTo: postId)
+      .where('status', isEqualTo: 'published')
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs.isEmpty
+            ? null
+            : PublishedPost.fromDocument(snapshot.docs.first),
+      );
+
+  /// Resolve private bookmarks to live posts, without reading the entire feed.
+  /// Published queries also exclude deleted or withdrawn posts safely.
+  Stream<List<PublishedPost>> watchSavedPosts() {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return Stream.value([]);
+    late StreamController<List<PublishedPost>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? bookmarks;
+    var postSubscriptions =
+        <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
+    var generation = 0;
+    var cancelled = false;
+
+    controller = StreamController<List<PublishedPost>>(
+      onListen: () {
+        bookmarks = _bookmarks(user.uid).snapshots().listen(
+          (snapshot) {
+            if (cancelled) return;
+            final currentGeneration = ++generation;
+            for (final subscription in postSubscriptions) {
+              unawaited(subscription.cancel());
+            }
+            postSubscriptions = [];
+            final saved = snapshot.docs.toList()
+              ..sort((a, b) {
+                int time(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+                  final value = doc.data()['savedAt'];
+                  return value is Timestamp
+                      ? value.millisecondsSinceEpoch
+                      : 0x7FFFFFFFFFFFFFFF;
+                }
+
+                final order = time(b).compareTo(time(a));
+                return order == 0 ? a.id.compareTo(b.id) : order;
+              });
+            final ids = saved.map((doc) => doc.id).toList();
+            if (ids.isEmpty) {
+              controller.add([]);
+              return;
+            }
+            final postsByChunk = <int, Map<String, PublishedPost>>{};
+            final chunkCount = (ids.length / 10).ceil();
+            var failed = false;
+            for (var start = 0; start < ids.length; start += 10) {
+              final chunk = start ~/ 10;
+              final end = (start + 10).clamp(0, ids.length);
+              postSubscriptions.add(
+                _firestore
+                    .collection('posts')
+                    .where('status', isEqualTo: 'published')
+                    .where(
+                      FieldPath.documentId,
+                      whereIn: ids.sublist(start, end),
+                    )
+                    .snapshots()
+                    .listen(
+                      (posts) {
+                        if (cancelled ||
+                            currentGeneration != generation ||
+                            failed) {
+                          return;
+                        }
+                        postsByChunk[chunk] = {
+                          for (final doc in posts.docs)
+                            doc.id: PublishedPost.fromDocument(doc),
+                        };
+                        if (postsByChunk.length != chunkCount) return;
+                        final byId = {
+                          for (final values in postsByChunk.values) ...values,
+                        };
+                        controller.add([
+                          for (final id in ids)
+                            if (byId.containsKey(id)) byId[id]!,
+                        ]);
+                      },
+                      onError: (Object error, StackTrace stack) {
+                        if (cancelled || currentGeneration != generation) {
+                          return;
+                        }
+                        failed = true;
+                        controller.addError(error, stack);
+                      },
+                    ),
+              );
+            }
+          },
+          onError: (Object error, StackTrace stack) {
+            if (cancelled) return;
+            // Invalidate pending post snapshots so they cannot hide this error.
+            generation++;
+            controller.addError(error, stack);
+          },
+        );
+      },
+      onCancel: () async {
+        cancelled = true;
+        generation++;
+        await bookmarks?.cancel();
+        await Future.wait(
+          postSubscriptions.map((subscription) => subscription.cancel()),
+        );
+      },
+    );
+    return controller.stream;
+  }
 
   Future<void> deletePost(String postId) async {
     final user = _firebaseAuth.currentUser;
