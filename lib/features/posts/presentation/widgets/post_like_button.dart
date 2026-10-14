@@ -8,11 +8,13 @@ class PostLikeButton extends StatefulWidget {
     required this.likeCount,
     required this.isLiked,
     required this.onLike,
+    this.thumbUpStyle = false,
   });
 
   final int likeCount;
   final bool isLiked;
   final Future<void> Function(bool liked) onLike;
+  final bool thumbUpStyle;
 
   @override
   State<PostLikeButton> createState() => _PostLikeButtonState();
@@ -72,7 +74,11 @@ class _PostLikeButtonState extends State<PostLikeButton> {
     final count =
         (widget.likeCount + (liked == widget.isLiked ? 0 : (liked ? 1 : -1)))
             .clamp(0, 0x7FFFFFFFFFFFFFFF);
-    final color = liked ? const Color(0xFF5B2CCF) : const Color(0xFF1E1E1E);
+    final color = liked
+        ? (widget.thumbUpStyle
+              ? const Color(0xFF167BFF)
+              : const Color(0xFF5B2CCF))
+        : const Color(0xFF62738E);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -81,7 +87,11 @@ class _PostLikeButtonState extends State<PostLikeButton> {
           tooltip: liked ? 'Unlike post' : 'Like post',
           onPressed: _saving ? null : _like,
           icon: Icon(
-            liked ? Icons.favorite : Icons.favorite_border,
+            widget.thumbUpStyle
+                ? (liked
+                      ? Icons.thumb_up_alt_rounded
+                      : Icons.thumb_up_alt_outlined)
+                : (liked ? Icons.favorite : Icons.favorite_border),
             color: color,
           ),
         ),
