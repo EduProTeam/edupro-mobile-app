@@ -8,18 +8,24 @@ import '../../models/post_categories.dart';
 import '../../services/post_service.dart';
 
 class NewPostScreen extends StatefulWidget {
-  const NewPostScreen({super.key, this.post, this.postService});
+  const NewPostScreen({
+    super.key,
+    this.post,
+    this.postService,
+    this.initialAttachmentType,
+  });
 
   final PublishedPost? post;
   final PostService? postService;
+  final PostAttachmentType? initialAttachmentType;
 
   @override
   State<NewPostScreen> createState() => _NewPostScreenState();
 }
 
 class _NewPostScreenState extends State<NewPostScreen> {
-  static const _primaryPurple = Color(0xFF5B2CCF);
-  static const _pageBackground = Color(0xFFFCFAFF);
+  static const _primaryBlue = Color(0xFF167BFF);
+  static const _pageBackground = Color(0xFFF7FAFF);
   static const _textPrimary = Color(0xFF1F1B2D);
   static const _textSecondary = Color(0xFF6D687A);
   static const _borderColor = Color(0xFFE3DDEA);
@@ -51,6 +57,25 @@ class _NewPostScreenState extends State<NewPostScreen> {
           ? post.category
           : null;
       _visibility = post.visibility == 'followers' ? 'Followers' : 'Public';
+    }
+    if (post == null && widget.initialAttachmentType != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        switch (widget.initialAttachmentType!) {
+          case PostAttachmentType.image:
+            _pickImage();
+            break;
+          case PostAttachmentType.video:
+            _pickVideo();
+            break;
+          case PostAttachmentType.file:
+            _pickFile();
+            break;
+          case PostAttachmentType.link:
+            _addLink();
+            break;
+        }
+      });
     }
   }
 
@@ -193,49 +218,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
       return;
     }
 
-    final controller = TextEditingController();
-    final dialogFormKey = GlobalKey<FormState>();
     final link = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Link'),
-          content: Form(
-            key: dialogFormKey,
-            child: TextFormField(
-              controller: controller,
-              keyboardType: TextInputType.url,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'https://example.com',
-              ),
-              validator: (value) {
-                if (!_isValidHttpUrl(value ?? '')) {
-                  return 'Enter a valid http:// or https:// URL';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (dialogFormKey.currentState!.validate()) {
-                  Navigator.of(context).pop(controller.text.trim());
-                }
-              },
-              style: FilledButton.styleFrom(backgroundColor: _primaryPurple),
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => _PostLinkDialog(isValidUrl: _isValidHttpUrl),
     );
-    controller.dispose();
 
     if (link == null || !mounted) {
       return;
@@ -342,7 +328,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: _inputBorder(_borderColor),
       enabledBorder: _inputBorder(_borderColor),
-      focusedBorder: _inputBorder(_primaryPurple),
+      focusedBorder: _inputBorder(_primaryBlue),
       errorBorder: _inputBorder(Colors.red.shade700),
       focusedErrorBorder: _inputBorder(Colors.red.shade700),
     );
@@ -359,7 +345,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
         icon: Icon(icon, size: 18),
         label: Text(label, style: const TextStyle(fontSize: 12)),
         style: OutlinedButton.styleFrom(
-          foregroundColor: _primaryPurple,
+          foregroundColor: _primaryBlue,
           minimumSize: const Size(0, 46),
           padding: const EdgeInsets.symmetric(horizontal: 6),
           side: const BorderSide(color: _borderColor),
@@ -663,7 +649,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                               : 'Post',
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: _primaryPurple,
+                          backgroundColor: _primaryBlue,
                           foregroundColor: Colors.white,
                           minimumSize: const Size.fromHeight(52),
                           shape: RoundedRectangleBorder(
@@ -681,6 +667,58 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
+}
+
+class _PostLinkDialog extends StatefulWidget {
+  const _PostLinkDialog({required this.isValidUrl});
+  final bool Function(String) isValidUrl;
+  @override
+  State<_PostLinkDialog> createState() => _PostLinkDialogState();
+}
+
+class _PostLinkDialogState extends State<_PostLinkDialog> {
+  final _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop(_controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Add Link'),
+    content: Form(
+      key: _formKey,
+      child: TextFormField(
+        controller: _controller,
+        keyboardType: TextInputType.url,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'https://example.com'),
+        validator: (value) => widget.isValidUrl(value ?? '')
+            ? null
+            : 'Enter a valid http:// or https:// URL',
+        onFieldSubmitted: (_) => _submit(),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _submit,
+        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF167BFF)),
+        child: const Text('Add'),
+      ),
+    ],
+  );
 }
 
 class _SelectedAttachmentPreview extends StatelessWidget {
@@ -749,7 +787,7 @@ class _SelectedAttachmentPreview extends StatelessWidget {
               color: const Color(0xFFF1EBFF),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: _NewPostScreenState._primaryPurple),
+            child: Icon(icon, color: _NewPostScreenState._primaryBlue),
           ),
           const SizedBox(width: 12),
           Expanded(
