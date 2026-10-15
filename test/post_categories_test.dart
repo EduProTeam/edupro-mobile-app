@@ -806,7 +806,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('A helpful lesson'));
       expect(opened, isTrue);
-      await tester.tap(find.text('Share'));
+      await tester.tap(find.byTooltip('Copy post to share'));
       await tester.pumpAndSettle();
       expect(copied, contains('A helpful lesson'));
       expect(copied, contains('Share this learning resource'));

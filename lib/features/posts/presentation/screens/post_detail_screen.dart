@@ -4,15 +4,22 @@ import '../../services/post_service.dart';
 import '../widgets/post_card.dart';
 
 class PostDetailScreen extends StatefulWidget {
-  const PostDetailScreen({super.key, required this.post});
+  const PostDetailScreen({
+    super.key,
+    required this.post,
+    this.readOnly = false,
+    this.postService,
+  });
   final PublishedPost post;
+  final bool readOnly;
+  final PostService? postService;
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  final _service = PostService();
+  late final _service = widget.postService ?? PostService();
   late Stream<PublishedPost?> _post = _service.watchPublishedPost(
     widget.post.id,
   );
@@ -45,7 +52,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           );
         }
-        if (!snapshot.hasData) {
+        if (!snapshot.hasData ||
+            (widget.readOnly && snapshot.data!.visibility != 'public')) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(24),
@@ -61,7 +69,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: PostCard(post: snapshot.data!, showFullContent: true),
+              child: PostCard(
+                post: snapshot.data!,
+                showFullContent: true,
+                readOnly: widget.readOnly,
+              ),
             ),
           ),
         );

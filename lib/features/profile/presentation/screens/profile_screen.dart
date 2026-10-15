@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../posts/services/post_service.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../widgets/profile_dashboard.dart';
 import '../widgets/profile_post_library.dart';
@@ -18,7 +19,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _postService = PostService();
   Stream<DocumentSnapshot<Map<String, dynamic>>>? _profile;
+  Stream<int>? _postCount;
 
   @override
   void initState() {
@@ -40,6 +43,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               .collection('users')
               .doc(user.uid)
               .snapshots();
+    _watchPostCount();
+  }
+
+  void _watchPostCount() {
+    _postCount = widget.user == null
+        ? null
+        : _postService.watchMyPosts().map((posts) => posts.length);
   }
 
   Future<void> _editProfile() async {
@@ -107,28 +117,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         final data = snapshot.data?.data();
         final photo = _text(data?['profileImageUrl']);
-        return ProfileDashboard(
-          name:
-              _text(data?['fullName']) ??
-              _text(user.displayName) ??
-              user.email?.split('@').first ??
-              'User',
-          title: _text(data?['professionalTitle']) ?? 'EduPro Learner',
-          organization: _text(data?['organization']),
-          email: _text(data?['email']) ?? user.email,
-          bio: _text(data?['bio']),
-          imageUrl: photo,
-          skills: _strings(data?['skills']),
-          interests: _strings(data?['learningInterests']),
-          postLibrary: ProfilePostLibrary(key: ValueKey(user.uid)),
-          onSettings: () => Navigator.of(context).push<void>(
-            MaterialPageRoute(builder: (_) => SettingsScreen(user: user)),
+        return StreamBuilder<int>(
+          key: ValueKey('post-count:${user.uid}'),
+          stream: _postCount,
+          builder: (context, countSnapshot) => ProfileDashboard(
+            name:
+                _text(data?['fullName']) ??
+                _text(user.displayName) ??
+                user.email?.split('@').first ??
+                'User',
+            title: _text(data?['professionalTitle']) ?? 'EduPro Learner',
+            organization: _text(data?['organization']),
+            email: _text(data?['email']) ?? user.email,
+            bio: _text(data?['bio']),
+            imageUrl: photo,
+            skills: _strings(data?['skills']),
+            interests: _strings(data?['learningInterests']),
+            postCount: countSnapshot.hasError ? null : countSnapshot.data,
+            onRetryPostCount: countSnapshot.hasError
+                ? () => setState(_watchPostCount)
+                : null,
+            postLibrary: ProfilePostLibrary(key: ValueKey(user.uid)),
+            onSettings: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => SettingsScreen(user: user)),
+            ),
+            onPhoto: () => _editPhoto(photo),
+            onEdit: _editProfile,
+            onShare: () => _showMessage('Profile sharing coming soon'),
+            onAddSkill: _editProfile,
+            onAddInterest: _editProfile,
           ),
-          onPhoto: () => _editPhoto(photo),
-          onEdit: _editProfile,
-          onShare: () => _showMessage('Profile sharing coming soon'),
-          onAddSkill: _editProfile,
-          onAddInterest: _editProfile,
         );
       },
     );

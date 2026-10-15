@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/post_service.dart';
+import '../../../profile/presentation/screens/user_profile_screen.dart';
 import '../screens/new_post_screen.dart';
 import 'post_actions_menu.dart';
 import 'post_like_button.dart';
 import 'post_comments_sheet.dart';
+import 'post_image_viewer.dart';
 import 'post_save_button.dart';
 
 class PostCard extends StatelessWidget {
@@ -16,6 +18,7 @@ class PostCard extends StatelessWidget {
     required this.post,
     this.showFullContent = false,
     this.onOpen,
+    this.readOnly = false,
   });
 
   static const _primaryBlue = Color(0xFF167BFF);
@@ -27,10 +30,13 @@ class PostCard extends StatelessWidget {
   final PublishedPost post;
   final bool showFullContent;
   final VoidCallback? onOpen;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
     final attachment = _attachmentPreview();
+    final imageUrl = post.attachmentType == 'image' ? post.attachmentUrl : null;
+    final hasAuthor = post.userId?.trim().isNotEmpty == true;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -51,58 +57,71 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _PostAuthorAvatar(
-                key: ValueKey(post.userId ?? post.id),
-                userId: post.userId,
-                savedImageUrl: post.userProfileImage,
+              InkWell(
+                onTap: hasAuthor && !readOnly
+                    ? () => _openAuthor(context)
+                    : null,
+                customBorder: const CircleBorder(),
+                child: _PostAuthorAvatar(
+                  key: ValueKey(post.userId ?? post.id),
+                  userId: post.userId,
+                  savedImageUrl: post.userProfileImage,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.userName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                child: InkWell(
+                  onTap: hasAuthor && !readOnly
+                      ? () => _openAuthor(context)
+                      : null,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${post.category} • ${_relativeTime(post.createdAt)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _textSecondary,
-                        fontSize: 11,
+                      const SizedBox(height: 3),
+                      Text(
+                        '${post.category} • ${_relativeTime(post.createdAt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              StreamBuilder<User?>(
-                stream: FirebaseAuth.instance.authStateChanges(),
-                initialData: FirebaseAuth.instance.currentUser,
-                builder: (context, snapshot) {
-                  if (snapshot.data == null ||
-                      snapshot.data!.uid != post.userId) {
-                    return const SizedBox.shrink();
-                  }
-                  return PostActionsMenu(
-                    isOwner: true,
-                    onDelete: () => PostService().deletePost(post.id),
-                    onEdit: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => NewPostScreen(post: post),
+              if (!readOnly)
+                StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  initialData: FirebaseAuth.instance.currentUser,
+                  builder: (context, snapshot) {
+                    if (snapshot.data == null ||
+                        snapshot.data!.uid != post.userId) {
+                      return const SizedBox.shrink();
+                    }
+                    return PostActionsMenu(
+                      isOwner: true,
+                      onDelete: () => PostService().deletePost(post.id),
+                      onEdit: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => NewPostScreen(post: post),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -155,125 +174,129 @@ class PostCard extends StatelessWidget {
           if (attachment != null) ...[
             const SizedBox(height: 12),
             InkWell(
-              onTap: onOpen,
+              onTap: imageUrl != null
+                  ? () => showPostImageViewer(
+                      context,
+                      imageUrl: imageUrl,
+                      imageLabel: post.title,
+                    )
+                  : onOpen,
               borderRadius: BorderRadius.circular(12),
               child: attachment,
             ),
           ],
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final labels =
-                  constraints.maxWidth >= 300 &&
-                  MediaQuery.textScalerOf(context).scale(12) < 17;
-              return Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 2,
-                runSpacing: 4,
-                children: [
-                  StreamBuilder<User?>(
-                    stream: FirebaseAuth.instance.authStateChanges(),
-                    initialData: FirebaseAuth.instance.currentUser,
-                    builder: (context, snapshot) => PostLikeButton(
-                      key: ValueKey('${post.id}:${snapshot.data?.uid}'),
-                      likeCount: post.likeCount,
-                      thumbUpStyle: true,
-                      isLiked: post.likedBy.contains(snapshot.data?.uid),
-                      onLike: (liked) =>
-                          PostService().setPostLiked(post.id, liked: liked),
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+          if (!readOnly) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 2,
+                    runSpacing: 4,
                     children: [
-                      IconButton(
-                        tooltip: 'View comments',
-                        icon: const Icon(
-                          Icons.chat_bubble_outline,
-                          color: _textSecondary,
+                      StreamBuilder<User?>(
+                        stream: FirebaseAuth.instance.authStateChanges(),
+                        initialData: FirebaseAuth.instance.currentUser,
+                        builder: (context, snapshot) => PostLikeButton(
+                          key: ValueKey('${post.id}:${snapshot.data?.uid}'),
+                          likeCount: post.likeCount,
+                          thumbUpStyle: true,
+                          isLiked: post.likedBy.contains(snapshot.data?.uid),
+                          onLike: (liked) =>
+                              PostService().setPostLiked(post.id, liked: liked),
                         ),
-                        onPressed: () {
-                          final service = PostService();
-                          showModalBottomSheet<void>(
-                            context: context,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            builder: (_) => StreamBuilder<User?>(
-                              stream: FirebaseAuth.instance.authStateChanges(),
-                              initialData: FirebaseAuth.instance.currentUser,
-                              builder: (context, snapshot) => PostCommentsSheet(
-                                key: ValueKey(snapshot.data?.uid),
-                                currentUserId: snapshot.data?.uid,
-                                watchComments: () =>
-                                    service.watchComments(post.id),
-                                onSubmit: (text) =>
-                                    service.addComment(post.id, text),
-                                onEdit: (id, text) =>
-                                    service.editComment(post.id, id, text),
-                                onDelete: (id) =>
-                                    service.deleteComment(post.id, id),
-                              ),
-                            ),
-                          );
-                        },
                       ),
-                      Text(
-                        '${post.commentCount}',
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 12,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'View comments',
+                            icon: const Icon(
+                              Icons.chat_bubble_outline,
+                              color: _textSecondary,
+                            ),
+                            onPressed: () {
+                              final service = PostService();
+                              showModalBottomSheet<void>(
+                                context: context,
+                                isScrollControlled: true,
+                                useSafeArea: true,
+                                builder: (_) => StreamBuilder<User?>(
+                                  stream: FirebaseAuth.instance
+                                      .authStateChanges(),
+                                  initialData:
+                                      FirebaseAuth.instance.currentUser,
+                                  builder: (context, snapshot) =>
+                                      PostCommentsSheet(
+                                        key: ValueKey(snapshot.data?.uid),
+                                        currentUserId: snapshot.data?.uid,
+                                        watchComments: () =>
+                                            service.watchComments(post.id),
+                                        onSubmit: (text) =>
+                                            service.addComment(post.id, text),
+                                        onEdit: (id, text) => service
+                                            .editComment(post.id, id, text),
+                                        onDelete: (id) =>
+                                            service.deleteComment(post.id, id),
+                                      ),
+                                ),
+                              );
+                            },
+                          ),
+                          Text(
+                            '${post.commentCount}',
+                            style: const TextStyle(
+                              color: _textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  StreamBuilder<User?>(
-                    stream: FirebaseAuth.instance.authStateChanges(),
-                    initialData: FirebaseAuth.instance.currentUser,
-                    builder: (context, snapshot) => snapshot.data == null
-                        ? PostSaveButton(
-                            showLabel: labels,
-                            isSaved: false,
-                            onSave: (saved) => PostService().setPostSaved(
-                              post.id,
-                              saved: saved,
-                            ),
-                          )
-                        : PostBookmarkButton(
-                            showLabel: labels,
-                            key: ValueKey('${post.id}:${snapshot.data!.uid}'),
-                            postId: post.id,
-                          ),
+                ),
+                StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  initialData: FirebaseAuth.instance.currentUser,
+                  builder: (context, snapshot) => snapshot.data == null
+                      ? PostSaveButton(
+                          isSaved: false,
+                          onSave: (saved) =>
+                              PostService().setPostSaved(post.id, saved: saved),
+                        )
+                      : PostBookmarkButton(
+                          key: ValueKey('${post.id}:${snapshot.data!.uid}'),
+                          postId: post.id,
+                        ),
+                ),
+                IconButton(
+                  tooltip: 'Copy post to share',
+                  onPressed: () => _share(context),
+                  icon: const Icon(
+                    Icons.share_outlined,
+                    color: _textSecondary,
+                    size: 22,
                   ),
-                  if (labels)
-                    TextButton.icon(
-                      onPressed: () => _share(context),
-                      icon: const Icon(Icons.share_outlined, size: 21),
-                      label: const Text('Share'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _textSecondary,
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        minimumSize: const Size(0, 44),
-                        textStyle: Theme.of(
-                          context,
-                        ).textTheme.labelMedium?.copyWith(fontSize: 11),
-                      ),
-                    )
-                  else
-                    IconButton(
-                      tooltip: 'Copy post to share',
-                      onPressed: () => _share(context),
-                      icon: const Icon(
-                        Icons.share_outlined,
-                        color: _textSecondary,
-                        size: 22,
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
+                ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _openAuthor(BuildContext context) {
+    final userId = post.userId?.trim();
+    if (userId == null || userId.isEmpty) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => UserProfileScreen(
+          userId: userId,
+          fallbackName: post.userName,
+          fallbackImageUrl: post.userProfileImage,
+        ),
       ),
     );
   }

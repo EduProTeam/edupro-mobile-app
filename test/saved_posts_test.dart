@@ -337,14 +337,81 @@ void main() {
       db.docs.addAll({
         'posts/old': _post('alice', 'Older', time: 1),
         'posts/new': _post('alice', 'Newer', time: 2),
+        'posts/followers': {
+          ..._post('alice', 'Followers post', time: 3),
+          'visibility': 'followers',
+        },
         'posts/other': _post('bob', 'Other'),
         'posts/draft': _post('alice', 'Draft', status: 'draft'),
         'posts/deleted': _post('alice', 'Deleted', status: 'deleted'),
       });
       expect((await service.watchMyPosts().first).map((post) => post.id), [
+        'followers',
         'new',
         'old',
       ]);
+    },
+  );
+
+  test('blank author IDs do not query any posts', () async {
+    for (final userId in ['', ' ', '\n\t']) {
+      expect(await service.watchPostsByUser(userId).first, isEmpty);
+    }
+    expect(db.queries, isEmpty);
+    expect(db.activeListeners, 0);
+  });
+
+  test(
+    'public author posts stay isolated and update live without followers posts',
+    () async {
+      db.docs.addAll({
+        'posts/viewer': _post('alice', 'Viewer post', time: 99),
+        'posts/old': _post('bob', 'Older author post', time: 1),
+        'posts/new': _post('bob', 'Newer author post', time: 2),
+        'posts/followers': {
+          ..._post('bob', 'Followers post', time: 99),
+          'visibility': 'followers',
+        },
+        'posts/draft': _post('bob', 'Author draft', status: 'draft'),
+        'posts/deleted': _post('bob', 'Deleted author post', status: 'deleted'),
+        'posts/other': _post('charlie', 'Another author post', time: 100),
+      });
+      final updates = <List<PublishedPost>>[];
+      final subscription = service
+          .watchPostsByUser('bob', publicOnly: true)
+          .listen(updates.add);
+      try {
+        await _flush();
+        expect(auth.currentUser!.uid, 'alice');
+        expect(updates.last.map((post) => post.id), ['new', 'old']);
+        expect(updates.last.every((post) => post.userId == 'bob'), isTrue);
+        expect(
+          (await service.watchPostsByUser('bob').first).map((post) => post.id),
+          ['followers', 'new', 'old'],
+        );
+
+        // Created and published posts arrive; both deletion paths remove them.
+        db.docs['posts/draft']!['status'] = 'published';
+        db.docs['posts/draft']!['createdAt'] =
+            Timestamp.fromMillisecondsSinceEpoch(3);
+        db.docs['posts/old']!['status'] = 'deleted';
+        db.docs.remove('posts/new');
+        db.docs['posts/created'] = _post('bob', 'New author post', time: 4);
+        db.docs['posts/another-viewer'] = _post('alice', 'New viewer post');
+        db.emit();
+        await _flush();
+        expect(updates.last.map((post) => post.id), ['created', 'draft']);
+        expect(updates.last.every((post) => post.userId == 'bob'), isTrue);
+
+        db.docs['posts/draft']!['status'] = 'deleted';
+        db.docs.remove('posts/created');
+        db.emit();
+        await _flush();
+        expect(updates.last, isEmpty);
+      } finally {
+        await subscription.cancel();
+      }
+      expect(db.activeListeners, 0);
     },
   );
 

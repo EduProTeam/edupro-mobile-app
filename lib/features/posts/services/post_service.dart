@@ -209,13 +209,26 @@ class PostService {
   Stream<List<PublishedPost>> watchMyPosts() {
     final user = _firebaseAuth.currentUser;
     if (user == null) return Stream.value([]);
+    return watchPostsByUser(user.uid);
+  }
+
+  /// Published posts for the selected author, independent of the viewer.
+  /// Public filtering keeps legacy posts with no visibility field available.
+  Stream<List<PublishedPost>> watchPostsByUser(
+    String userId, {
+    bool publicOnly = false,
+  }) {
+    if (userId.trim().isEmpty) return Stream.value([]);
     return _firestore
         .collection('posts')
-        .where('userId', isEqualTo: user.uid)
+        .where('userId', isEqualTo: userId)
         .where('status', isEqualTo: 'published')
         .snapshots()
         .map((snapshot) {
-          final posts = snapshot.docs.map(PublishedPost.fromDocument).toList();
+          final posts = snapshot.docs
+              .map(PublishedPost.fromDocument)
+              .where((post) => !publicOnly || post.visibility == 'public')
+              .toList();
           posts.sort(
             (a, b) => (b.createdAt?.millisecondsSinceEpoch ?? 0).compareTo(
               a.createdAt?.millisecondsSinceEpoch ?? 0,

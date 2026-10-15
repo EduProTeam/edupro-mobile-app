@@ -12,11 +12,13 @@ class ProfilePostLibrary extends StatefulWidget {
     this.onOpenPost,
     this.onCreatePost,
     this.initialTab = 0,
+    this.publicUserId,
   }) : assert(initialTab == 0 || initialTab == 1);
   final PostService? postService;
   final ValueChanged<PublishedPost>? onOpenPost;
   final VoidCallback? onCreatePost;
   final int initialTab;
+  final String? publicUserId;
 
   @override
   State<ProfilePostLibrary> createState() => _ProfilePostLibraryState();
@@ -25,17 +27,33 @@ class ProfilePostLibrary extends StatefulWidget {
 class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
   static const _blue = Color(0xFF167BFF);
   late final _service = widget.postService ?? PostService();
-  late Stream<List<PublishedPost>> _posts = _selected == 0
-      ? _service.watchMyPosts()
-      : _service.watchSavedPosts();
-  late int _selected = widget.initialTab;
+  late Stream<List<PublishedPost>> _posts = _watchPosts();
+  late int _selected = _readOnly ? 0 : widget.initialTab;
+  bool get _readOnly => widget.publicUserId != null;
   var _revision = 0;
   var _visibleCount = 12;
 
-  void _reload() {
-    _posts = _selected == 0
+  Stream<List<PublishedPost>> _watchPosts() {
+    final userId = widget.publicUserId;
+    if (userId != null) {
+      return _service.watchPostsByUser(userId, publicOnly: true);
+    }
+    return _selected == 0
         ? _service.watchMyPosts()
         : _service.watchSavedPosts();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfilePostLibrary oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.publicUserId != widget.publicUserId) {
+      _selected = 0;
+      _reload();
+    }
+  }
+
+  void _reload() {
+    _posts = _watchPosts();
     _revision++;
     _visibleCount = 12;
   }
@@ -53,7 +71,13 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
       widget.onOpenPost!(post);
     } else {
       Navigator.of(context).push<void>(
-        MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+        MaterialPageRoute(
+          builder: (_) => PostDetailScreen(
+            post: post,
+            readOnly: _readOnly,
+            postService: _service,
+          ),
+        ),
       );
     }
   }
@@ -68,18 +92,28 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
         ),
         child: Row(
           children: [
-            _LibraryTab(
-              label: 'Posts',
-              icon: Icons.grid_on_rounded,
-              selected: _selected == 0,
-              onTap: () => _select(0),
-            ),
-            _LibraryTab(
-              label: 'Saved',
-              icon: Icons.bookmark_border_rounded,
-              selected: _selected == 1,
-              onTap: () => _select(1),
-            ),
+            if (_readOnly)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Posts',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              )
+            else ...[
+              _LibraryTab(
+                label: 'Posts',
+                icon: Icons.grid_on_rounded,
+                selected: _selected == 0,
+                onTap: () => _select(0),
+              ),
+              _LibraryTab(
+                label: 'Saved',
+                icon: Icons.bookmark_border_rounded,
+                selected: _selected == 1,
+                onTap: () => _select(1),
+              ),
+            ],
           ],
         ),
       ),
@@ -91,7 +125,9 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
           if (snapshot.hasError) {
             return _LibraryMessage(
               icon: Icons.cloud_off_outlined,
-              title: _selected == 0
+              title: _readOnly
+                  ? 'Could not load posts'
+                  : _selected == 0
                   ? 'Could not load your posts'
                   : 'Could not load saved posts',
               message: 'Check your connection and try again.',
@@ -111,14 +147,18 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
               icon: _selected == 0
                   ? Icons.post_add_rounded
                   : Icons.bookmark_add_outlined,
-              title: _selected == 0
+              title: _readOnly
+                  ? 'No public posts yet'
+                  : _selected == 0
                   ? 'Share your first post'
                   : 'Keep something for later',
-              message: _selected == 0
+              message: _readOnly
+                  ? 'This user has not shared any public posts yet.'
+                  : _selected == 0
                   ? 'Your published educational posts will appear here.'
                   : 'Tap the bookmark on an educational post to save it here. Only you can see this collection.',
-              action: _selected == 0 ? 'Create a post' : null,
-              onAction: _selected == 0
+              action: !_readOnly && _selected == 0 ? 'Create a post' : null,
+              onAction: !_readOnly && _selected == 0
                   ? widget.onCreatePost ??
                         () {
                           Navigator.of(context).push<void>(
@@ -134,7 +174,9 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                _selected == 0
+                _readOnly
+                    ? '${posts.length} public ${posts.length == 1 ? 'post' : 'posts'}'
+                    : _selected == 0
                     ? '${posts.length} ${posts.length == 1 ? 'post' : 'posts'} · Published by you'
                     : '${posts.length} saved ${posts.length == 1 ? 'post' : 'posts'} · Only you',
                 style: const TextStyle(color: Color(0xFF72778F), fontSize: 12),

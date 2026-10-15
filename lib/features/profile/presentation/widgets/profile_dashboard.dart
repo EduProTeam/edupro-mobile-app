@@ -12,18 +12,20 @@ class ProfileDashboard extends StatelessWidget {
     required this.title,
     required this.skills,
     required this.interests,
-    required this.onSettings,
-    required this.onPhoto,
-    required this.onEdit,
-    required this.onShare,
-    required this.onAddSkill,
-    required this.onAddInterest,
+    this.onSettings,
+    this.onPhoto,
+    this.onEdit,
+    this.onShare,
+    this.onAddSkill,
+    this.onAddInterest,
+    this.readOnly = false,
     this.organization,
     this.email,
     this.bio,
     this.imageUrl,
+    this.postCount = 0,
     this.courseCount = 0,
-    this.sessionCount = 0,
+    this.onRetryPostCount,
     this.postLibrary,
   });
 
@@ -35,18 +37,23 @@ class ProfileDashboard extends StatelessWidget {
   final String? imageUrl;
   final List<String> skills;
   final List<String> interests;
+  final int? postCount;
   final int courseCount;
-  final int sessionCount;
+  final VoidCallback? onRetryPostCount;
   final Widget? postLibrary;
-  final VoidCallback onSettings;
-  final VoidCallback onPhoto;
-  final VoidCallback onEdit;
-  final VoidCallback onShare;
-  final VoidCallback onAddSkill;
-  final VoidCallback onAddInterest;
+  final bool readOnly;
+  final VoidCallback? onSettings;
+  final VoidCallback? onPhoto;
+  final VoidCallback? onEdit;
+  final VoidCallback? onShare;
+  final VoidCallback? onAddSkill;
+  final VoidCallback? onAddInterest;
 
   @override
   Widget build(BuildContext context) {
+    final displayBio = readOnly && (bio == null || bio!.trim().isEmpty)
+        ? 'No bio added yet.'
+        : bio ?? 'Add a bio to tell the community about yourself.';
     return ColoredBox(
       color: Colors.white,
       child: SafeArea(
@@ -59,7 +66,7 @@ class ProfileDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _BrandHeader(onSettings: onSettings),
+                  _BrandHeader(onSettings: readOnly ? null : onSettings),
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(22),
@@ -72,7 +79,7 @@ class ProfileDashboard extends StatelessWidget {
                             _ProfileAvatar(
                               name: name,
                               imageUrl: imageUrl,
-                              onPhoto: onPhoto,
+                              onPhoto: readOnly ? null : onPhoto,
                             ),
                             const SizedBox(height: 12),
                             Semantics(
@@ -144,8 +151,7 @@ class ProfileDashboard extends StatelessWidget {
                             ],
                             const SizedBox(height: 12),
                             Text(
-                              bio ??
-                                  'Add a bio to tell the community about yourself.',
+                              displayBio,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: _muted,
@@ -168,11 +174,12 @@ class ProfileDashboard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _StatItem(
-                            value: courseCount,
-                            label: 'Courses',
-                            icon: Icons.menu_book_rounded,
+                            value: postCount,
+                            label: 'Posts',
+                            icon: Icons.article_outlined,
                             color: _blue,
                             background: const Color(0xFFEAF5FF),
+                            onRetry: onRetryPostCount,
                           ),
                           const _StatDivider(),
                           _StatItem(
@@ -184,9 +191,9 @@ class ProfileDashboard extends StatelessWidget {
                           ),
                           const _StatDivider(),
                           _StatItem(
-                            value: sessionCount,
-                            label: 'Sessions',
-                            icon: Icons.people_outline_rounded,
+                            value: courseCount,
+                            label: 'Courses',
+                            icon: Icons.menu_book_rounded,
                             color: const Color(0xFF00B678),
                             background: const Color(0xFFE9F9F1),
                           ),
@@ -194,15 +201,17 @@ class ProfileDashboard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _ProfileActions(onEdit: onEdit, onShare: onShare),
+                  if (!readOnly && (onEdit != null || onShare != null)) ...[
+                    const SizedBox(height: 12),
+                    _ProfileActions(onEdit: onEdit, onShare: onShare),
+                  ],
                   const SizedBox(height: 14),
                   _TagSection(
-                    title: 'My Skills',
+                    title: readOnly ? 'Skills' : 'My Skills',
                     action: 'Add Skill',
                     values: skills,
                     emptyText: 'No skills added yet',
-                    onAdd: onAddSkill,
+                    onAdd: readOnly ? null : onAddSkill,
                   ),
                   const SizedBox(height: 12),
                   _TagSection(
@@ -210,7 +219,7 @@ class ProfileDashboard extends StatelessWidget {
                     action: 'Add Interest',
                     values: interests,
                     emptyText: 'No learning interests selected yet',
-                    onAdd: onAddInterest,
+                    onAdd: readOnly ? null : onAddInterest,
                   ),
                   if (postLibrary != null) ...[
                     const SizedBox(height: 22),
@@ -227,8 +236,8 @@ class ProfileDashboard extends StatelessWidget {
 }
 
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.onSettings});
-  final VoidCallback onSettings;
+  const _BrandHeader({this.onSettings});
+  final VoidCallback? onSettings;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -257,16 +266,17 @@ class _BrandHeader extends StatelessWidget {
             ),
           ),
         ),
-        IconButton.filledTonal(
-          onPressed: onSettings,
-          tooltip: 'Settings',
-          style: IconButton.styleFrom(
-            backgroundColor: const Color(0xFFEEF4FF),
-            foregroundColor: _ink,
-            fixedSize: const Size(40, 40),
+        if (onSettings != null)
+          IconButton.filledTonal(
+            onPressed: onSettings,
+            tooltip: 'Settings',
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFFEEF4FF),
+              foregroundColor: _ink,
+              fixedSize: const Size(40, 40),
+            ),
+            icon: const Icon(Icons.settings_outlined, size: 24),
           ),
-          icon: const Icon(Icons.settings_outlined, size: 24),
-        ),
       ],
     ),
   );
@@ -357,11 +367,11 @@ class _ProfileAvatar extends StatelessWidget {
   const _ProfileAvatar({
     required this.name,
     required this.imageUrl,
-    required this.onPhoto,
+    this.onPhoto,
   });
   final String name;
   final String? imageUrl;
-  final VoidCallback onPhoto;
+  final VoidCallback? onPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -418,21 +428,22 @@ class _ProfileAvatar extends StatelessWidget {
                     ),
             ),
           ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: IconButton.filled(
-              onPressed: onPhoto,
-              tooltip: 'Change profile photo',
-              style: IconButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(36, 36),
-                padding: const EdgeInsets.all(9),
+          if (onPhoto != null)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: IconButton.filled(
+                onPressed: onPhoto,
+                tooltip: 'Change profile photo',
+                style: IconButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(36, 36),
+                  padding: const EdgeInsets.all(9),
+                ),
+                icon: const Icon(Icons.camera_alt_rounded, size: 18),
               ),
-              icon: const Icon(Icons.camera_alt_rounded, size: 18),
             ),
-          ),
         ],
       ),
     );
@@ -498,12 +509,14 @@ class _StatItem extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.background,
+    this.onRetry,
   });
-  final int value;
+  final int? value;
   final String label;
   final IconData icon;
   final Color color;
   final Color background;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) => Expanded(
@@ -515,15 +528,22 @@ class _StatItem extends StatelessWidget {
           child: Icon(icon, size: 20, color: color),
         ),
         const SizedBox(height: 4),
-        Text(
-          '$value',
-          style: const TextStyle(
-            color: _ink,
-            fontSize: 19,
-            height: 1.2,
-            fontWeight: FontWeight.w800,
+        if (onRetry != null)
+          IconButton(
+            tooltip: 'Retry post count',
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh, color: _muted),
+          )
+        else
+          Text(
+            value?.toString() ?? '—',
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 19,
+              height: 1.2,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
         const SizedBox(height: 3),
         Text(label, style: const TextStyle(color: _muted, fontSize: 12)),
       ],
@@ -541,49 +561,55 @@ class _StatDivider extends StatelessWidget {
 }
 
 class _ProfileActions extends StatelessWidget {
-  const _ProfileActions({required this.onEdit, required this.onShare});
-  final VoidCallback onEdit;
-  final VoidCallback onShare;
+  const _ProfileActions({this.onEdit, this.onShare});
+  final VoidCallback? onEdit;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(14),
     );
-    final edit = FilledButton(
-      onPressed: onEdit,
-      style: FilledButton.styleFrom(
-        backgroundColor: _blue,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
-        shape: shape,
-        textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      child: const _ActionLabel(
-        icon: Icons.edit_rounded,
-        label: 'Edit Profile',
-      ),
-    );
-    final share = OutlinedButton(
-      onPressed: onShare,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: _blue,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
-        side: const BorderSide(color: _blue),
-        shape: shape,
-        textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      child: const _ActionLabel(
-        icon: Icons.share_outlined,
-        label: 'Share Profile',
-      ),
-    );
+    final edit = onEdit == null
+        ? null
+        : FilledButton(
+            onPressed: onEdit,
+            style: FilledButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+              shape: shape,
+              textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            child: const _ActionLabel(
+              icon: Icons.edit_rounded,
+              label: 'Edit Profile',
+            ),
+          );
+    final share = onShare == null
+        ? null
+        : OutlinedButton(
+            onPressed: onShare,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _blue,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+              side: const BorderSide(color: _blue),
+              shape: shape,
+              textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            child: const _ActionLabel(
+              icon: Icons.share_outlined,
+              label: 'Share Profile',
+            ),
+          );
+    if (edit == null) return share ?? const SizedBox.shrink();
+    if (share == null) return edit;
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 300 ||
@@ -627,13 +653,13 @@ class _TagSection extends StatelessWidget {
     required this.action,
     required this.values,
     required this.emptyText,
-    required this.onAdd,
+    this.onAdd,
   });
   final String title;
   final String action;
   final List<String> values;
   final String emptyText;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) => _SurfaceCard(
@@ -654,6 +680,7 @@ class _TagSection extends StatelessWidget {
                 ),
               ),
             );
+            if (onAdd == null) return heading;
             final addButton = TextButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add_circle, size: 16),
