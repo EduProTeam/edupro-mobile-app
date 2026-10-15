@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../services/post_service.dart';
 
@@ -76,9 +77,11 @@ class _PostLikeButtonState extends State<PostLikeButton> {
             .clamp(0, 0x7FFFFFFFFFFFFFFF);
     final color = liked
         ? (widget.thumbUpStyle
-              ? const Color(0xFF167BFF)
-              : const Color(0xFF5B2CCF))
-        : const Color(0xFF62738E);
+              ? context.appColors.primary
+              : (context.appColors.isDark
+                    ? context.appColors.primary
+                    : const Color(0xFF5B2CCF)))
+        : context.appColors.textSecondary;
 
     return Row(
       mainAxisSize: MainAxisSize.min,

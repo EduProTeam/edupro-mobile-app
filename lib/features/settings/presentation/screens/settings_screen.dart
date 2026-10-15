@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,10 +11,6 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.user});
 
   static const _primaryBlue = Color(0xFF3D8FEF);
-  static const _lightBlue = Color(0xFFEFF6FF);
-  static const _textPrimary = Color(0xFF1E1E1E);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _borderColor = Color(0xFFE5E7EB);
   static const _danger = Color(0xFFEF4444);
 
   final User user;
@@ -21,10 +18,10 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
         centerTitle: true,
         title: const Text(
           'Settings',
@@ -199,10 +196,13 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'EduPro Version 1.0.0',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: _textSecondary, fontSize: 14),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -287,16 +287,16 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Language'),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.check, color: _primaryBlue),
+              leading: Icon(Icons.check, color: context.appColors.primary),
               title: Text('English'),
             ),
             Text(
               'More languages will be added later.',
-              style: TextStyle(color: _textSecondary),
+              style: TextStyle(color: context.appColors.textSecondary),
             ),
           ],
         ),
@@ -313,12 +313,12 @@ class SettingsScreen extends StatelessWidget {
   void _showAboutDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (context) => const AboutDialog(
+      builder: (context) => AboutDialog(
         applicationName: 'EduPro',
         applicationVersion: '1.0.0',
         applicationIcon: Icon(
           Icons.school_outlined,
-          color: _primaryBlue,
+          color: context.appColors.primary,
           size: 36,
         ),
         children: [
@@ -360,7 +360,7 @@ class _ProfileCard extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: context.appColors.surface,
     borderRadius: BorderRadius.circular(16),
     child: InkWell(
       onTap: onTap,
@@ -368,7 +368,7 @@ class _ProfileCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          border: Border.all(color: SettingsScreen._borderColor),
+          border: Border.all(color: context.appColors.border),
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
@@ -385,8 +385,8 @@ class _ProfileCard extends StatelessWidget {
               height: 84,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: SettingsScreen._lightBlue,
-                border: Border.all(color: Colors.white, width: 3),
+                color: context.appColors.primarySoft,
+                border: Border.all(color: context.appColors.surface, width: 3),
                 image: imageUrl == null
                     ? null
                     : DecorationImage(
@@ -395,10 +395,10 @@ class _ProfileCard extends StatelessWidget {
                       ),
               ),
               child: imageUrl == null
-                  ? const Icon(
+                  ? Icon(
                       Icons.person,
                       size: 44,
-                      color: SettingsScreen._primaryBlue,
+                      color: context.appColors.primary,
                     )
                   : null,
             ),
@@ -421,17 +421,17 @@ class _ProfileCard extends StatelessWidget {
                     email,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      color: SettingsScreen._textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: SettingsScreen._primaryBlue,
+              color: context.appColors.primary,
               size: 30,
             ),
           ],
@@ -451,17 +451,17 @@ class _SettingsSection extends StatelessWidget {
     children: [
       Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 21,
           fontWeight: FontWeight.w800,
-          color: SettingsScreen._textPrimary,
+          color: context.appColors.textPrimary,
         ),
       ),
       const SizedBox(height: 10),
       Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: SettingsScreen._borderColor),
+          color: context.appColors.surface,
+          border: Border.all(color: context.appColors.border),
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
@@ -475,11 +475,11 @@ class _SettingsSection extends StatelessWidget {
           children: [
             for (var index = 0; index < children.length; index++) ...[
               if (index > 0)
-                const Divider(
+                Divider(
                   height: 1,
                   indent: 72,
                   endIndent: 16,
-                  color: SettingsScreen._borderColor,
+                  color: context.appColors.border,
                 ),
               children[index],
             ],
@@ -522,7 +522,7 @@ class _SettingsTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(standalone ? 16 : 0),
             border: standalone
-                ? Border.all(color: SettingsScreen._borderColor)
+                ? Border.all(color: context.appColors.border)
                 : null,
             boxShadow: standalone
                 ? const [
@@ -540,8 +540,10 @@ class _SettingsTile extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDanger
-                      ? const Color(0xFFFFF1F2)
-                      : SettingsScreen._lightBlue,
+                      ? (context.appColors.isDark
+                            ? Colors.red.withValues(alpha: 0.14)
+                            : const Color(0xFFFFF1F2))
+                      : context.appColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 26),
@@ -558,16 +560,16 @@ class _SettingsTile extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: isDanger
                             ? SettingsScreen._danger
-                            : SettingsScreen._textPrimary,
+                            : context.appColors.textPrimary,
                       ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 3),
                       Text(
                         subtitle!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
-                          color: SettingsScreen._textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                       ),
                     ],
@@ -577,9 +579,9 @@ class _SettingsTile extends StatelessWidget {
               if (trailingText != null)
                 Text(
                   trailingText!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: SettingsScreen._primaryBlue,
+                    color: context.appColors.primary,
                   ),
                 ),
               Icon(Icons.chevron_right, color: color, size: 28),

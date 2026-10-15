@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/post_comment.dart';
 import '../../services/post_service.dart';
@@ -205,11 +206,13 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                       itemBuilder: (context, index) {
                         final comment = comments[index];
                         final photo = comment.profileImageUrl;
-                        const fallback = CircleAvatar(
-                          backgroundColor: Color(0xFFF7F4FF),
+                        final fallback = CircleAvatar(
+                          backgroundColor: context.appColors.primarySoft,
                           child: Icon(
                             Icons.person_outline,
-                            color: Color(0xFF5B2CCF),
+                            color: context.appColors.isDark
+                                ? context.appColors.primary
+                                : const Color(0xFF5B2CCF),
                           ),
                         );
                         return ListTile(
@@ -269,8 +272,8 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               '${comment.text}${comment.updatedAt != null ? ' (edited)' : ''}',
-                              style: const TextStyle(
-                                color: Color(0xFF1E1E1E),
+                              style: TextStyle(
+                                color: context.appColors.textPrimary,
                                 height: 1.4,
                               ),
                             ),
@@ -335,7 +338,9 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                       onPressed: _sending || _text.text.trim().isEmpty
                           ? null
                           : _send,
-                      color: const Color(0xFF5B2CCF),
+                      color: context.appColors.isDark
+                          ? context.appColors.primary
+                          : const Color(0xFF5B2CCF),
                       icon: _sending && !_deleting
                           ? const SizedBox(
                               width: 22,

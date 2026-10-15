@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../posts/services/post_service.dart';
 
 const _blue = Color(0xFF167BFF);
-const _ink = Color(0xFF0A1638);
-const _muted = Color(0xFF727D95);
 
 class HomeFeedHeader extends StatelessWidget {
   const HomeFeedHeader({
@@ -27,7 +26,8 @@ class HomeFeedHeader extends StatelessWidget {
       final brand = Semantics(
         label: 'EduPro',
         image: true,
-        child: ClipRect(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
           child: SizedBox(
             width: 110,
             height: 34,
@@ -51,10 +51,10 @@ class HomeFeedHeader extends StatelessWidget {
             IconButton(
               tooltip: 'Saved posts',
               onPressed: onSaved,
-              icon: const Icon(
+              icon: Icon(
                 Icons.bookmark_border_rounded,
                 size: 22,
-                color: _ink,
+                color: context.appColors.textPrimary,
               ),
               visualDensity: VisualDensity.compact,
             ),
@@ -100,11 +100,17 @@ class HomeLearningBanner extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(20),
     child: DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
-          colors: [Color(0xFFEBF4FF), Color(0xFFB4D4FF), Color(0xFF79ADFF)],
+          colors: context.appColors.isDark
+              ? [
+                  context.appColors.primarySoft,
+                  context.appColors.surfaceVariant,
+                  const Color(0xFF234A7D),
+                ]
+              : const [Color(0xFFEBF4FF), Color(0xFFB4D4FF), Color(0xFF79ADFF)],
         ),
       ),
       child: Padding(
@@ -119,10 +125,12 @@ class HomeLearningBanner extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'LEARN  ·  SHARE  ·  GROW',
                         style: TextStyle(
-                          color: Color(0xFF4A6FAD),
+                          color: context.appColors.isDark
+                              ? context.appColors.primary
+                              : const Color(0xFF4A6FAD),
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1,
@@ -131,10 +139,10 @@ class HomeLearningBanner extends StatelessWidget {
                       const SizedBox(height: 7),
                       Semantics(
                         header: true,
-                        child: const Text(
+                        child: Text(
                           'A Community\nfor Better Learning',
                           style: TextStyle(
-                            color: _ink,
+                            color: context.appColors.textPrimary,
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             height: 1.12,
@@ -143,10 +151,10 @@ class HomeLearningBanner extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Share knowledge, get help, and learn together with EduPro.',
                         style: TextStyle(
-                          color: Color(0xFF526787),
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -191,9 +199,9 @@ class HomePostComposer extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appColors.surface,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFF0F3F8)),
+      border: Border.all(color: context.appColors.border),
       boxShadow: const [
         BoxShadow(
           color: Color(0x081C3A62),
@@ -210,20 +218,23 @@ class HomePostComposer extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Material(
-                color: const Color(0xFFF5F8FD),
+                color: context.appColors.surfaceVariant,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
-                  side: const BorderSide(color: Color(0xFFE4EBF6)),
+                  side: BorderSide(color: context.appColors.border),
                 ),
                 child: InkWell(
                   onTap: () => onCreate(null),
                   borderRadius: BorderRadius.circular(28),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 13,
+                    ),
                     child: Text(
                       'Share your knowledge, question or idea...',
                       style: TextStyle(
-                        color: _muted,
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                         height: 1.3,
                       ),
@@ -285,7 +296,7 @@ class HomePostComposer extends StatelessWidget {
                       icon: Icon(icon, color: color, size: 18),
                       label: Text(label),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF415475),
+                        foregroundColor: context.appColors.textSecondary,
                         padding: const EdgeInsets.symmetric(horizontal: 5),
                         minimumSize: const Size(0, 40),
                         textStyle: Theme.of(
@@ -340,11 +351,11 @@ class HomeUserAvatar extends StatelessWidget {
         .toUpperCase();
     final fallback = CircleAvatar(
       radius: radius,
-      backgroundColor: const Color(0xFFE5F1FF),
+      backgroundColor: context.appColors.primarySoft,
       child: Text(
         initials,
         style: TextStyle(
-          color: _blue,
+          color: context.appColors.primary,
           fontWeight: FontWeight.w700,
           fontSize: radius * 0.66,
         ),

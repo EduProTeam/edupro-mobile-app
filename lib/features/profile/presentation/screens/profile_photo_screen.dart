@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,11 +25,6 @@ class ProfilePhotoScreen extends StatefulWidget {
 
 class _ProfilePhotoScreenState extends State<ProfilePhotoScreen> {
   static const _primaryBlue = Color(0xFF3D8FEF);
-  static const _lightBlue = Color(0xFFEFF6FF);
-  static const _secondaryBlue = Color(0xFFACD7FF);
-  static const _textPrimary = Color(0xFF1E1E1E);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _borderColor = Color(0xFFE5E7EB);
   static const _danger = Color(0xFFEF4444);
 
   final _picker = ImagePicker();
@@ -138,17 +134,20 @@ class _ProfilePhotoScreenState extends State<ProfilePhotoScreen> {
   Widget build(BuildContext context) {
     final selected = _selectedPhoto;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
         leading: IconButton(
           onPressed: _isUploading ? null : () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back),
         ),
-        title: const Text(
+        title: Text(
           'Profile Photo',
-          style: TextStyle(fontWeight: FontWeight.w800, color: _textPrimary),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: context.appColors.textPrimary,
+          ),
         ),
       ),
       body: SafeArea(
@@ -170,13 +169,13 @@ class _ProfilePhotoScreenState extends State<ProfilePhotoScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Choose a clear photo so other learners can recognize you.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.45,
-                  color: _textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 28),
@@ -250,9 +249,12 @@ class _ProfilePhotoScreenState extends State<ProfilePhotoScreen> {
                 onPressed: _isUploading
                     ? null
                     : () => Navigator.of(context).pop(),
-                child: const Text(
+                child: Text(
                   'Cancel',
-                  style: TextStyle(fontSize: 17, color: _primaryBlue),
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: context.appColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -287,7 +289,7 @@ class _PhotoAvatar extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 4),
+          border: Border.all(color: context.appColors.surface, width: 4),
           boxShadow: const [
             BoxShadow(
               color: Color(0x1A000000),
@@ -298,13 +300,13 @@ class _PhotoAvatar extends StatelessWidget {
         ),
         child: ClipOval(
           child: image == null
-              ? const ColoredBox(
-                  color: _ProfilePhotoScreenState._lightBlue,
+              ? ColoredBox(
+                  color: context.appColors.primarySoft,
                   child: Center(
                     child: Icon(
                       Icons.person,
                       size: 62,
-                      color: _ProfilePhotoScreenState._primaryBlue,
+                      color: context.appColors.primary,
                     ),
                   ),
                 )
@@ -328,16 +330,16 @@ class _UploadArea extends StatelessWidget {
       child: Container(
         height: 190,
         decoration: BoxDecoration(
-          color: _ProfilePhotoScreenState._lightBlue,
+          color: context.appColors.primarySoft,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _ProfilePhotoScreenState._secondaryBlue),
+          border: Border.all(color: context.appColors.border),
         ),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.cloud_upload_outlined,
-              color: _ProfilePhotoScreenState._primaryBlue,
+              color: context.appColors.primary,
               size: 54,
             ),
             SizedBox(height: 14),
@@ -350,7 +352,7 @@ class _UploadArea extends StatelessWidget {
               'JPG or PNG • Max 5 MB',
               style: TextStyle(
                 fontSize: 16,
-                color: _ProfilePhotoScreenState._textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
           ],
@@ -368,7 +370,7 @@ class _ActionCard extends StatelessWidget {
     required this.enabled,
     required this.onTap,
     this.iconColor = _ProfilePhotoScreenState._primaryBlue,
-    this.textColor = _ProfilePhotoScreenState._textPrimary,
+    this.textColor,
   });
   final IconData icon;
   final String title;
@@ -376,10 +378,10 @@ class _ActionCard extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
   final Color iconColor;
-  final Color textColor;
+  final Color? textColor;
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: context.appColors.surface,
     borderRadius: BorderRadius.circular(16),
     child: InkWell(
       onTap: enabled ? onTap : null,
@@ -388,7 +390,7 @@ class _ActionCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _ProfilePhotoScreenState._borderColor),
+          border: Border.all(color: context.appColors.border),
           boxShadow: const [
             BoxShadow(
               color: Color(0x0A000000),
@@ -403,8 +405,10 @@ class _ActionCard extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: iconColor == _ProfilePhotoScreenState._danger
-                    ? const Color(0xFFFFF1F2)
-                    : _ProfilePhotoScreenState._lightBlue,
+                    ? (context.appColors.isDark
+                          ? Colors.red.withValues(alpha: 0.14)
+                          : const Color(0xFFFFF1F2))
+                    : context.appColors.primarySoft,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor, size: 29),
@@ -419,15 +423,15 @@ class _ActionCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: textColor,
+                      color: textColor ?? context.appColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: _ProfilePhotoScreenState._textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                 ],
@@ -448,14 +452,14 @@ class _PreviewCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      border: Border.all(color: _ProfilePhotoScreenState._borderColor),
+      border: Border.all(color: context.appColors.border),
       borderRadius: BorderRadius.circular(16),
     ),
     child: Row(
       children: [
         _PhotoAvatar(imageUrl: null, localPhoto: photo, size: 94),
         const SizedBox(width: 16),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -468,7 +472,7 @@ class _PreviewCard extends StatelessWidget {
                 'Crop and position your photo',
                 style: TextStyle(
                   fontSize: 15,
-                  color: _ProfilePhotoScreenState._textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
             ],

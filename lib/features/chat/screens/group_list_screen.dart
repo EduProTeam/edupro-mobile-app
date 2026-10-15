@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../models/group_model.dart';
@@ -26,14 +27,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
   static const Color primaryBlue = Color(0xFF3D8FEF);
 
-  static const Color backgroundColor = Color(0xFFF6F7FB);
-
-  static const Color borderColor = Color(0xFFD9DEE7);
-
-  static const Color darkText = Color(0xFF151A24);
-
-  static const Color secondaryText = Color(0xFF8A94A6);
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -47,7 +40,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: context.appColors.background,
 
       body: SafeArea(
         child: Column(
@@ -71,14 +64,14 @@ class _GroupListScreenState extends State<GroupListScreen> {
             const SizedBox(height: 20),
 
             // Groups title
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Groups',
                   style: TextStyle(
-                    color: darkText,
+                    color: context.appColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
@@ -114,15 +107,19 @@ class _GroupListScreenState extends State<GroupListScreen> {
             onPressed: () {
               // Menu logic can be added later
             },
-            icon: const Icon(Icons.menu_rounded, color: darkText, size: 27),
+            icon: Icon(
+              Icons.menu_rounded,
+              color: context.appColors.textPrimary,
+              size: 27,
+            ),
           ),
 
-          const Expanded(
+          Expanded(
             child: Text(
               'Chat Groups',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: darkText,
+                color: context.appColors.textPrimary,
                 fontSize: 21,
                 fontWeight: FontWeight.w800,
               ),
@@ -133,9 +130,9 @@ class _GroupListScreenState extends State<GroupListScreen> {
             onPressed: () {
               // Notification page can be added later
             },
-            icon: const Icon(
+            icon: Icon(
               Icons.notifications_none_rounded,
-              color: darkText,
+              color: context.appColors.textPrimary,
               size: 27,
             ),
           ),
@@ -157,9 +154,9 @@ class _GroupListScreenState extends State<GroupListScreen> {
             child: Container(
               height: 52,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.appColors.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: borderColor),
+                border: Border.all(color: context.appColors.border),
               ),
               child: TextField(
                 controller: _searchController,
@@ -170,14 +167,17 @@ class _GroupListScreenState extends State<GroupListScreen> {
                   });
                 },
 
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search study groups...',
 
-                  hintStyle: TextStyle(color: secondaryText, fontSize: 14),
+                  hintStyle: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 14,
+                  ),
 
                   prefixIcon: Icon(
                     Icons.search_rounded,
-                    color: secondaryText,
+                    color: context.appColors.textSecondary,
                     size: 23,
                   ),
 
@@ -195,15 +195,18 @@ class _GroupListScreenState extends State<GroupListScreen> {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.appColors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: context.appColors.border),
             ),
             child: IconButton(
               onPressed: () {
                 // Advanced filter can be added later
               },
-              icon: const Icon(Icons.tune_rounded, color: darkText),
+              icon: Icon(
+                Icons.tune_rounded,
+                color: context.appColors.textPrimary,
+              ),
             ),
           ),
         ],
@@ -267,17 +270,21 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: isSelected ? primaryBlue : Colors.white,
+                    color: isSelected ? primaryBlue : context.appColors.surface,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: isSelected ? primaryBlue : const Color(0xFF949BA6),
+                      color: isSelected
+                          ? primaryBlue
+                          : context.appColors.border,
                     ),
                   ),
                   child: Center(
                     child: Text(
                       category,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : darkText,
+                        color: isSelected
+                            ? Colors.white
+                            : context.appColors.textPrimary,
                         fontSize: 14,
                         fontWeight: isSelected
                             ? FontWeight.w700
@@ -304,7 +311,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
 
       child: Material(
-        color: Colors.white,
+        color: context.appColors.surface,
 
         borderRadius: BorderRadius.circular(14),
 
@@ -330,7 +337,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
 
-              border: Border.all(color: const Color(0xFFABB4C4)),
+              border: Border.all(color: context.appColors.border),
             ),
 
             child: Row(
@@ -349,16 +356,16 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     ),
                   ),
 
-                  child: const Icon(
+                  child: Icon(
                     Icons.smart_toy_outlined,
-                    color: primaryBlue,
+                    color: context.appColors.primary,
                     size: 23,
                   ),
                 ),
 
                 const SizedBox(width: 12),
 
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -367,7 +374,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                         'AI Tutor Bot',
 
                         style: TextStyle(
-                          color: darkText,
+                          color: context.appColors.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
@@ -382,15 +389,18 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
                         overflow: TextOverflow.ellipsis,
 
-                        style: TextStyle(color: secondaryText, fontSize: 12),
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
 
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: secondaryText,
+                  color: context.appColors.textSecondary,
                   size: 26,
                 ),
               ],
@@ -446,11 +456,14 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
         // Empty
         if (groups.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               'No groups found.',
 
-              style: TextStyle(color: secondaryText, fontSize: 14),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 14,
+              ),
             ),
           );
         }
@@ -481,7 +494,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
   Widget _buildGroupCard(GroupModel group) {
     return Material(
-      color: Colors.white,
+      color: context.appColors.surface,
 
       borderRadius: BorderRadius.circular(14),
 
@@ -499,7 +512,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
 
-            border: Border.all(color: borderColor),
+            border: Border.all(color: context.appColors.border),
           ),
 
           child: Row(
@@ -527,8 +540,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
                       overflow: TextOverflow.ellipsis,
 
-                      style: const TextStyle(
-                        color: darkText,
+                      style: TextStyle(
+                        color: context.appColors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
@@ -543,8 +556,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
                       overflow: TextOverflow.ellipsis,
 
-                      style: const TextStyle(
-                        color: secondaryText,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -554,8 +567,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     Text(
                       '${group.members.length} members',
 
-                      style: const TextStyle(
-                        color: Color(0xFFA0A8B5),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -589,8 +602,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     child: Text(
                       group.category,
 
-                      style: const TextStyle(
-                        color: Color(0xFF68758A),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
@@ -599,9 +612,9 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
                   const SizedBox(height: 10),
 
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
-                    color: secondaryText,
+                    color: context.appColors.textSecondary,
                     size: 22,
                   ),
                 ],
@@ -634,23 +647,23 @@ class _GroupListScreenState extends State<GroupListScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
+          backgroundColor: context.appColors.surface,
+          surfaceTintColor: context.appColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
             group.groupName,
-            style: const TextStyle(
-              color: Color(0xFF151A24),
+            style: TextStyle(
+              color: context.appColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
           ),
-          content: const Text(
+          content: Text(
             'You need to join this group before you can chat.',
             style: TextStyle(
-              color: Color(0xFF8A94A6),
+              color: context.appColors.textSecondary,
               fontSize: 14,
               height: 1.4,
             ),
@@ -661,7 +674,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 Navigator.pop(context, false);
               },
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF7A8494),
+                foregroundColor: context.appColors.textSecondary,
               ),
               child: const Text(
                 'Cancel',
@@ -816,12 +829,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
         color: primaryBlue.withValues(alpha: 0.06),
 
-        border: Border.all(color: const Color(0xFFACB6C7)),
+        border: Border.all(color: context.appColors.border),
       ),
 
-      child: const Icon(
+      child: Icon(
         Icons.person_outline_rounded,
-        color: Color(0xFF748095),
+        color: context.appColors.textSecondary,
         size: 23,
       ),
     );

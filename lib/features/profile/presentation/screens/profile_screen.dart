@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme_controller.dart';
+
 import '../../../posts/services/post_service.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../widgets/profile_dashboard.dart';
@@ -84,9 +86,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
   }
 
+  Future<void> _toggleTheme(AppThemeController controller) async {
+    final saved = await controller.toggle();
+    if (!saved && mounted) {
+      _showMessage('Theme changed, but could not save your preference.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
+    final themeController = AppThemeScope.maybeOf(context);
     if (user == null) {
       return const SafeArea(
         child: Center(child: Text('No signed-in user available.')),
@@ -142,6 +152,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onSettings: () => Navigator.of(context).push<void>(
               MaterialPageRoute(builder: (_) => SettingsScreen(user: user)),
             ),
+            onToggleTheme: themeController == null
+                ? null
+                : () => _toggleTheme(themeController),
             onPhoto: () => _editPhoto(photo),
             onEdit: _editProfile,
             onShare: () => showProfileShareSheet(

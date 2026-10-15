@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../services/post_service.dart';
 import '../widgets/post_card.dart';
@@ -45,11 +46,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF7F9FC),
+    backgroundColor: context.appColors.background,
     appBar: AppBar(
       title: const Text('Educational Post'),
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: context.appColors.surface,
+      surfaceTintColor: context.appColors.surface,
     ),
     body: StreamBuilder<PublishedPost?>(
       key: ValueKey(_postId),

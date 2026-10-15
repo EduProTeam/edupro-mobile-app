@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
@@ -85,15 +86,15 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                             ),
                             Text(
                               widget.session.person,
-                              style: const TextStyle(
-                                color: SkillColors.secondary,
+                              style: TextStyle(
+                                color: context.appColors.textSecondary,
                                 fontSize: 14,
                               ),
                             ),
-                            const Text(
+                            Text(
                               'Student',
                               style: TextStyle(
-                                color: SkillColors.secondary,
+                                color: context.appColors.textSecondary,
                                 fontSize: 12,
                               ),
                             ),
@@ -142,11 +143,14 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: Color(0xFFE6F1FF),
-                        child: Icon(Icons.link, color: SkillColors.primary),
+                        backgroundColor: context.appColors.primarySoft,
+                        child: Icon(
+                          Icons.link,
+                          color: context.appColors.primary,
+                        ),
                       ),
                       SizedBox(width: 11),
                       Column(
@@ -162,7 +166,7 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                           Text(
                             'Add your meeting link and details below.',
                             style: TextStyle(
-                              color: SkillColors.secondary,
+                              color: context.appColors.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -249,11 +253,11 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Send a notification with meeting details right away.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: SkillColors.secondary,
+                        color: context.appColors.textSecondary,
                       ),
                     ),
                   ),
@@ -262,7 +266,7 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAF4FF),
+                      color: context.appColors.primarySoft,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -278,10 +282,10 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                          PersonAvatar(
-                            initials: widget.session.initials,
-                            color: widget.session.avatarColor,
-                            imageUrl: widget.session.profileImageUrl,
+                            PersonAvatar(
+                              initials: widget.session.initials,
+                              color: widget.session.avatarColor,
+                              imageUrl: widget.session.profileImageUrl,
                               radius: 24,
                             ),
                             const SizedBox(width: 10),
@@ -297,8 +301,8 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
                                   ),
                                   Text(
                                     'Your meeting link for ${formatSkillDate(widget.session.date)} is ready. Tap to join.',
-                                    style: const TextStyle(
-                                      color: SkillColors.secondary,
+                                    style: TextStyle(
+                                      color: context.appColors.textSecondary,
                                       fontSize: 12,
                                       height: 1.3,
                                     ),
@@ -407,15 +411,15 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
     return InputDecoration(
       prefixIcon: icon == null
           ? null
-          : Icon(icon, color: SkillColors.secondary),
+          : Icon(icon, color: context.appColors.textSecondary),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(11),
-        borderSide: const BorderSide(color: SkillColors.border),
+        borderSide: BorderSide(color: context.appColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(11),
-        borderSide: const BorderSide(color: SkillColors.border),
+        borderSide: BorderSide(color: context.appColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(11),
@@ -438,7 +442,9 @@ class _PublishMeetingLinkScreenState extends State<PublishMeetingLinkScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
       );
       return;
     }

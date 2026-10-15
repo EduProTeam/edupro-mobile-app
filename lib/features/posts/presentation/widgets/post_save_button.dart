@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../services/post_service.dart';
 
@@ -125,7 +126,9 @@ class _PostSaveButtonState extends State<PostSaveButton> {
     final saved = _pending ?? widget.isSaved;
     final icon = Icon(
       saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-      color: saved ? const Color(0xFF167BFF) : const Color(0xFF62738E),
+      color: saved
+          ? context.appColors.primary
+          : context.appColors.textSecondary,
       size: 22,
     );
     final tooltip = saved ? 'Remove from saved posts' : 'Save post';
@@ -140,8 +143,8 @@ class _PostSaveButtonState extends State<PostSaveButton> {
                 label: Text(saved ? 'Saved' : 'Save'),
                 style: TextButton.styleFrom(
                   foregroundColor: saved
-                      ? const Color(0xFF167BFF)
-                      : const Color(0xFF62738E),
+                      ? context.appColors.primary
+                      : context.appColors.textSecondary,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   minimumSize: const Size(0, 44),
                   textStyle: Theme.of(

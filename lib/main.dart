@@ -1,5 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'core/theme/app_theme.dart';
+import 'core/theme/app_theme_controller.dart';
 
 import 'features/splash/presentation/screens/splash_screen.dart';
 import 'features/profile/models/profile_link.dart';
@@ -13,26 +17,66 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const MyApp());
+  final themeController = await AppThemeController.load();
+  runApp(MyApp(themeController: themeController));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, this.themeController});
+
+  final AppThemeController? themeController;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late AppThemeController _themeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeController = widget.themeController ?? AppThemeController();
+  }
+
+  @override
+  void didUpdateWidget(covariant MyApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.themeController != widget.themeController) {
+      if (oldWidget.themeController == null) _themeController.dispose();
+      _themeController = widget.themeController ?? AppThemeController();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.themeController == null) _themeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EduPro',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
-        useMaterial3: true,
+    return AppThemeScope(
+      controller: _themeController,
+      child: ListenableBuilder(
+        listenable: _themeController,
+        builder: (context, child) => MaterialApp(
+          title: 'EduPro',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: _themeController.mode,
+          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: AppTheme.overlayFor(_themeController.isDark),
+            child: child!,
+          ),
+          onGenerateRoute: buildAppRoute,
+          // A cold app link must not leave a timed splash route underneath it.
+          onGenerateInitialRoutes: (initialRoute) => [
+            buildAppRoute(RouteSettings(name: initialRoute)),
+          ],
+        ),
       ),
-      onGenerateRoute: buildAppRoute,
-      // A cold app link must not leave a timed splash route underneath it.
-      onGenerateInitialRoutes: (initialRoute) => [
-        buildAppRoute(RouteSettings(name: initialRoute)),
-      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -58,7 +59,8 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
         )
         .toList();
     final sentRequests = _store.sentOffers;
-    final pendingCount = _store.receivedOffers
+    final pendingCount =
+        _store.receivedOffers
             .where((offer) => offer.status == SkillRequestStatus.pending)
             .length +
         sentRequests
@@ -90,7 +92,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF4FF),
+                color: context.appColors.primarySoft,
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Row(
@@ -98,8 +100,8 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                   Container(
                     width: 58,
                     height: 58,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFCFE4FF),
+                    decoration: BoxDecoration(
+                      color: context.appColors.primarySoft,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -109,7 +111,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -124,7 +126,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                         Text(
                           'Track, join and manage your live skill-sharing sessions in one place.',
                           style: TextStyle(
-                            color: SkillColors.secondary,
+                            color: context.appColors.textSecondary,
                             height: 1.35,
                             fontSize: 13,
                           ),
@@ -175,7 +177,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
           Container(
             height: 45,
             decoration: BoxDecoration(
-              border: Border.all(color: SkillColors.border),
+              border: Border.all(color: context.appColors.border),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Row(
@@ -188,50 +190,49 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
           ),
           const SizedBox(height: 14),
           if (_tab == _SessionTab.requests &&
-              (ownedSkillsWithRequests.isNotEmpty || sentRequests.isNotEmpty))
-            ...[
-              ...ownedSkillsWithRequests.map(
-                (request) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _PendingRequestCard(
-                    request: request,
-                    offerCount: _store.offersForRequest(request.id).length,
-                    onOpen: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => OfferAcceptanceScreen(
-                          store: _store,
-                          request: request,
-                        ),
+              (ownedSkillsWithRequests.isNotEmpty ||
+                  sentRequests.isNotEmpty)) ...[
+            ...ownedSkillsWithRequests.map(
+              (request) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _PendingRequestCard(
+                  request: request,
+                  offerCount: _store.offersForRequest(request.id).length,
+                  onOpen: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => OfferAcceptanceScreen(
+                        store: _store,
+                        request: request,
                       ),
                     ),
                   ),
                 ),
               ),
-              ...sentRequests.map(
-                (offer) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _SentRequestCard(offer: offer),
-                ),
+            ),
+            ...sentRequests.map(
+              (offer) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _SentRequestCard(offer: offer),
               ),
-            ]
-          else if (displayed.isEmpty)
+            ),
+          ] else if (displayed.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 48),
               child: Column(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.inbox_outlined,
                     size: 46,
-                    color: SkillColors.secondary,
+                    color: context.appColors.textSecondary,
                   ),
                   const SizedBox(height: 10),
                   Text(
                     _tab == _SessionTab.requests
                         ? 'No pending requests'
                         : 'No sessions here yet',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: SkillColors.secondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                 ],
@@ -280,8 +281,8 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: SkillColors.secondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 10.5,
                     height: 1.25,
                   ),
@@ -302,13 +303,13 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
       child: Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? SkillColors.primary : Colors.white,
+          color: selected ? SkillColors.primary : context.appColors.surface,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : SkillColors.secondary,
+            color: selected ? Colors.white : context.appColors.textSecondary,
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),
@@ -364,8 +365,8 @@ class _PendingRequestCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   '$offerCount ${offerCount == 1 ? 'offer' : 'offers'} waiting for your response',
-                  style: const TextStyle(
-                    color: SkillColors.secondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 12.5,
                   ),
                 ),
@@ -432,8 +433,8 @@ class _SentRequestCard extends StatelessWidget {
                     ),
                     Text(
                       'Request sent to ${offer.recipientName ?? 'skill owner'}',
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12.5,
                       ),
                     ),
@@ -449,8 +450,8 @@ class _SentRequestCard extends StatelessWidget {
             const Divider(height: 22),
             Text(
               '${formatSkillDate(offer.scheduledDate!)} • ${offer.scheduledTime}',
-              style: const TextStyle(
-                color: SkillColors.secondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -508,16 +509,16 @@ class _SessionCard extends StatelessWidget {
                     ),
                     Text(
                       'with ${session.person}',
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       session.description,
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12.5,
                         height: 1.35,
                       ),
@@ -618,7 +619,9 @@ class _SessionCard extends StatelessWidget {
                           );
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Meeting link copied.')),
+                            const SnackBar(
+                              content: Text('Meeting link copied.'),
+                            ),
                           );
                         },
                       ),
@@ -651,13 +654,10 @@ class _SessionCard extends StatelessWidget {
     );
   }
 
-  Future<void> _joinSession(
-    BuildContext context,
-    SkillSession session,
-  ) async {
+  Future<void> _joinSession(BuildContext context, SkillSession session) async {
     final rawLink = session.meetingLink?.trim() ?? '';
-    final normalizedLink = rawLink.startsWith('http://') ||
-            rawLink.startsWith('https://')
+    final normalizedLink =
+        rawLink.startsWith('http://') || rawLink.startsWith('https://')
         ? rawLink
         : 'https://$rawLink';
     final uri = Uri.tryParse(normalizedLink);
@@ -673,10 +673,7 @@ class _SessionCard extends StatelessWidget {
     }
 
     try {
-      final opened = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Unable to open the meeting link.')),

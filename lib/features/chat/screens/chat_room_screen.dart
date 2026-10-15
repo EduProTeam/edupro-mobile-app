@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../models/group_model.dart';
@@ -21,9 +22,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _messageController = TextEditingController();
 
   static const Color primaryBlue = Color(0xFF3D8FEF);
-  static const Color backgroundColor = Color(0xFFF6F7FB);
-  static const Color otherMessageColor = Color(0xFFF0F3F7);
-  static const Color secondaryText = Color(0xFF8A94A6);
 
   @override
   void dispose() {
@@ -39,7 +37,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (imageUrl.trim().isNotEmpty) {
       return CircleAvatar(
         radius: 18,
-        backgroundColor: Colors.grey.shade200,
+        backgroundColor: context.appColors.border,
         backgroundImage: NetworkImage(imageUrl),
       );
     }
@@ -50,11 +48,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     return CircleAvatar(
       radius: 18,
-      backgroundColor: const Color(0xFFE5EEF9),
+      backgroundColor: context.appColors.primarySoft,
       child: Text(
         firstLetter,
-        style: const TextStyle(
-          color: primaryBlue,
+        style: TextStyle(
+          color: context.appColors.primary,
           fontSize: 14,
           fontWeight: FontWeight.w700,
         ),
@@ -119,18 +117,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final currentUserId = _groupService.currentUserId;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: context.appColors.background,
 
       // ========================================================
       // APP BAR
       // ========================================================
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
         elevation: 0,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: context.appColors.textPrimary),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -162,8 +160,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       widget.group.groupName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black87,
+                      style: TextStyle(
+                        color: context.appColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -173,8 +171,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
                     Text(
                       '${widget.group.members.length} members',
-                      style: const TextStyle(
-                        color: secondaryText,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -192,7 +190,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       // ========================================================
       body: Column(
         children: [
-          const Divider(height: 1, color: Color(0xFFE4E7EC)),
+          Divider(height: 1, color: context.appColors.border),
 
           // ====================================================
           // MESSAGES
@@ -221,10 +219,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 final messages = snapshot.data ?? [];
 
                 if (messages.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       'No messages yet. Say Hi 👋',
-                      style: TextStyle(color: secondaryText, fontSize: 14),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
+                        fontSize: 14,
+                      ),
                     ),
                   );
                 }
@@ -262,16 +263,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Widget _buildGroupAvatar() {
     if (widget.group.imageUrl.trim().isEmpty) {
-      return const CircleAvatar(
+      return CircleAvatar(
         radius: 20,
-        backgroundColor: Color(0xFFE8F1FD),
-        child: Icon(Icons.groups_rounded, color: primaryBlue, size: 22),
+        backgroundColor: context.appColors.primarySoft,
+        child: Icon(
+          Icons.groups_rounded,
+          color: context.appColors.primary,
+          size: 22,
+        ),
       );
     }
 
     return CircleAvatar(
       radius: 20,
-      backgroundColor: const Color(0xFFE8F1FD),
+      backgroundColor: context.appColors.primarySoft,
       backgroundImage: NetworkImage(widget.group.imageUrl),
     );
   }
@@ -317,7 +322,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
             Text(
               _formatTime(msg.timestamp),
-              style: const TextStyle(color: secondaryText, fontSize: 10),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
@@ -348,8 +356,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   padding: const EdgeInsets.only(left: 2, bottom: 4),
                   child: Text(
                     msg.senderName,
-                    style: const TextStyle(
-                      color: Color(0xFF4F5968),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -363,8 +371,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     horizontal: 15,
                     vertical: 11,
                   ),
-                  decoration: const BoxDecoration(
-                    color: otherMessageColor,
+                  decoration: BoxDecoration(
+                    color: context.appColors.surfaceVariant,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(18),
                       topRight: Radius.circular(18),
@@ -374,8 +382,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   ),
                   child: Text(
                     msg.text,
-                    style: const TextStyle(
-                      color: Color(0xFF232B36),
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
                       fontSize: 15,
                       height: 1.35,
                     ),
@@ -387,7 +395,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 // TIME UNDER MESSAGE
                 Text(
                   _formatTime(msg.timestamp),
-                  style: const TextStyle(color: secondaryText, fontSize: 10),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 10,
+                  ),
                 ),
               ],
             ),
@@ -404,9 +415,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Widget _buildMessageInput() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE4E7EC))),
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
+        border: Border(top: BorderSide(color: context.appColors.border)),
       ),
 
       child: SafeArea(
@@ -427,14 +438,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 decoration: InputDecoration(
                   hintText: 'Type a message...',
 
-                  hintStyle: const TextStyle(
-                    color: Color(0xFFA6AFBD),
+                  hintStyle: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 14,
                   ),
 
                   filled: true,
 
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: context.appColors.surfaceVariant,
 
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 18,
@@ -443,18 +454,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(26),
-                    borderSide: const BorderSide(color: Color(0xFFD5DAE2)),
+                    borderSide: BorderSide(color: context.appColors.border),
                   ),
 
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(26),
-                    borderSide: const BorderSide(color: Color(0xFFD5DAE2)),
+                    borderSide: BorderSide(color: context.appColors.border),
                   ),
 
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(26),
-                    borderSide: const BorderSide(
-                      color: primaryBlue,
+                    borderSide: BorderSide(
+                      color: context.appColors.primary,
                       width: 1.3,
                     ),
                   ),

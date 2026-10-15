@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
@@ -49,8 +50,8 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
                     Container(
                       width: 52,
                       height: 52,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE1EEFF),
+                      decoration: BoxDecoration(
+                        color: context.appColors.primarySoft,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -63,10 +64,10 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Your Request',
                             style: TextStyle(
-                              color: SkillColors.secondary,
+                              color: context.appColors.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -81,8 +82,8 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
                           const SizedBox(height: 5),
                           Text(
                             request.description,
-                            style: const TextStyle(
-                              color: SkillColors.secondary,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
                               fontSize: 13,
                               height: 1.35,
                             ),
@@ -171,7 +172,9 @@ class _OfferAcceptanceScreenState extends State<OfferAcceptanceScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
       );
     }
   }
@@ -195,7 +198,7 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SkillCard(
-      borderColor: selected ? SkillColors.primary : SkillColors.border,
+      borderColor: selected ? SkillColors.primary : context.appColors.border,
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
@@ -232,16 +235,16 @@ class _OfferCard extends StatelessWidget {
                     ),
                     Text(
                       offer.title,
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '⭐ ${offer.rating} (${offer.reviews})    ${offer.sessions}+ Sessions',
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -267,7 +270,7 @@ class _OfferCard extends StatelessWidget {
                           : Icons.radio_button_off,
                       color: selected
                           ? SkillColors.primary
-                          : SkillColors.secondary,
+                          : context.appColors.textSecondary,
                     ),
                   ),
                 ],
@@ -279,13 +282,13 @@ class _OfferCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF2F7FD),
+              color: context.appColors.surfaceVariant,
               borderRadius: BorderRadius.circular(9),
             ),
             child: Text(
               offer.message,
-              style: const TextStyle(
-                color: SkillColors.secondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12.5,
                 height: 1.35,
               ),

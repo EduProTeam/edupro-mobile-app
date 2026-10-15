@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
 import '../../../home/presentation/screens/home_shell_screen.dart';
@@ -53,16 +54,19 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final background = context.appColors.isDark
+        ? context.appColors.background
+        : _backgroundColor;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: _backgroundColor,
+      value: SystemUiOverlayStyle(
+        statusBarColor: background,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: _backgroundColor,
+        systemNavigationBarColor: background,
         systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: _backgroundColor,
+        backgroundColor: background,
         body: LayoutBuilder(
           builder: (context, constraints) {
             final brandingWidth = (constraints.maxWidth * 0.6)
@@ -120,7 +124,9 @@ class _EduProBranding extends StatelessWidget {
               TextSpan(
                 text: 'Edu',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: context.appColors.isDark
+                      ? context.appColors.textPrimary
+                      : Colors.black,
                   fontSize: textSize,
                   fontWeight: FontWeight.w800,
                   height: 1,

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/post_categories.dart';
@@ -28,10 +29,6 @@ class NewPostScreen extends StatefulWidget {
 
 class _NewPostScreenState extends State<NewPostScreen> {
   static const _primaryBlue = Color(0xFF167BFF);
-  static const _pageBackground = Color(0xFFF7FAFF);
-  static const _textPrimary = Color(0xFF1F1B2D);
-  static const _textSecondary = Color(0xFF6D687A);
-  static const _borderColor = Color(0xFFE3DDEA);
 
   static const _fileExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'];
 
@@ -380,16 +377,16 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: _textSecondary),
+      hintStyle: TextStyle(color: context.appColors.textSecondary),
       alignLabelWithHint: alignLabelWithHint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.appColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      border: _inputBorder(_borderColor),
-      enabledBorder: _inputBorder(_borderColor),
-      focusedBorder: _inputBorder(_primaryBlue),
-      errorBorder: _inputBorder(Colors.red.shade700),
-      focusedErrorBorder: _inputBorder(Colors.red.shade700),
+      border: _inputBorder(context.appColors.border),
+      enabledBorder: _inputBorder(context.appColors.border),
+      focusedBorder: _inputBorder(context.appColors.primary),
+      errorBorder: _inputBorder(Theme.of(context).colorScheme.error),
+      focusedErrorBorder: _inputBorder(Theme.of(context).colorScheme.error),
     );
   }
 
@@ -404,10 +401,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
         icon: Icon(icon, size: 18),
         label: Text(label, style: const TextStyle(fontSize: 12)),
         style: OutlinedButton.styleFrom(
-          foregroundColor: _primaryBlue,
+          foregroundColor: context.appColors.primary,
           minimumSize: const Size(0, 46),
           padding: const EdgeInsets.symmetric(horizontal: 6),
-          side: const BorderSide(color: _borderColor),
+          side: BorderSide(color: context.appColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -421,10 +418,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
     final attachment = _attachment;
 
     return Scaffold(
-      backgroundColor: _pageBackground,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: _textPrimary,
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -444,9 +441,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Share your knowledge with the community.',
-                  style: TextStyle(fontSize: 16, color: _textSecondary),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const _FieldLabel(label: 'Title', isRequired: true),
@@ -608,9 +608,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Press Enter after each tag',
-                  style: TextStyle(fontSize: 13, color: _textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const _FieldLabel(label: 'Who can see this?'),
@@ -656,7 +659,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   _visibility == 'Public'
                       ? 'Anyone on EduPro can see this post.'
                       : 'Only your followers can see this post.',
-                  style: const TextStyle(fontSize: 13, color: _textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 Row(
@@ -685,9 +691,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                               : 'Save as Draft',
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _textPrimary,
+                          foregroundColor: context.appColors.textPrimary,
                           minimumSize: const Size.fromHeight(52),
-                          side: const BorderSide(color: _borderColor),
+                          side: BorderSide(color: context.appColors.border),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -806,8 +812,8 @@ class _SelectedAttachmentPreview extends StatelessWidget {
         height: 200,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _NewPostScreenState._borderColor),
-          color: Colors.white,
+          border: Border.all(color: context.appColors.border),
+          color: context.appColors.surface,
         ),
         child: Stack(
           children: [
@@ -845,18 +851,18 @@ class _SelectedAttachmentPreview extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _NewPostScreenState._borderColor),
-        color: Colors.white,
+        border: Border.all(color: context.appColors.border),
+        color: context.appColors.surface,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1EBFF),
+              color: context.appColors.primarySoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: _NewPostScreenState._primaryBlue),
+            child: Icon(icon, color: context.appColors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -867,17 +873,17 @@ class _SelectedAttachmentPreview extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _NewPostScreenState._textPrimary,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   details,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: _NewPostScreenState._textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],
@@ -919,7 +925,7 @@ class _RemoveAttachmentButton extends StatelessWidget {
       onPressed: onPressed,
       tooltip: 'Remove attachment',
       icon: const Icon(Icons.close),
-      color: _NewPostScreenState._textPrimary,
+      color: context.appColors.textPrimary,
     );
   }
 }
@@ -935,8 +941,8 @@ class _FieldLabel extends StatelessWidget {
     return Text.rich(
       TextSpan(
         text: label,
-        style: const TextStyle(
-          color: _NewPostScreenState._textPrimary,
+        style: TextStyle(
+          color: context.appColors.textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.w700,
         ),
@@ -944,7 +950,7 @@ class _FieldLabel extends StatelessWidget {
           if (isRequired)
             TextSpan(
               text: ' *',
-              style: TextStyle(color: Colors.red.shade700),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -63,11 +64,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.appColors.surface,
     appBar: AppBar(
       title: const Text('Profile'),
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: context.appColors.surface,
+      surfaceTintColor: context.appColors.surface,
     ),
     body: widget.userId.trim().isEmpty
         ? const Center(child: Text('This profile is no longer available.'))
