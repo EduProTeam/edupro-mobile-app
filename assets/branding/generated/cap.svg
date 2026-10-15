@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 447 440" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">EduPro icon</title>
+  <desc id="desc">Reconstructed vector of the supplied EduPro mark: a blue graduation cap above a cyan E and navy P, with a navy tassel. Transparent background.</desc>
+  <defs>
+    <linearGradient id="cap-blue" x1="90" y1="76" x2="306" y2="220" gradientUnits="userSpaceOnUse"><stop stop-color="#0789FF"/><stop offset="1" stop-color="#0875ED"/></linearGradient>
+    <linearGradient id="e-cyan" x1="68" y1="231" x2="189" y2="382" gradientUnits="userSpaceOnUse"><stop stop-color="#3FC3F2"/><stop offset="1" stop-color="#37AFE2"/></linearGradient>
+    <linearGradient id="p-navy" x1="216" y1="240" x2="340" y2="368" gradientUnits="userSpaceOnUse"><stop stop-color="#0B2544"/><stop offset="1" stop-color="#071D37"/></linearGradient>
+  </defs>
+  
+  
+  
+  <g id="cap">
+    <path fill="url(#cap-blue)" d="M31 137 L194 55 C206 48 218 48 231 54 L389 126 C396 129 396 137 389 142 L225 219 C212 225 203 225 191 220 L31 153 C23 150 23 143 31 137 Z"/>
+  </g>
+</svg>

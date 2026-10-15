@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -16,9 +17,6 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   static const _primaryBlue = Color(0xFF3D8FEF);
-  static const _textPrimary = Color(0xFF1E1E1E);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _borderColor = Color(0xFFE5E7EB);
 
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
@@ -176,18 +174,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
         ),
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Edit Profile',
-          style: TextStyle(fontWeight: FontWeight.w800, color: _textPrimary),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: context.appColors.textPrimary,
+          ),
         ),
         actions: [
           TextButton(
@@ -198,12 +199,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
+                : Text(
                     'Save',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: _primaryBlue,
+                      color: context.appColors.primary,
                     ),
                   ),
           ),
@@ -229,9 +230,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       const SizedBox(height: 8),
                       TextButton(
                         onPressed: _openProfilePhoto,
-                        child: const Text(
+                        child: Text(
                           'Change Profile Photo',
-                          style: TextStyle(fontSize: 17, color: _primaryBlue),
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: context.appColors.primary,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -324,9 +328,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         onPressed: _isSaving
                             ? null
                             : () => Navigator.of(context).pop(),
-                        child: const Text(
+                        child: Text(
                           'Cancel',
-                          style: TextStyle(fontSize: 17, color: _primaryBlue),
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: context.appColors.primary,
+                          ),
                         ),
                       ),
                     ],
@@ -356,8 +363,8 @@ class _Avatar extends StatelessWidget {
               height: 102,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEFF6FF),
-                border: Border.all(color: Colors.white, width: 4),
+                color: context.appColors.primarySoft,
+                border: Border.all(color: context.appColors.surface, width: 4),
                 image: imageUrl == null
                     ? null
                     : DecorationImage(
@@ -366,10 +373,10 @@ class _Avatar extends StatelessWidget {
                       ),
               ),
               child: imageUrl == null
-                  ? const Icon(
+                  ? Icon(
                       Icons.person,
                       size: 52,
-                      color: _EditProfileScreenState._primaryBlue,
+                      color: context.appColors.primary,
                     )
                   : null,
             ),
@@ -386,7 +393,10 @@ class _Avatar extends StatelessWidget {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(
+                        color: context.appColors.surface,
+                        width: 3,
+                      ),
                     ),
                     child: const Icon(
                       Icons.camera_alt_outlined,
@@ -431,10 +441,10 @@ class _ProfileField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: _EditProfileScreenState._textPrimary,
+            color: context.appColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -447,30 +457,27 @@ class _ProfileField extends StatelessWidget {
           maxLength: maxLength,
           style: TextStyle(
             color: readOnly
-                ? _EditProfileScreenState._textSecondary
-                : _EditProfileScreenState._textPrimary,
+                ? context.appColors.textSecondary
+                : context.appColors.textPrimary,
           ),
           decoration: InputDecoration(
-            prefixIcon: Icon(
-              icon,
-              color: _EditProfileScreenState._textSecondary,
-            ),
+            prefixIcon: Icon(icon, color: context.appColors.textSecondary),
             filled: true,
-            fillColor: readOnly ? const Color(0xFFF9FAFB) : Colors.white,
+            fillColor: readOnly
+                ? context.appColors.surfaceVariant
+                : context.appColors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: _EditProfileScreenState._borderColor,
-              ),
+              borderSide: BorderSide(color: context.appColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: _EditProfileScreenState._primaryBlue,
+              borderSide: BorderSide(
+                color: context.appColors.primary,
                 width: 1.5,
               ),
             ),
@@ -502,10 +509,10 @@ class _EditableChipSection extends StatelessWidget {
     children: [
       Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
-          color: _EditProfileScreenState._textPrimary,
+          color: context.appColors.textPrimary,
         ),
       ),
       const SizedBox(height: 10),
@@ -517,28 +524,26 @@ class _EditableChipSection extends StatelessWidget {
             (value) => InputChip(
               label: Text(value),
               onDeleted: () => onRemove(value),
-              labelStyle: const TextStyle(
-                color: _EditProfileScreenState._primaryBlue,
+              labelStyle: TextStyle(
+                color: context.appColors.primary,
                 fontWeight: FontWeight.w600,
               ),
               deleteIconColor: _EditProfileScreenState._primaryBlue,
               backgroundColor: isInterest
-                  ? const Color(0xFFEFF6FF)
-                  : Colors.white,
-              side: const BorderSide(
-                color: _EditProfileScreenState._primaryBlue,
-              ),
+                  ? context.appColors.primarySoft
+                  : context.appColors.surface,
+              side: BorderSide(color: context.appColors.primary),
             ),
           ),
           ActionChip(
             label: Text(addLabel),
             onPressed: onAdd,
-            labelStyle: const TextStyle(
-              color: _EditProfileScreenState._primaryBlue,
+            labelStyle: TextStyle(
+              color: context.appColors.primary,
               fontWeight: FontWeight.w700,
             ),
-            backgroundColor: Colors.white,
-            side: const BorderSide(color: _EditProfileScreenState._primaryBlue),
+            backgroundColor: context.appColors.surface,
+            side: BorderSide(color: context.appColors.primary),
           ),
         ],
       ),

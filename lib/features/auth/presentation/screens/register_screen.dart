@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -6,7 +7,9 @@ import '../widgets/auth_form_components.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({super.key, this.destinationBuilder});
+
+  final WidgetBuilder? destinationBuilder;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -18,7 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
+  late final _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -55,15 +58,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
 
+      if (!mounted) return;
       _formKey.currentState!.reset();
       _fullNameController.clear();
       _emailController.clear();
       _passwordController.clear();
       _confirmPasswordController.clear();
-
-      if (!mounted) {
-        return;
-      }
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -73,6 +73,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+
+      final destinationBuilder = widget.destinationBuilder;
+      if (destinationBuilder != null) {
+        Navigator.of(context).pushReplacement<void, void>(
+          MaterialPageRoute<void>(builder: destinationBuilder),
+        );
+      }
     } on AuthFailure catch (error) {
       if (!mounted) {
         return;
@@ -99,10 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -177,17 +181,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: AuthUi.backgroundColor,
+        backgroundColor: context.appColors.background,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = constraints.maxWidth;
-              final horizontalPadding =
-                  (screenWidth * 0.075).clamp(24.0, 32.0).toDouble();
-              final contentWidth =
-                  (screenWidth - (horizontalPadding * 2))
-                      .clamp(280.0, 380.0)
-                      .toDouble();
+              final horizontalPadding = (screenWidth * 0.075)
+                  .clamp(24.0, 32.0)
+                  .toDouble();
+              final contentWidth = (screenWidth - (horizontalPadding * 2))
+                  .clamp(280.0, 380.0)
+                  .toDouble();
 
               return SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -216,7 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             'Create Your Account',
                             textAlign: TextAlign.center,
                             style: textTheme.headlineMedium?.copyWith(
-                              color: Colors.black,
+                              color: context.appColors.textPrimary,
                               fontSize: screenWidth < 360 ? 28 : 31,
                               fontWeight: FontWeight.w800,
                               height: 1.1,
@@ -227,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             'Join EduPro and start learning and sharing skills with the community.',
                             textAlign: TextAlign.center,
                             style: textTheme.bodyLarge?.copyWith(
-                              color: AuthUi.subtitleColor,
+                              color: context.appColors.textSecondary,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                               height: 1.2,
@@ -317,7 +321,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               textAlign: TextAlign.center,
                               text: TextSpan(
                                 style: textTheme.bodyMedium?.copyWith(
-                                  color: AuthUi.inputTextColor,
+                                  color: context.appColors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -327,16 +331,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   TextSpan(
                                     text: 'Login',
-                                    style: const TextStyle(
-                                      color: Color(0xFF3D8FEF),
+                                    style: TextStyle(
+                                      color: context.appColors.primary,
                                       fontWeight: FontWeight.w800,
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
                                         Navigator.of(context).push(
                                           MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const LoginScreen(),
+                                            builder: (_) => LoginScreen(
+                                              destinationBuilder:
+                                                  widget.destinationBuilder,
+                                            ),
                                           ),
                                         );
                                       },

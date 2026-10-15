@@ -1,7 +1,7 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../widgets/auth_form_components.dart';
 import 'login_screen.dart';
 
@@ -28,10 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -74,9 +71,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => const LoginScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
     );
   }
 
@@ -87,19 +82,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: AuthUi.backgroundColor,
+        backgroundColor: context.appColors.background,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = constraints.maxWidth;
-              final horizontalPadding =
-                  (screenWidth * 0.075).clamp(24.0, 32.0).toDouble();
-              final contentWidth =
-                  (screenWidth - (horizontalPadding * 2))
-                      .clamp(280.0, 380.0)
-                      .toDouble();
-              final illustrationWidth =
-                  (screenWidth * 0.56).clamp(190.0, 230.0).toDouble();
+              final horizontalPadding = (screenWidth * 0.075)
+                  .clamp(24.0, 32.0)
+                  .toDouble();
+              final contentWidth = (screenWidth - (horizontalPadding * 2))
+                  .clamp(280.0, 380.0)
+                  .toDouble();
+              final illustrationWidth = (screenWidth * 0.56)
+                  .clamp(190.0, 230.0)
+                  .toDouble();
 
               return SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -124,19 +120,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Material(
-                              color: Colors.white,
+                              color: context.appColors.surface,
                               elevation: 3,
                               shadowColor: Colors.black.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(14),
                               child: InkWell(
                                 onTap: _goBackToLogin,
                                 borderRadius: BorderRadius.circular(14),
-                                child: const SizedBox(
+                                child: SizedBox(
                                   width: 40,
                                   height: 40,
                                   child: Icon(
                                     Icons.arrow_back,
-                                    color: Color(0xFF5D5D5D),
+                                    color: context.appColors.textSecondary,
                                     size: 24,
                                   ),
                                 ),
@@ -158,7 +154,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             'Forgot Password?',
                             textAlign: TextAlign.center,
                             style: textTheme.headlineMedium?.copyWith(
-                              color: Colors.black,
+                              color: context.appColors.textPrimary,
                               fontSize: screenWidth < 360 ? 30 : 33,
                               fontWeight: FontWeight.w800,
                               height: 1.1,
@@ -171,7 +167,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               'Enter your registered email address and we’ll send you a link to reset your password',
                               textAlign: TextAlign.center,
                               style: textTheme.bodyLarge?.copyWith(
-                                color: AuthUi.subtitleColor,
+                                color: context.appColors.textSecondary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                                 height: 1.25,
@@ -199,7 +195,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               textAlign: TextAlign.center,
                               text: TextSpan(
                                 style: textTheme.bodyMedium?.copyWith(
-                                  color: AuthUi.inputTextColor,
+                                  color: context.appColors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -207,8 +203,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   const TextSpan(text: 'Back to  '),
                                   TextSpan(
                                     text: 'Login',
-                                    style: const TextStyle(
-                                      color: OnboardingScreenLayout.primaryBlue,
+                                    style: TextStyle(
+                                      color: context.appColors.primary,
                                       fontWeight: FontWeight.w800,
                                     ),
                                     recognizer: TapGestureRecognizer()

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
 
@@ -27,9 +28,9 @@ class CourseFormCard extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appColors.surface,
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: const Color(0xFFE3E6ED)),
+      border: Border.all(color: context.appColors.border),
     ),
     child: child,
   );
@@ -71,33 +72,34 @@ class CourseField extends StatelessWidget {
   );
 }
 
-InputDecoration courseInput(String hint) => InputDecoration(
-  hintText: hint,
-  filled: true,
-  fillColor: Colors.white,
-  contentPadding: const EdgeInsets.all(16),
-  border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(18),
-    borderSide: const BorderSide(color: Color(0xFFD3D9E3)),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(18),
-    borderSide: const BorderSide(
-      color: OnboardingScreenLayout.primaryBlue,
-      width: 1.4,
-    ),
-  ),
-  errorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(18),
-    borderSide: const BorderSide(color: Colors.redAccent),
-  ),
-  focusedErrorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(18),
-    borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
-  ),
-  errorMaxLines: 3,
-);
+InputDecoration courseInput(BuildContext context, String hint) =>
+    InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: context.appColors.surface,
+      contentPadding: const EdgeInsets.all(16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(color: context.appColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(
+          color: OnboardingScreenLayout.primaryBlue,
+          width: 1.4,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
+      ),
+      errorMaxLines: 3,
+    );
 
 class CourseUploadField extends StatelessWidget {
   const CourseUploadField({
@@ -124,10 +126,12 @@ class CourseUploadField extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: context.appColors.primarySoft,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: error == null ? const Color(0xFFD3D9E3) : Colors.redAccent,
+              color: error == null
+                  ? context.appColors.border
+                  : Colors.redAccent,
             ),
           ),
           child: Column(
@@ -176,7 +180,7 @@ class CourseUploadField extends StatelessWidget {
                     fontSize: 13,
                     color: file.status == UploadStatus.failed
                         ? Colors.red.shade700
-                        : Colors.black54,
+                        : context.appColors.textSecondary,
                   ),
                 ),
                 if (file.status == UploadStatus.uploading)

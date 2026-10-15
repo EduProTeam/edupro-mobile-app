@@ -1,39 +1,51 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../services/post_service.dart';
+import '../../../profile/presentation/screens/user_profile_screen.dart';
 import '../screens/new_post_screen.dart';
 import 'post_actions_menu.dart';
 import 'post_like_button.dart';
 import 'post_comments_sheet.dart';
+import 'post_image_viewer.dart';
+import 'post_save_button.dart';
+import 'post_share_sheet.dart';
 
 class PostCard extends StatelessWidget {
-  const PostCard({super.key, required this.post});
+  const PostCard({
+    super.key,
+    required this.post,
+    this.showFullContent = false,
+    this.onOpen,
+    this.readOnly = false,
+  });
 
-  static const _primaryPurple = Color(0xFF5B2CCF);
-  static const _textPrimary = Color(0xFF1E1E1E);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _borderColor = Color(0xFFE5E7EB);
-  static const _attachmentBackground = Color(0xFFF7F4FF);
+  static const _primaryBlue = Color(0xFF167BFF);
 
   final PublishedPost post;
+  final bool showFullContent;
+  final VoidCallback? onOpen;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
     final attachment = _attachmentPreview();
+    final imageUrl = post.attachmentType == 'image' ? post.attachmentUrl : null;
+    final hasAuthor = post.userId?.trim().isNotEmpty == true;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+        color: context.appColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.appColors.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 10,
-            offset: Offset(0, 3),
+            color: Color(0x0A1C3A62),
+            blurRadius: 16,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -42,82 +54,112 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _PostAuthorAvatar(
-                key: ValueKey(post.userId ?? post.id),
-                userId: post.userId,
-                savedImageUrl: post.userProfileImage,
+              InkWell(
+                onTap: hasAuthor && !readOnly
+                    ? () => _openAuthor(context)
+                    : null,
+                customBorder: const CircleBorder(),
+                child: _PostAuthorAvatar(
+                  key: ValueKey(post.userId ?? post.id),
+                  userId: post.userId,
+                  savedImageUrl: post.userProfileImage,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.userName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _textPrimary,
-                        fontWeight: FontWeight.w700,
+                child: InkWell(
+                  onTap: hasAuthor && !readOnly
+                      ? () => _openAuthor(context)
+                      : null,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.appColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${post.category} • ${_relativeTime(post.createdAt)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _textSecondary,
-                        fontSize: 13,
+                      const SizedBox(height: 3),
+                      Text(
+                        '${post.category} • ${_relativeTime(post.createdAt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              StreamBuilder<User?>(
-                stream: FirebaseAuth.instance.authStateChanges(),
-                initialData: FirebaseAuth.instance.currentUser,
-                builder: (context, snapshot) {
-                  if (snapshot.data == null ||
-                      snapshot.data!.uid != post.userId) {
-                    return const SizedBox.shrink();
-                  }
-                  return PostActionsMenu(
-                    isOwner: true,
-                    onDelete: () => PostService().deletePost(post.id),
-                    onEdit: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => NewPostScreen(post: post),
+              if (!readOnly)
+                StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  initialData: FirebaseAuth.instance.currentUser,
+                  builder: (context, snapshot) {
+                    if (snapshot.data == null ||
+                        snapshot.data!.uid != post.userId) {
+                      return const SizedBox.shrink();
+                    }
+                    return PostActionsMenu(
+                      isOwner: true,
+                      onDelete: () => PostService().deletePost(post.id),
+                      onEdit: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => NewPostScreen(post: post),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            post.title,
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: onOpen,
+            borderRadius: BorderRadius.circular(6),
+            child: Text(
+              post.title,
+              style: TextStyle(
+                color: context.appColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
             ),
           ),
           if (post.content.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               post.content,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _textPrimary,
-                fontSize: 15,
+              maxLines: showFullContent ? null : 3,
+              overflow: showFullContent
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.appColors.textPrimary,
+                fontSize: 13,
                 height: 1.4,
               ),
             ),
           ],
-          if (attachment != null) ...[const SizedBox(height: 16), attachment],
+          if (!showFullContent && onOpen != null && post.content.length > 150)
+            TextButton(
+              onPressed: onOpen,
+              style: TextButton.styleFrom(
+                foregroundColor: context.appColors.primary,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 32),
+              ),
+              child: const Text('Read more'),
+            ),
           if (post.tags.isNotEmpty) ...[
             const SizedBox(height: 14),
             Wrap(
@@ -126,59 +168,136 @@ class PostCard extends StatelessWidget {
               children: post.tags.take(3).map(_TagChip.new).toList(),
             ),
           ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              StreamBuilder<User?>(
-                stream: FirebaseAuth.instance.authStateChanges(),
-                initialData: FirebaseAuth.instance.currentUser,
-                builder: (context, snapshot) => PostLikeButton(
-                  key: ValueKey('${post.id}:${snapshot.data?.uid}'),
-                  likeCount: post.likeCount,
-                  isLiked: post.likedBy.contains(snapshot.data?.uid),
-                  onLike: (liked) =>
-                      PostService().setPostLiked(post.id, liked: liked),
-                ),
-              ),
-              const SizedBox(width: 24),
-              IconButton(
-                tooltip: 'View comments',
-                icon: const Icon(
-                  Icons.chat_bubble_outline,
-                  color: _textPrimary,
-                ),
-                onPressed: () {
-                  final service = PostService();
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    builder: (_) => StreamBuilder<User?>(
-                      stream: FirebaseAuth.instance.authStateChanges(),
-                      initialData: FirebaseAuth.instance.currentUser,
-                      builder: (context, snapshot) => PostCommentsSheet(
-                        key: ValueKey(snapshot.data?.uid),
-                        currentUserId: snapshot.data?.uid,
-                        watchComments: () => service.watchComments(post.id),
-                        onSubmit: (text) => service.addComment(post.id, text),
-                        onEdit: (id, text) =>
-                            service.editComment(post.id, id, text),
-                        onDelete: (id) => service.deleteComment(post.id, id),
+          if (attachment != null) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: imageUrl != null
+                  ? () => showPostImageViewer(
+                      context,
+                      imageUrl: imageUrl,
+                      imageLabel: post.title,
+                    )
+                  : onOpen,
+              borderRadius: BorderRadius.circular(12),
+              child: attachment,
+            ),
+          ],
+          if (!readOnly) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 2,
+                    runSpacing: 4,
+                    children: [
+                      StreamBuilder<User?>(
+                        stream: FirebaseAuth.instance.authStateChanges(),
+                        initialData: FirebaseAuth.instance.currentUser,
+                        builder: (context, snapshot) => PostLikeButton(
+                          key: ValueKey('${post.id}:${snapshot.data?.uid}'),
+                          likeCount: post.likeCount,
+                          thumbUpStyle: true,
+                          isLiked: post.likedBy.contains(snapshot.data?.uid),
+                          onLike: (liked) =>
+                              PostService().setPostLiked(post.id, liked: liked),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '${post.commentCount}',
-                style: const TextStyle(color: _textPrimary),
-              ),
-              const Spacer(),
-              const Icon(Icons.bookmark_border, color: _textPrimary),
-            ],
-          ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'View comments',
+                            icon: Icon(
+                              Icons.chat_bubble_outline,
+                              color: context.appColors.textSecondary,
+                            ),
+                            onPressed: () {
+                              final service = PostService();
+                              showModalBottomSheet<void>(
+                                context: context,
+                                isScrollControlled: true,
+                                useSafeArea: true,
+                                builder: (_) => StreamBuilder<User?>(
+                                  stream: FirebaseAuth.instance
+                                      .authStateChanges(),
+                                  initialData:
+                                      FirebaseAuth.instance.currentUser,
+                                  builder: (context, snapshot) =>
+                                      PostCommentsSheet(
+                                        key: ValueKey(snapshot.data?.uid),
+                                        currentUserId: snapshot.data?.uid,
+                                        watchComments: () =>
+                                            service.watchComments(post.id),
+                                        onSubmit: (text) =>
+                                            service.addComment(post.id, text),
+                                        onEdit: (id, text) => service
+                                            .editComment(post.id, id, text),
+                                        onDelete: (id) =>
+                                            service.deleteComment(post.id, id),
+                                      ),
+                                ),
+                              );
+                            },
+                          ),
+                          Text(
+                            '${post.commentCount}',
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  initialData: FirebaseAuth.instance.currentUser,
+                  builder: (context, snapshot) => snapshot.data == null
+                      ? PostSaveButton(
+                          isSaved: false,
+                          onSave: (saved) =>
+                              PostService().setPostSaved(post.id, saved: saved),
+                        )
+                      : PostBookmarkButton(
+                          key: ValueKey('${post.id}:${snapshot.data!.uid}'),
+                          postId: post.id,
+                        ),
+                ),
+                IconButton(
+                  tooltip: 'Share post',
+                  onPressed: () => showPostShareSheet(
+                    context,
+                    postId: post.id,
+                    postTitle: post.title,
+                  ),
+                  icon: Icon(
+                    Icons.share_outlined,
+                    color: context.appColors.textSecondary,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _openAuthor(BuildContext context) {
+    final userId = post.userId?.trim();
+    if (userId == null || userId.isEmpty) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => UserProfileScreen(
+          userId: userId,
+          fallbackName: post.userName,
+          fallbackImageUrl: post.userProfileImage,
+        ),
       ),
     );
   }
@@ -274,10 +393,10 @@ class _PostAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (imageUrl == null) {
-      return const CircleAvatar(
+      return CircleAvatar(
         radius: 22,
-        backgroundColor: PostCard._attachmentBackground,
-        child: Icon(Icons.person_outline, color: PostCard._primaryPurple),
+        backgroundColor: context.appColors.primarySoft,
+        child: Icon(Icons.person_outline, color: context.appColors.primary),
       );
     }
 
@@ -287,10 +406,10 @@ class _PostAvatar extends StatelessWidget {
         width: 44,
         height: 44,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const CircleAvatar(
+        errorBuilder: (_, _, _) => CircleAvatar(
           radius: 22,
-          backgroundColor: PostCard._attachmentBackground,
-          child: Icon(Icons.person_outline, color: PostCard._primaryPurple),
+          backgroundColor: context.appColors.primarySoft,
+          child: Icon(Icons.person_outline, color: context.appColors.primary),
         ),
       ),
     );
@@ -315,30 +434,30 @@ class _ImageAttachment extends StatelessWidget {
             if (loadingProgress == null) {
               return child;
             }
-            return const ColoredBox(
-              color: PostCard._attachmentBackground,
+            return ColoredBox(
+              color: context.appColors.primarySoft,
               child: Center(
                 child: CircularProgressIndicator(
-                  color: PostCard._primaryPurple,
+                  color: context.appColors.primary,
                 ),
               ),
             );
           },
-          errorBuilder: (_, _, _) => const ColoredBox(
-            color: PostCard._attachmentBackground,
+          errorBuilder: (_, _, _) => ColoredBox(
+            color: context.appColors.primarySoft,
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.broken_image_outlined,
-                    color: PostCard._textSecondary,
+                    color: context.appColors.textSecondary,
                     size: 32,
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Image unavailable',
-                    style: TextStyle(color: PostCard._textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
                 ],
               ),
@@ -360,7 +479,7 @@ class _VideoAttachment extends StatelessWidget {
     return Container(
       height: 160,
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -369,14 +488,14 @@ class _VideoAttachment extends StatelessWidget {
           children: [
             const CircleAvatar(
               radius: 24,
-              backgroundColor: PostCard._primaryPurple,
+              backgroundColor: PostCard._primaryBlue,
               child: Icon(Icons.play_arrow, color: Colors.white, size: 30),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Video Attachment',
               style: TextStyle(
-                color: PostCard._textPrimary,
+                color: context.appColors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -386,8 +505,8 @@ class _VideoAttachment extends StatelessWidget {
                 name!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: PostCard._textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                 ),
               ),
@@ -414,15 +533,15 @@ class _FileAttachment extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.insert_drive_file_outlined,
             size: 28,
-            color: PostCard._primaryPurple,
+            color: context.appColors.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -433,16 +552,16 @@ class _FileAttachment extends StatelessWidget {
                   fileName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: PostCard._textPrimary,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   extension,
-                  style: const TextStyle(
-                    color: PostCard._textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -465,20 +584,20 @@ class _LinkAttachment extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.link, color: PostCard._primaryPurple),
+          Icon(Icons.link, color: context.appColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               url,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: PostCard._primaryPurple,
+              style: TextStyle(
+                color: context.appColors.primary,
                 decoration: TextDecoration.underline,
               ),
             ),
@@ -501,13 +620,13 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: PostCard._primaryPurple,
+        style: TextStyle(
+          color: context.appColors.primary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),

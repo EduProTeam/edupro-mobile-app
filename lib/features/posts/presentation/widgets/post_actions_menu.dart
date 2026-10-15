@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../services/post_service.dart';
 
@@ -19,7 +20,7 @@ class PostActionsMenu extends StatelessWidget {
     if (!isOwner) return const SizedBox.shrink();
     return PopupMenuButton<String>(
       tooltip: 'Post options',
-      icon: const Icon(Icons.more_horiz, color: Color(0xFF1E1E1E)),
+      icon: Icon(Icons.more_horiz, color: context.appColors.textPrimary),
       itemBuilder: (_) => const [
         PopupMenuItem(value: 'edit', child: Text('Edit post')),
         PopupMenuItem(value: 'delete', child: Text('Delete post')),

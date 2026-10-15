@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -9,7 +10,9 @@ import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.destinationBuilder});
+
+  final WidgetBuilder? destinationBuilder;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  late final _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _hasSubmitted = false;
@@ -36,10 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => const HomeShellScreen(),
+          builder: widget.destinationBuilder ?? (_) => const HomeShellScreen(),
         ),
       );
     } on AuthFailure catch (error) {
@@ -141,17 +141,17 @@ class _LoginScreenState extends State<LoginScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: AuthUi.backgroundColor,
+        backgroundColor: context.appColors.background,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = constraints.maxWidth;
-              final horizontalPadding =
-                  (screenWidth * 0.075).clamp(24.0, 32.0).toDouble();
-              final contentWidth =
-                  (screenWidth - (horizontalPadding * 2))
-                      .clamp(280.0, 380.0)
-                      .toDouble();
+              final horizontalPadding = (screenWidth * 0.075)
+                  .clamp(24.0, 32.0)
+                  .toDouble();
+              final contentWidth = (screenWidth - (horizontalPadding * 2))
+                  .clamp(280.0, 380.0)
+                  .toDouble();
 
               return SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -180,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Welcome Back',
                             textAlign: TextAlign.center,
                             style: textTheme.headlineMedium?.copyWith(
-                              color: Colors.black,
+                              color: context.appColors.textPrimary,
                               fontSize: screenWidth < 360 ? 31 : 35,
                               fontWeight: FontWeight.w800,
                               height: 1.1,
@@ -191,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Continue learning, sharing, and growing with EduPro.',
                             textAlign: TextAlign.center,
                             style: textTheme.bodyLarge?.copyWith(
-                              color: AuthUi.subtitleColor,
+                              color: context.appColors.textSecondary,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                               height: 1.25,
@@ -247,8 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   bottom: 8,
                                 ),
                                 minimumSize: Size.zero,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               child: const Text(
                                 'Forgot Password?',
@@ -282,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               textAlign: TextAlign.center,
                               text: TextSpan(
                                 style: textTheme.bodyMedium?.copyWith(
-                                  color: AuthUi.inputTextColor,
+                                  color: context.appColors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -292,16 +291,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   TextSpan(
                                     text: 'Sign Up',
-                                    style: const TextStyle(
-                                      color: Color(0xFF3D8FEF),
+                                    style: TextStyle(
+                                      color: context.appColors.primary,
                                       fontWeight: FontWeight.w800,
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
                                         Navigator.of(context).push(
                                           MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const RegisterScreen(),
+                                            builder: (_) => RegisterScreen(
+                                              destinationBuilder:
+                                                  widget.destinationBuilder,
+                                            ),
                                           ),
                                         );
                                       },

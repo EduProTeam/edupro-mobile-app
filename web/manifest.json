@@ -1,11 +1,11 @@
 {
-    "name": "edupro_mobile_app",
-    "short_name": "edupro_mobile_app",
+    "name": "EduPro",
+    "short_name": "EduPro",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#FFFFFF",
+    "description": "Community Skill Exchange and Micro-Learning.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -2,45 +2,52 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../models/post_categories.dart';
 import '../../services/post_service.dart';
+import '../../services/post_moderation_service.dart';
 
 class NewPostScreen extends StatefulWidget {
-  const NewPostScreen({super.key, this.post, this.postService});
+  const NewPostScreen({
+    super.key,
+    this.post,
+    this.postService,
+    this.initialAttachmentType,
+    this.moderationService,
+  });
 
   final PublishedPost? post;
   final PostService? postService;
+  final PostAttachmentType? initialAttachmentType;
+  final PostModerationService? moderationService;
 
   @override
   State<NewPostScreen> createState() => _NewPostScreenState();
 }
 
 class _NewPostScreenState extends State<NewPostScreen> {
-  static const _primaryPurple = Color(0xFF5B2CCF);
-  static const _pageBackground = Color(0xFFFCFAFF);
-  static const _textPrimary = Color(0xFF1F1B2D);
-  static const _textSecondary = Color(0xFF6D687A);
-  static const _borderColor = Color(0xFFE3DDEA);
+  static const _primaryBlue = Color(0xFF167BFF);
 
-  static const _categories = [
-    'Programming',
-    'Design',
-    'Business',
-    'Mathematics',
-    'Languages',
-    'Technology',
-    'Career',
-    'Other',
-  ];
   static const _fileExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'];
 
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _tagsController = TextEditingController();
+  final _moderationFieldKeys = {
+    'title': GlobalKey(),
+    'content': GlobalKey(),
+    'tags': GlobalKey(),
+  };
   final _mediaPicker = ImagePicker();
-  late final _postService = widget.postService ?? PostService();
+  late final _postService =
+      widget.postService ??
+      PostService(moderationService: widget.moderationService);
+  late final _moderationService =
+      widget.moderationService ?? PostModerationService.shared;
+  Map<String, String> _moderationErrors = {};
   bool _removeExistingAttachment = false;
   bool get _isEditing => widget.post != null;
   bool get _hasExistingAttachment =>
@@ -56,8 +63,29 @@ class _NewPostScreenState extends State<NewPostScreen> {
       _titleController.text = post.title;
       _contentController.text = post.content;
       _tagsController.text = post.tags.join(', ');
-      _selectedCategory = post.category;
+      _selectedCategory = postCategories.contains(post.category)
+          ? post.category
+          : null;
       _visibility = post.visibility == 'followers' ? 'Followers' : 'Public';
+    }
+    if (post == null && widget.initialAttachmentType != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        switch (widget.initialAttachmentType!) {
+          case PostAttachmentType.image:
+            _pickImage();
+            break;
+          case PostAttachmentType.video:
+            _pickVideo();
+            break;
+          case PostAttachmentType.file:
+            _pickFile();
+            break;
+          case PostAttachmentType.link:
+            _addLink();
+            break;
+        }
+      });
     }
   }
 
@@ -200,49 +228,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
       return;
     }
 
-    final controller = TextEditingController();
-    final dialogFormKey = GlobalKey<FormState>();
     final link = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Link'),
-          content: Form(
-            key: dialogFormKey,
-            child: TextFormField(
-              controller: controller,
-              keyboardType: TextInputType.url,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'https://example.com',
-              ),
-              validator: (value) {
-                if (!_isValidHttpUrl(value ?? '')) {
-                  return 'Enter a valid http:// or https:// URL';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (dialogFormKey.currentState!.validate()) {
-                  Navigator.of(context).pop(controller.text.trim());
-                }
-              },
-              style: FilledButton.styleFrom(backgroundColor: _primaryPurple),
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => _PostLinkDialog(isValidUrl: _isValidHttpUrl),
     );
-    controller.dispose();
 
     if (link == null || !mounted) {
       return;
@@ -266,7 +255,11 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 
   Future<void> _savePost(String status) async {
-    if (_isSubmitting || !_formKey.currentState!.validate()) {
+    if (_isSubmitting) {
+      return;
+    }
+    _moderationErrors = {};
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -277,17 +270,31 @@ class _NewPostScreenState extends State<NewPostScreen> {
     });
 
     try {
+      final tags = _tagsController.text
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+      final errors = await _moderationService.validatePostText(
+        title: _titleController.text,
+        content: _contentController.text,
+        tags: tags,
+      );
+      if (!mounted) return;
+      if (errors.isNotEmpty) {
+        _displayModerationErrors(errors);
+        _showSnackBar(
+          'Your post contains inappropriate language. Please remove it before saving.',
+        );
+        return;
+      }
       await _postService.savePost(
         postId: widget.post?.id,
         removeAttachment: _removeExistingAttachment,
         title: _titleController.text,
         category: _selectedCategory!,
         content: _contentController.text,
-        tags: _tagsController.text
-            .split(',')
-            .map((tag) => tag.trim())
-            .where((tag) => tag.isNotEmpty)
-            .toList(),
+        tags: tags,
         visibility: _visibility.toLowerCase(),
         status: status,
         attachment: _attachment,
@@ -304,7 +311,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
       );
       Navigator.of(context).pop();
     } on PostFailure catch (error) {
+      if (mounted && error.fieldErrors.isNotEmpty) {
+        _displayModerationErrors(error.fieldErrors);
+      }
       _showSnackBar(error.message);
+    } on PostModerationUnavailable {
+      _showSnackBar(PostModerationService.unavailableMessage);
     } catch (_) {
       _showSnackBar('Unable to save post. Please try again.');
     } finally {
@@ -314,6 +326,29 @@ class _NewPostScreenState extends State<NewPostScreen> {
           _isSavingDraft = false;
         });
       }
+    }
+  }
+
+  void _displayModerationErrors(Map<String, String> errors) {
+    setState(() => _moderationErrors = Map.of(errors));
+    _formKey.currentState!.validate();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final fieldContext =
+          _moderationFieldKeys[errors.keys.first]?.currentContext;
+      if (fieldContext != null) {
+        Scrollable.ensureVisible(
+          fieldContext,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    });
+  }
+
+  void _clearModerationError(String field) {
+    if (_moderationErrors.containsKey(field)) {
+      setState(() => _moderationErrors.remove(field));
     }
   }
 
@@ -342,16 +377,16 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: _textSecondary),
+      hintStyle: TextStyle(color: context.appColors.textSecondary),
       alignLabelWithHint: alignLabelWithHint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.appColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      border: _inputBorder(_borderColor),
-      enabledBorder: _inputBorder(_borderColor),
-      focusedBorder: _inputBorder(_primaryPurple),
-      errorBorder: _inputBorder(Colors.red.shade700),
-      focusedErrorBorder: _inputBorder(Colors.red.shade700),
+      border: _inputBorder(context.appColors.border),
+      enabledBorder: _inputBorder(context.appColors.border),
+      focusedBorder: _inputBorder(context.appColors.primary),
+      errorBorder: _inputBorder(Theme.of(context).colorScheme.error),
+      focusedErrorBorder: _inputBorder(Theme.of(context).colorScheme.error),
     );
   }
 
@@ -366,10 +401,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
         icon: Icon(icon, size: 18),
         label: Text(label, style: const TextStyle(fontSize: 12)),
         style: OutlinedButton.styleFrom(
-          foregroundColor: _primaryPurple,
+          foregroundColor: context.appColors.primary,
           minimumSize: const Size(0, 46),
           padding: const EdgeInsets.symmetric(horizontal: 6),
-          side: const BorderSide(color: _borderColor),
+          side: BorderSide(color: context.appColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -383,10 +418,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
     final attachment = _attachment;
 
     return Scaffold(
-      backgroundColor: _pageBackground,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: _textPrimary,
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -406,15 +441,21 @@ class _NewPostScreenState extends State<NewPostScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Share your knowledge with the community.',
-                  style: TextStyle(fontSize: 16, color: _textSecondary),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const _FieldLabel(label: 'Title', isRequired: true),
                 const SizedBox(height: 8),
                 TextFormField(
+                  key: _moderationFieldKeys['title'],
                   controller: _titleController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (_) => _clearModerationError('title'),
                   maxLength: 100,
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(
@@ -424,7 +465,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter a post title';
                     }
-                    return null;
+                    return _moderationErrors['title'];
                   },
                   enabled: !_isSubmitting,
                 ),
@@ -435,7 +476,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   initialValue: _selectedCategory,
                   decoration: _inputDecoration(hintText: 'Select a category'),
                   hint: const Text('Select a category'),
-                  items: {..._categories, ?_selectedCategory}
+                  items: postCategories
                       .map(
                         (category) => DropdownMenuItem<String>(
                           value: category,
@@ -451,7 +492,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                           });
                         },
                   validator: (value) {
-                    if (value == null) {
+                    if (!postCategories.contains(value)) {
                       return 'Please select a category';
                     }
                     return null;
@@ -461,7 +502,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 const _FieldLabel(label: 'Content', isRequired: true),
                 const SizedBox(height: 8),
                 TextFormField(
+                  key: _moderationFieldKeys['content'],
                   controller: _contentController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (_) => _clearModerationError('content'),
                   minLines: 8,
                   maxLines: 12,
                   keyboardType: TextInputType.multiline,
@@ -473,7 +517,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter post content';
                     }
-                    return null;
+                    return _moderationErrors['content'];
                   },
                   enabled: !_isSubmitting,
                 ),
@@ -550,8 +594,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 const SizedBox(height: 24),
                 const _FieldLabel(label: 'Tags'),
                 const SizedBox(height: 8),
-                TextField(
+                TextFormField(
+                  key: _moderationFieldKeys['tags'],
                   controller: _tagsController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (_) => _clearModerationError('tags'),
+                  validator: (_) => _moderationErrors['tags'],
                   textInputAction: TextInputAction.done,
                   enabled: !_isSubmitting,
                   decoration: _inputDecoration(
@@ -560,9 +608,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Press Enter after each tag',
-                  style: TextStyle(fontSize: 13, color: _textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const _FieldLabel(label: 'Who can see this?'),
@@ -608,7 +659,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   _visibility == 'Public'
                       ? 'Anyone on EduPro can see this post.'
                       : 'Only your followers can see this post.',
-                  style: const TextStyle(fontSize: 13, color: _textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 Row(
@@ -637,9 +691,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                               : 'Save as Draft',
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _textPrimary,
+                          foregroundColor: context.appColors.textPrimary,
                           minimumSize: const Size.fromHeight(52),
-                          side: const BorderSide(color: _borderColor),
+                          side: BorderSide(color: context.appColors.border),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -670,7 +724,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                               : 'Post',
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: _primaryPurple,
+                          backgroundColor: _primaryBlue,
                           foregroundColor: Colors.white,
                           minimumSize: const Size.fromHeight(52),
                           shape: RoundedRectangleBorder(
@@ -690,6 +744,58 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 }
 
+class _PostLinkDialog extends StatefulWidget {
+  const _PostLinkDialog({required this.isValidUrl});
+  final bool Function(String) isValidUrl;
+  @override
+  State<_PostLinkDialog> createState() => _PostLinkDialogState();
+}
+
+class _PostLinkDialogState extends State<_PostLinkDialog> {
+  final _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop(_controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Add Link'),
+    content: Form(
+      key: _formKey,
+      child: TextFormField(
+        controller: _controller,
+        keyboardType: TextInputType.url,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'https://example.com'),
+        validator: (value) => widget.isValidUrl(value ?? '')
+            ? null
+            : 'Enter a valid http:// or https:// URL',
+        onFieldSubmitted: (_) => _submit(),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _submit,
+        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF167BFF)),
+        child: const Text('Add'),
+      ),
+    ],
+  );
+}
+
 class _SelectedAttachmentPreview extends StatelessWidget {
   const _SelectedAttachmentPreview({
     required this.attachment,
@@ -706,8 +812,8 @@ class _SelectedAttachmentPreview extends StatelessWidget {
         height: 200,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _NewPostScreenState._borderColor),
-          color: Colors.white,
+          border: Border.all(color: context.appColors.border),
+          color: context.appColors.surface,
         ),
         child: Stack(
           children: [
@@ -745,18 +851,18 @@ class _SelectedAttachmentPreview extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _NewPostScreenState._borderColor),
-        color: Colors.white,
+        border: Border.all(color: context.appColors.border),
+        color: context.appColors.surface,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1EBFF),
+              color: context.appColors.primarySoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: _NewPostScreenState._primaryPurple),
+            child: Icon(icon, color: context.appColors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -767,17 +873,17 @@ class _SelectedAttachmentPreview extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _NewPostScreenState._textPrimary,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   details,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: _NewPostScreenState._textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],
@@ -819,7 +925,7 @@ class _RemoveAttachmentButton extends StatelessWidget {
       onPressed: onPressed,
       tooltip: 'Remove attachment',
       icon: const Icon(Icons.close),
-      color: _NewPostScreenState._textPrimary,
+      color: context.appColors.textPrimary,
     );
   }
 }
@@ -835,8 +941,8 @@ class _FieldLabel extends StatelessWidget {
     return Text.rich(
       TextSpan(
         text: label,
-        style: const TextStyle(
-          color: _NewPostScreenState._textPrimary,
+        style: TextStyle(
+          color: context.appColors.textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.w700,
         ),
@@ -844,7 +950,7 @@ class _FieldLabel extends StatelessWidget {
           if (isRequired)
             TextSpan(
               text: ' *',
-              style: TextStyle(color: Colors.red.shade700),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
         ],
       ),

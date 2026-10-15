@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
@@ -134,10 +135,15 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
               children: [
                 Text(
                   '${_course.currency} ${_course.price.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                const Text('This is a demo payment screen. No money will be charged.'),
+                const Text(
+                  'This is a demo payment screen. No money will be charged.',
+                ),
                 const SizedBox(height: 14),
                 const ListTile(
                   leading: Icon(Icons.credit_card),
@@ -210,9 +216,9 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FB),
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F8FB),
+        backgroundColor: context.appColors.background,
         surfaceTintColor: Colors.transparent,
         leading: _selectedLessonIndex == null
             ? null
@@ -265,7 +271,7 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
                       TabBar(
                         controller: _tabs,
                         labelColor: OnboardingScreenLayout.primaryBlue,
-                        unselectedLabelColor: const Color(0xFF707B94),
+                        unselectedLabelColor: context.appColors.textSecondary,
                         indicatorColor: OnboardingScreenLayout.primaryBlue,
                         indicatorWeight: 3,
                         tabs: const [
@@ -294,9 +300,11 @@ class _ViewCourseScreenState extends State<ViewCourseScreen>
                   top: false,
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      border: Border(top: BorderSide(color: Color(0xFFE3E6ED))),
+                    decoration: BoxDecoration(
+                      color: context.appColors.surface,
+                      border: Border(
+                        top: BorderSide(color: context.appColors.border),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -439,15 +447,15 @@ class _LessonDetailView extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.schedule_outlined,
                       size: 18,
-                      color: Color(0xFF707B94),
+                      color: context.appColors.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       lesson.duration,
-                      style: const TextStyle(color: Color(0xFF707B94)),
+                      style: TextStyle(color: context.appColors.textSecondary),
                     ),
                   ],
                 ),
@@ -457,7 +465,10 @@ class _LessonDetailView extends StatelessWidget {
                 lesson.description.trim().isEmpty
                     ? 'No description has been added for this lesson.'
                     : lesson.description,
-                style: const TextStyle(height: 1.45, color: Color(0xFF4F5B73)),
+                style: TextStyle(
+                  height: 1.45,
+                  color: context.appColors.textSecondary,
+                ),
               ),
               if (lesson.materials.isNotEmpty) ...[
                 const SizedBox(height: 20),
@@ -506,7 +517,7 @@ class _UnavailableLessonVideo extends StatelessWidget {
     aspectRatio: 16 / 9,
     child: DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFE5F1FF),
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Center(
@@ -536,9 +547,9 @@ class _MaterialRow extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
     decoration: BoxDecoration(
-      color: const Color(0xFFF7F9FC),
+      color: context.appColors.surfaceVariant,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFE3E6ED)),
+      border: Border.all(color: context.appColors.border),
     ),
     child: Row(
       children: [
@@ -573,7 +584,7 @@ class _NextLessonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: context.appColors.surface,
     borderRadius: BorderRadius.circular(18),
     child: InkWell(
       onTap: onTap,
@@ -585,8 +596,8 @@ class _NextLessonCard extends StatelessWidget {
             Container(
               width: 44,
               height: 44,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE5F1FF),
+              decoration: BoxDecoration(
+                color: context.appColors.primarySoft,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -601,9 +612,9 @@ class _NextLessonCard extends StatelessWidget {
                 children: [
                   Text(
                     lessonLabel(index),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF707B94),
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -620,11 +631,14 @@ class _NextLessonCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 lesson.duration,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF707B94)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.appColors.textSecondary,
+                ),
               ),
             ],
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, color: Color(0xFF8490A6)),
+            Icon(Icons.chevron_right, color: context.appColors.textSecondary),
           ],
         ),
       ),
@@ -639,12 +653,12 @@ class _NoMoreLessons extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appColors.surface,
       borderRadius: BorderRadius.circular(18),
     ),
-    child: const Text(
+    child: Text(
       'You are viewing the final lesson in this course.',
-      style: TextStyle(color: Color(0xFF707B94)),
+      style: TextStyle(color: context.appColors.textSecondary),
     ),
   );
 }
@@ -683,7 +697,7 @@ class _CourseHeader extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'By ${course.instructorName}',
-              style: const TextStyle(color: Color(0xFF707B94)),
+              style: TextStyle(color: context.appColors.textSecondary),
             ),
           ],
           const SizedBox(height: 12),
@@ -726,7 +740,7 @@ class _OverviewPlaceholder extends StatelessWidget {
   const _OverviewPlaceholder();
   @override
   Widget build(BuildContext context) => Container(
-    color: const Color(0xFFE5F1FF),
+    color: context.appColors.primarySoft,
     child: const Center(
       child: Icon(
         Icons.play_circle_outline,
@@ -746,7 +760,7 @@ class _InfoPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
     decoration: BoxDecoration(
-      color: const Color(0xFFF1F6FF),
+      color: context.appColors.primarySoft,
       borderRadius: BorderRadius.circular(12),
     ),
     child: Row(
@@ -791,7 +805,7 @@ class _LessonsTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final lesson = course.lessons[index];
         return Material(
-          color: Colors.white,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
@@ -818,15 +832,18 @@ class _LessonsTab extends StatelessWidget {
                         if (lesson.duration.isNotEmpty)
                           Text(
                             lesson.duration,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF707B94),
+                              color: context.appColors.textSecondary,
                             ),
                           ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: Color(0xFF8490A6)),
+                  Icon(
+                    Icons.chevron_right,
+                    color: context.appColors.textSecondary,
+                  ),
                 ],
               ),
             ),
@@ -875,7 +892,10 @@ class _DescriptionItem extends StatelessWidget {
       children: [
         SizedBox(
           width: 105,
-          child: Text(label, style: const TextStyle(color: Color(0xFF707B94))),
+          child: Text(
+            label,
+            style: TextStyle(color: context.appColors.textSecondary),
+          ),
         ),
         Expanded(
           child: Text(
