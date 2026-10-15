@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/skill_models.dart';
 
@@ -28,17 +29,17 @@ class SkillPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = ColoredBox(color: Colors.white, child: child);
+    final content = ColoredBox(color: context.appColors.surface, child: child);
     return Theme(
       data: Theme.of(context).copyWith(
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: context.appColors.surface,
         colorScheme: Theme.of(context).colorScheme.copyWith(
           primary: SkillColors.primary,
-          surface: Colors.white,
+          surface: context.appColors.surface,
         ),
         textTheme: Theme.of(context).textTheme.apply(
-          bodyColor: SkillColors.navy,
-          displayColor: SkillColors.navy,
+          bodyColor: context.appColors.textPrimary,
+          displayColor: context.appColors.textPrimary,
         ),
       ),
       child: Scaffold(
@@ -68,11 +69,11 @@ class SkillAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       toolbarHeight: preferredSize.height,
-      iconTheme: const IconThemeData(color: SkillColors.navy, size: 28),
+      iconTheme: IconThemeData(color: context.appColors.textPrimary, size: 28),
       titleSpacing: Navigator.canPop(context) ? 0 : 20,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,8 +91,8 @@ class SkillAppBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(height: 3),
             Text(
               subtitle!,
-              style: const TextStyle(
-                color: SkillColors.secondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
@@ -121,9 +122,9 @@ class SkillCard extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor ?? SkillColors.border),
+        border: Border.all(color: borderColor ?? context.appColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x10061A3A),
@@ -168,7 +169,7 @@ class PersonAvatar extends StatelessWidget {
                 ? Text(
                     initials,
                     style: TextStyle(
-                      color: SkillColors.navy,
+                      color: context.appColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: radius * .52,
                     ),
@@ -394,8 +395,8 @@ class LabeledIconInfo extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: SkillColors.secondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 11,
                 ),
               ),

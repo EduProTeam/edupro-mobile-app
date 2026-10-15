@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../services/group_service.dart';
 
@@ -81,7 +82,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     const primaryColor = Color(0xFF3B82F6);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: context.appColors.surfaceVariant,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -91,7 +92,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             onTap: () => Navigator.pop(context),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.appColors.surface,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -100,14 +101,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.chevron_left, color: Colors.black),
+              child: Icon(
+                Icons.chevron_left,
+                color: context.appColors.textPrimary,
+              ),
             ),
           ),
         ),
-        title: const Text(
+        title: Text(
           'Create New Group',
           style: TextStyle(
-            color: Colors.black,
+            color: context.appColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -156,7 +160,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -165,13 +169,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Colors.black87,
+                              color: context.appColors.textPrimary,
                             ),
                           ),
                           SizedBox(height: 2),
                           Text(
                             'Connect with peers, share resources, and study together.',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -180,12 +187,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Group Name',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: context.appColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -198,12 +205,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     : null,
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Category',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: context.appColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -214,7 +221,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     return Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.appColors.surface,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Center(child: LinearProgressIndicator()),
@@ -225,7 +232,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     return Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.appColors.surface,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
@@ -242,7 +249,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.appColors.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -260,9 +267,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                           style: TextStyle(fontSize: 14),
                         ),
                         isExpanded: true,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: primaryColor,
+                          color: context.appColors.primary,
                         ),
                         items: categoriesList.map((cat) {
                           return DropdownMenuItem(
@@ -286,12 +293,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 },
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Description',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: context.appColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -306,12 +313,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     : null,
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Cover Image URL (Optional)',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: context.appColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -361,7 +368,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -377,15 +384,18 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         validator: validator,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: Icon(icon, color: Colors.grey),
+          hintStyle: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 13,
+          ),
+          prefixIcon: Icon(icon, color: context.appColors.textSecondary),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: context.appColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: context.appColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),

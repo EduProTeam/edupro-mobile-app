@@ -22,6 +22,11 @@ start after the first Flutter splash frame has been rasterized by the engine:
 
 Firebase initialization starts concurrently with the entrance and hold. Exit
 requires both the minimum display duration and restored authentication state.
+Splash and incoming shared links share Firebase startup and reuse any pending
+initialization.
+Profile/post links wait for initialization before checking authentication and
+offer Retry if initialization fails. A link received during launch remains on
+top while the exact splash route underneath is replaced with its destination.
 The destination is the existing home screen for a restored signed-in session,
 or onboarding for a signed-out session. The replacement route fades over
 350 ms and cannot return to the splash through Back. Initialization after
@@ -33,6 +38,10 @@ directly to onboarding. A 15-second initialization deadline offers Retry;
 late results from expired attempts are ignored. Retry retains the completed
 composition and elapsed hold. Controllers, timers and auth subscriptions are
 disposed with the splash.
+
+The saved app theme also applies to the animated splash and shared branding.
+Dark surfaces use light wordmark text and lighter navy SVG details while the
+blue/cyan artwork and native launcher assets keep their original colors.
 
 ## Brand asset generation
 

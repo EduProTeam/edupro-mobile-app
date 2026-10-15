@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../chat/screens/group_list_screen.dart';
 import '../../../courses/models/course_draft.dart';
@@ -81,9 +82,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
+        backgroundColor: context.appColors.surface,
         selectedItemColor: const Color(0xFF167BFF),
-        unselectedItemColor: const Color(0xFF72778F),
+        unselectedItemColor: context.appColors.textSecondary,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
         selectedFontSize: 12,
         unselectedFontSize: 12,
@@ -180,11 +181,11 @@ class _SimpleHomeScreenState extends State<_SimpleHomeScreen> {
     Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: context.appColors.surface,
           appBar: AppBar(
             title: const Text('Saved posts'),
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
+            backgroundColor: context.appColors.surface,
+            surfaceTintColor: context.appColors.surface,
           ),
           body: const SafeArea(
             child: SingleChildScrollView(
@@ -200,7 +201,7 @@ class _SimpleHomeScreenState extends State<_SimpleHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFFF8FAFD),
+      color: context.appColors.background,
       child: SafeArea(
         bottom: false,
         child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(

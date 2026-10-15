@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
@@ -10,7 +11,12 @@ import '../widgets/course_form_widgets.dart';
 import '../widgets/lesson_editor.dart';
 
 class CreateCourseScreen extends StatefulWidget {
-  const CreateCourseScreen({super.key, this.course, this.service, this.verificationService});
+  const CreateCourseScreen({
+    super.key,
+    this.course,
+    this.service,
+    this.verificationService,
+  });
   final CourseDraft? course;
   final CourseService? service;
   final CourseVerificationService? verificationService;
@@ -33,7 +39,8 @@ class CourseVerificationDialog extends StatefulWidget {
   final CourseVerificationService service;
 
   @override
-  State<CourseVerificationDialog> createState() => _CourseVerificationDialogState();
+  State<CourseVerificationDialog> createState() =>
+      _CourseVerificationDialogState();
 }
 
 class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
@@ -45,7 +52,10 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
 
   Future<void> _submit() async {
     if (_answers.any((answer) => answer == null)) {
-      setState(() => _message = 'Please answer all ${_quiz.questions.length} questions before submitting.');
+      setState(
+        () => _message =
+            'Please answer all ${_quiz.questions.length} questions before submitting.',
+      );
       return;
     }
     setState(() {
@@ -105,8 +115,8 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
   Widget build(BuildContext context) {
     final result = _result;
     return AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: context.appColors.surface,
+      surfaceTintColor: context.appColors.surface,
       elevation: 12,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       constraints: BoxConstraints(maxWidth: result == null ? 560 : 360),
@@ -133,22 +143,33 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Answer at least 4 of 5 questions correctly to unlock lesson uploads.'),
+                    const Text(
+                      'Answer at least 4 of 5 questions correctly to unlock lesson uploads.',
+                    ),
                     const SizedBox(height: 12),
                     for (var i = 0; i < _quiz.questions.length; i++) ...[
-                      Text('${i + 1}. ${_quiz.questions[i].question}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(
+                        '${i + 1}. ${_quiz.questions[i].question}',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                       for (var option = 0; option < 4; option++)
                         RadioListTile<int>(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                           value: option,
                           groupValue: _answers[i],
-                          onChanged: _busy ? null : (value) => setState(() => _answers[i] = value),
+                          onChanged: _busy
+                              ? null
+                              : (value) => setState(() => _answers[i] = value),
                           title: Text(_quiz.questions[i].options[option]),
                         ),
                       const SizedBox(height: 8),
                     ],
-                    if (_message != null) Text(_message!, style: const TextStyle(color: Colors.red)),
+                    if (_message != null)
+                      Text(
+                        _message!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                   ],
                 ),
               ),
@@ -159,12 +180,16 @@ class _CourseVerificationDialogState extends State<CourseVerificationDialog> {
             onPressed: _busy ? null : _retry,
             icon: const Icon(Icons.refresh),
             label: const Text('Retry Quiz'),
-            style: FilledButton.styleFrom(backgroundColor: OnboardingScreenLayout.primaryBlue),
+            style: FilledButton.styleFrom(
+              backgroundColor: OnboardingScreenLayout.primaryBlue,
+            ),
           )
         else if (result == null)
           FilledButton(
             onPressed: _busy ? null : _submit,
-            style: FilledButton.styleFrom(backgroundColor: OnboardingScreenLayout.primaryBlue),
+            style: FilledButton.styleFrom(
+              backgroundColor: OnboardingScreenLayout.primaryBlue,
+            ),
             child: Text(_busy ? 'Checking…' : 'Submit Quiz'),
           ),
       ],
@@ -181,7 +206,9 @@ class _QuizResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final passed = result.passed;
-    final accent = passed ? OnboardingScreenLayout.primaryBlue : const Color(0xFFE56C2F);
+    final accent = passed
+        ? OnboardingScreenLayout.primaryBlue
+        : const Color(0xFFE56C2F);
     final pill = passed ? const Color(0xFFE5F4EA) : const Color(0xFFFFEAE2);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -190,27 +217,49 @@ class _QuizResultCard extends StatelessWidget {
         Container(
           width: 58,
           height: 58,
-          decoration: BoxDecoration(color: accent.withValues(alpha: .12), shape: BoxShape.circle),
-          child: Icon(passed ? Icons.workspace_premium_outlined : Icons.refresh_rounded, color: accent, size: 32),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: .12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            passed ? Icons.workspace_premium_outlined : Icons.refresh_rounded,
+            color: accent,
+            size: 32,
+          ),
         ),
         const SizedBox(height: 14),
-        Text(passed ? 'Congratulations!' : 'Not Quite There', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        Text(
+          passed ? 'Congratulations!' : 'Not Quite There',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: pill, borderRadius: BorderRadius.circular(24)),
+          decoration: BoxDecoration(
+            color: pill,
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Text(
             passed ? 'Quiz Passed' : 'Quiz Failed',
             style: TextStyle(color: accent, fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(height: 14),
-        Text('${result.score} / $total', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: accent)),
+        Text(
+          '${result.score} / $total',
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            color: accent,
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
-          passed ? "You're verified!" : 'You need at least 4/5 to get verified.',
+          passed
+              ? "You're verified!"
+              : 'You need at least 4/5 to get verified.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.black54),
+          style: TextStyle(color: context.appColors.textSecondary),
         ),
       ],
     );
@@ -420,42 +469,43 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   void _removeLesson(int index) => setState(() => _lessons.removeAt(index));
 
-  CourseDraft _buildCourse(CourseStatus status, {bool includeLessons = true}) => CourseDraft(
-    id: _id,
-    title: _title.text.trim(),
-    description: _description.text.trim(),
-    category: _category ?? '',
-    language: _language ?? '',
-    type: _type,
-    currency: _currency,
-    price: _type == CourseType.free
-        ? 0
-        : double.tryParse(_price.text.trim()) ?? 0,
-    status: status,
-    thumbnail: _cover?.media,
-    userId: _service.userId,
-    instructorName: widget.course?.instructorName ?? '',
-    level: widget.course?.level ?? 'Beginner',
-    rating: widget.course?.rating ?? 0,
-    totalDuration: widget.course?.totalDuration ?? '',
-    createdAt: widget.course?.createdAt ?? 0,
-    enrollmentCount: widget.course?.enrollmentCount ?? 0,
-    lessons: (includeLessons ? _lessons : const <LessonFormData>[])
-        .map(
-          (lesson) => CourseLesson(
-            id: lesson.id,
-            title: lesson.title,
-            description: lesson.description,
-            duration: lesson.duration,
-            video: lesson.video?.media,
-            materials: lesson.materials
-                .where((material) => material.media != null)
-                .map((material) => material.media!)
-                .toList(),
-          ),
-        )
-        .toList(),
-  );
+  CourseDraft _buildCourse(CourseStatus status, {bool includeLessons = true}) =>
+      CourseDraft(
+        id: _id,
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        category: _category ?? '',
+        language: _language ?? '',
+        type: _type,
+        currency: _currency,
+        price: _type == CourseType.free
+            ? 0
+            : double.tryParse(_price.text.trim()) ?? 0,
+        status: status,
+        thumbnail: _cover?.media,
+        userId: _service.userId,
+        instructorName: widget.course?.instructorName ?? '',
+        level: widget.course?.level ?? 'Beginner',
+        rating: widget.course?.rating ?? 0,
+        totalDuration: widget.course?.totalDuration ?? '',
+        createdAt: widget.course?.createdAt ?? 0,
+        enrollmentCount: widget.course?.enrollmentCount ?? 0,
+        lessons: (includeLessons ? _lessons : const <LessonFormData>[])
+            .map(
+              (lesson) => CourseLesson(
+                id: lesson.id,
+                title: lesson.title,
+                description: lesson.description,
+                duration: lesson.duration,
+                video: lesson.video?.media,
+                materials: lesson.materials
+                    .where((material) => material.media != null)
+                    .map((material) => material.media!)
+                    .toList(),
+              ),
+            )
+            .toList(),
+      );
 
   Future<void> _upload(CourseFileSelection file) async {
     if (file.media != null) return;
@@ -489,7 +539,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       _error = null;
     });
     if (!_formKey.currentState!.validate() || _cover == null) {
-      setState(() => _error = 'Complete the required course details before verification.');
+      setState(
+        () => _error =
+            'Complete the required course details before verification.',
+      );
       return;
     }
     setState(() {
@@ -533,7 +586,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     } on CourseFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not verify your course. Please retry.');
+      if (mounted)
+        setState(() => _error = 'Could not verify your course. Please retry.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -547,7 +601,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     });
     final validFields = _formKey.currentState!.validate();
     if (!_verified) {
-      setState(() => _error = 'Pass the course verification quiz before saving lessons.');
+      setState(
+        () =>
+            _error = 'Pass the course verification quiz before saving lessons.',
+      );
       return;
     }
     final badLesson = _lessons.indexWhere(
@@ -619,7 +676,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     child: DropdownButtonFormField<String>(
       initialValue: value,
       isExpanded: true,
-      decoration: courseInput('Select ${label.toLowerCase()}'),
+      decoration: courseInput(context, 'Select ${label.toLowerCase()}'),
       items: {
         ...values,
         ?value,
@@ -638,7 +695,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         ).colorScheme.copyWith(primary: OnboardingScreenLayout.primaryBlue),
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F8FB),
+        backgroundColor: context.appColors.background,
         appBar: AppBar(
           title: Text(
             widget.course == null ? 'Create New Course' : 'Edit Course',
@@ -710,6 +767,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                   child: TextFormField(
                                     controller: _title,
                                     decoration: courseInput(
+                                      context,
                                       'Enter course title',
                                     ),
                                     validator: _required,
@@ -721,6 +779,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                   child: TextFormField(
                                     controller: _description,
                                     decoration: courseInput(
+                                      context,
                                       'Tell learners what your course is about',
                                     ),
                                     maxLines: 3,
@@ -780,7 +839,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                           const TextInputType.numberWithOptions(
                                             decimal: true,
                                           ),
-                                      decoration: courseInput('0.00'),
+                                      decoration: courseInput(context, '0.00'),
                                       validator: (v) => _publishErrors
                                           ? validateCoursePrice(v ?? '')
                                           : null,
@@ -799,7 +858,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                               icon: const Icon(Icons.verified_outlined),
                               label: const Text('Verify to Unlock Lessons'),
                               style: FilledButton.styleFrom(
-                                backgroundColor: OnboardingScreenLayout.primaryBlue,
+                                backgroundColor:
+                                    OnboardingScreenLayout.primaryBlue,
                                 minimumSize: const Size.fromHeight(52),
                               ),
                             ),
@@ -814,11 +874,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           ),
                           const SizedBox(height: 12),
                           if (!_verified)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(bottom: 12),
                               child: Text(
                                 'Pass the course verification quiz to add lessons and upload files.',
-                                style: TextStyle(color: Colors.black54),
+                                style: TextStyle(
+                                  color: context.appColors.textSecondary,
+                                ),
                               ),
                             ),
                           AbsorbPointer(
@@ -828,121 +890,142 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                          for (var i = 0; i < _lessons.length; i++)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  CourseFormCard(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          lessonLabel(i),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            color: OnboardingScreenLayout
-                                                .primaryBlue,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _lessons[i].title.isEmpty
-                                              ? 'Untitled lesson'
-                                              : _lessons[i].title,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          _lessons[i].video?.name ??
-                                              'No video selected',
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (_lessons[i].video != null)
-                                          Text(
-                                            switch (_lessons[i].video!.status) {
-                                              UploadStatus.uploading =>
-                                                'Uploading…',
-                                              UploadStatus.uploaded =>
-                                                '✓ Uploaded',
-                                              UploadStatus.failed =>
-                                                'Upload failed · open Edit to retry',
-                                              UploadStatus.selected =>
-                                                'Video selected',
-                                            },
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.black54,
+                                  for (var i = 0; i < _lessons.length; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          CourseFormCard(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  lessonLabel(i),
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    color:
+                                                        OnboardingScreenLayout
+                                                            .primaryBlue,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  _lessons[i].title.isEmpty
+                                                      ? 'Untitled lesson'
+                                                      : _lessons[i].title,
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  _lessons[i].video?.name ??
+                                                      'No video selected',
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                if (_lessons[i].video != null)
+                                                  Text(
+                                                    switch (_lessons[i]
+                                                        .video!
+                                                        .status) {
+                                                      UploadStatus.uploading =>
+                                                        'Uploading…',
+                                                      UploadStatus.uploaded =>
+                                                        '✓ Uploaded',
+                                                      UploadStatus.failed =>
+                                                        'Upload failed · open Edit to retry',
+                                                      UploadStatus.selected =>
+                                                        'Video selected',
+                                                    },
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: context
+                                                          .appColors
+                                                          .textSecondary,
+                                                    ),
+                                                  ),
+                                                if (_lessons[i]
+                                                    .materials
+                                                    .isNotEmpty)
+                                                  Text(
+                                                    '${_lessons[i].materials.length} learning materials',
+                                                  ),
+                                                if (_lessons[i].materials.any(
+                                                  (f) =>
+                                                      f.status ==
+                                                      UploadStatus.failed,
+                                                ))
+                                                  const Text(
+                                                    'Material upload failed · open Edit to retry',
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                if (_publishErrors &&
+                                                    (_lessons[i]
+                                                            .title
+                                                            .isEmpty ||
+                                                        _lessons[i].video ==
+                                                            null))
+                                                  const Text(
+                                                    'Lesson title and video are required.',
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                Wrap(
+                                                  spacing: 8,
+                                                  children: [
+                                                    TextButton.icon(
+                                                      onPressed: () =>
+                                                          _editLesson(i),
+                                                      icon: const Icon(
+                                                        Icons.edit_outlined,
+                                                      ),
+                                                      label: const Text('Edit'),
+                                                    ),
+                                                    if (_lessons.length > 1)
+                                                      TextButton.icon(
+                                                        onPressed: () =>
+                                                            _removeLesson(i),
+                                                        icon: const Icon(
+                                                          Icons.delete_outline,
+                                                        ),
+                                                        label: const Text(
+                                                          'Remove Lesson',
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        if (_lessons[i].materials.isNotEmpty)
-                                          Text(
-                                            '${_lessons[i].materials.length} learning materials',
-                                          ),
-                                        if (_lessons[i].materials.any(
-                                          (f) =>
-                                              f.status == UploadStatus.failed,
-                                        ))
-                                          const Text(
-                                            'Material upload failed · open Edit to retry',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        if (_publishErrors &&
-                                            (_lessons[i].title.isEmpty ||
-                                                _lessons[i].video == null))
-                                          const Text(
-                                            'Lesson title and video are required.',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        Wrap(
-                                          spacing: 8,
-                                          children: [
-                                            TextButton.icon(
-                                              onPressed: () => _editLesson(i),
-                                              icon: const Icon(
-                                                Icons.edit_outlined,
-                                              ),
-                                              label: const Text('Edit'),
-                                            ),
-                                            if (_lessons.length > 1)
-                                              TextButton.icon(
-                                                onPressed: () =>
-                                                    _removeLesson(i),
-                                                icon: const Icon(
-                                                  Icons.delete_outline,
-                                                ),
-                                                label: const Text(
-                                                  'Remove Lesson',
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
+                                  OutlinedButton.icon(
+                                    onPressed: _addLesson,
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(54),
+                                      side: const BorderSide(
+                                        color:
+                                            OnboardingScreenLayout.primaryBlue,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add Another Lesson'),
                                   ),
-                                ],
-                              ),
-                            ),
-                          OutlinedButton.icon(
-                            onPressed: _addLesson,
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(54),
-                              side: const BorderSide(
-                                color: OnboardingScreenLayout.primaryBlue,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Another Lesson'),
-                          ),
                                 ],
                               ),
                             ),
@@ -955,9 +1038,11 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
               ),
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: Color(0xFFE3E6ED))),
+                decoration: BoxDecoration(
+                  color: context.appColors.surface,
+                  border: Border(
+                    top: BorderSide(color: context.appColors.border),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

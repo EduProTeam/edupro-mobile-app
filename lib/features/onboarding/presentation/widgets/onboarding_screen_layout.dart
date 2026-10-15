@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class OnboardingScreenLayout extends StatelessWidget {
@@ -13,8 +14,6 @@ class OnboardingScreenLayout extends StatelessWidget {
   });
 
   static const primaryBlue = Color(0xFF3D8FEF);
-  static const _descriptionColor = Color(0xFF8D8D8D);
-  static const _skipColor = Color(0xFF9B9B9B);
 
   final String imageAssetPath;
   final String title;
@@ -27,25 +26,31 @@ class OnboardingScreenLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final screenWidth = constraints.maxWidth;
             final screenHeight = constraints.maxHeight;
-            final horizontalPadding =
-                (screenWidth * 0.075).clamp(24.0, 30.0).toDouble();
-            final illustrationWidth =
-                (screenWidth * 0.78).clamp(260.0, 320.0).toDouble();
+            final horizontalPadding = (screenWidth * 0.075)
+                .clamp(24.0, 30.0)
+                .toDouble();
+            final illustrationWidth = (screenWidth * 0.78)
+                .clamp(260.0, 320.0)
+                .toDouble();
             final titleSize = screenWidth < 360 ? 38.0 : 41.0;
-            final topSpacing =
-                (screenHeight * 0.035).clamp(18.0, 30.0).toDouble();
-            final titleSpacing =
-                (screenHeight * 0.042).clamp(26.0, 38.0).toDouble();
-            final indicatorSpacing =
-                (screenHeight * 0.038).clamp(22.0, 32.0).toDouble();
-            final bottomSpacing =
-                (screenHeight * 0.04).clamp(22.0, 34.0).toDouble();
+            final topSpacing = (screenHeight * 0.035)
+                .clamp(18.0, 30.0)
+                .toDouble();
+            final titleSpacing = (screenHeight * 0.042)
+                .clamp(26.0, 38.0)
+                .toDouble();
+            final indicatorSpacing = (screenHeight * 0.038)
+                .clamp(22.0, 32.0)
+                .toDouble();
+            final bottomSpacing = (screenHeight * 0.04)
+                .clamp(22.0, 34.0)
+                .toDouble();
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -62,7 +67,7 @@ class OnboardingScreenLayout extends StatelessWidget {
                     child: TextButton(
                       onPressed: onSkipPressed,
                       style: TextButton.styleFrom(
-                        foregroundColor: _skipColor,
+                        foregroundColor: context.appColors.textSecondary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 6,
@@ -83,10 +88,7 @@ class OnboardingScreenLayout extends StatelessWidget {
                   Center(
                     child: SizedBox(
                       width: illustrationWidth,
-                      child: Image.asset(
-                        imageAssetPath,
-                        fit: BoxFit.contain,
-                      ),
+                      child: Image.asset(imageAssetPath, fit: BoxFit.contain),
                     ),
                   ),
                   SizedBox(height: titleSpacing),
@@ -94,7 +96,7 @@ class OnboardingScreenLayout extends StatelessWidget {
                     title,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.black,
+                      color: context.appColors.textPrimary,
                       fontSize: titleSize,
                       fontWeight: FontWeight.w800,
                       height: 1.08,
@@ -102,12 +104,14 @@ class OnboardingScreenLayout extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.03,
+                    ),
                     child: Text(
                       description,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _descriptionColor,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         height: 1.28,
@@ -147,9 +151,7 @@ class OnboardingScreenLayout extends StatelessWidget {
 }
 
 class _PageIndicators extends StatelessWidget {
-  const _PageIndicators({
-    required this.activePageIndex,
-  });
+  const _PageIndicators({required this.activePageIndex});
 
   final int activePageIndex;
 
@@ -167,9 +169,7 @@ class _PageIndicators extends StatelessWidget {
 }
 
 class _IndicatorDot extends StatelessWidget {
-  const _IndicatorDot({
-    required this.isActive,
-  });
+  const _IndicatorDot({required this.isActive});
 
   final bool isActive;
 
@@ -179,10 +179,14 @@ class _IndicatorDot extends StatelessWidget {
       width: 16,
       height: 16,
       decoration: BoxDecoration(
-        color: isActive ? OnboardingScreenLayout.primaryBlue : Colors.white,
+        color: isActive
+            ? OnboardingScreenLayout.primaryBlue
+            : context.appColors.surface,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isActive ? OnboardingScreenLayout.primaryBlue : Colors.black,
+          color: isActive
+              ? OnboardingScreenLayout.primaryBlue
+              : context.appColors.textPrimary,
           width: isActive ? 0 : 1,
         ),
       ),

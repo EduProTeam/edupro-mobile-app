@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 import '../../../posts/presentation/screens/new_post_screen.dart';
 import '../../../posts/presentation/screens/post_detail_screen.dart';
 import '../../../posts/presentation/widgets/post_save_button.dart';
@@ -87,8 +89,8 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFE8ECF3))),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: context.appColors.border)),
         ),
         child: Row(
           children: [
@@ -179,7 +181,10 @@ class _ProfilePostLibraryState extends State<ProfilePostLibrary> {
                     : _selected == 0
                     ? '${posts.length} ${posts.length == 1 ? 'post' : 'posts'} · Published by you'
                     : '${posts.length} saved ${posts.length == 1 ? 'post' : 'posts'} · Only you',
-                style: const TextStyle(color: Color(0xFF72778F), fontSize: 12),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 12),
               LayoutBuilder(
@@ -265,8 +270,8 @@ class _LibraryTab extends StatelessWidget {
                       icon,
                       size: 22,
                       color: selected
-                          ? const Color(0xFF167BFF)
-                          : const Color(0xFF858A9B),
+                          ? context.appColors.primary
+                          : context.appColors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Flexible(
@@ -278,8 +283,8 @@ class _LibraryTab extends StatelessWidget {
                               ? FontWeight.w700
                               : FontWeight.w500,
                           color: selected
-                              ? const Color(0xFF167BFF)
-                              : const Color(0xFF72778F),
+                              ? context.appColors.primary
+                              : context.appColors.textSecondary,
                         ),
                       ),
                     ),
@@ -291,7 +296,7 @@ class _LibraryTab extends StatelessWidget {
                 height: 3,
                 decoration: BoxDecoration(
                   color: selected
-                      ? const Color(0xFF167BFF)
+                      ? context.appColors.primary
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(3),
                 ),
@@ -322,18 +327,18 @@ class _LibraryMessage extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
     decoration: BoxDecoration(
-      color: const Color(0xFFF5F9FF),
+      color: context.appColors.surfaceVariant,
       borderRadius: BorderRadius.circular(16),
     ),
     child: Column(
       children: [
-        Icon(icon, color: const Color(0xFF167BFF), size: 34),
+        Icon(icon, color: context.appColors.primary, size: 34),
         const SizedBox(height: 12),
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Color(0xFF090D31),
+          style: TextStyle(
+            color: context.appColors.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -342,8 +347,8 @@ class _LibraryMessage extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Color(0xFF72778F),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
             fontSize: 13,
             height: 1.5,
           ),
@@ -354,6 +359,7 @@ class _LibraryMessage extends StatelessWidget {
             onPressed: onAction,
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF167BFF),
+              foregroundColor: Colors.white,
             ),
             child: Text(action!),
           ),
@@ -385,22 +391,27 @@ class _PostPreview extends StatelessWidget {
       _ => Icons.article_outlined,
     };
     final fallback = DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE8F2FF), Color(0xFFF3EDFF)],
+          colors: context.appColors.isDark
+              ? [
+                  context.appColors.primarySoft,
+                  context.appColors.surfaceVariant,
+                ]
+              : [const Color(0xFFE8F2FF), const Color(0xFFF3EDFF)],
         ),
       ),
       child: Center(
-        child: Icon(icon, size: 36, color: const Color(0xFF5B72C5)),
+        child: Icon(icon, size: 36, color: context.appColors.primary),
       ),
     );
     return Material(
-      color: Colors.white,
+      color: context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFFE8ECF3)),
+        side: BorderSide(color: context.appColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -426,7 +437,7 @@ class _PostPreview extends StatelessWidget {
                       top: 6,
                       right: 6,
                       child: Material(
-                        color: Colors.white,
+                        color: context.appColors.surface,
                         shape: const CircleBorder(),
                         child: PostSaveButton(isSaved: true, onSave: onSave),
                       ),
@@ -443,8 +454,8 @@ class _PostPreview extends StatelessWidget {
                     post.category,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF167BFF),
+                    style: TextStyle(
+                      color: context.appColors.primary,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
@@ -454,8 +465,8 @@ class _PostPreview extends StatelessWidget {
                     post.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF090D31),
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       height: 1.3,

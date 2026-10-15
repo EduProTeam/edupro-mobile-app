@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/theme/app_colors.dart';
+
 abstract final class EduProBrand {
   static const icon = 'assets/images/edupro-icon.svg';
   static const letterE = 'assets/branding/generated/letter-e.svg';
@@ -19,10 +21,31 @@ class EduProMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SvgPicture.asset(
     EduProBrand.icon,
+    colorMapper: context.appColors.isDark
+        ? const EduProDarkColorMapper()
+        : null,
     width: size,
     height: size,
     semanticsLabel: 'EduPro',
   );
+}
+
+/// Keeps the navy SVG details legible while retaining its blue/cyan artwork.
+class EduProDarkColorMapper extends ColorMapper {
+  const EduProDarkColorMapper();
+
+  @override
+  Color substitute(
+    String? id,
+    String elementName,
+    String attributeName,
+    Color color,
+  ) {
+    if (color == const Color(0xFF0B2544)) return const Color(0xFFD9E8FF);
+    if (color == const Color(0xFF071D37)) return const Color(0xFFB1C8EB);
+    if (color == const Color(0xFF09223F)) return const Color(0xFFCBDFFF);
+    return color;
+  }
 }
 
 class EduProWordmark extends StatelessWidget {
@@ -32,13 +55,17 @@ class EduProWordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text.rich(
-    const TextSpan(
+    TextSpan(
       children: [
         TextSpan(
           text: 'Edu',
-          style: TextStyle(color: EduProBrand.navy),
+          style: TextStyle(
+            color: context.appColors.isDark
+                ? context.appColors.textPrimary
+                : EduProBrand.navy,
+          ),
         ),
-        TextSpan(
+        const TextSpan(
           text: 'Pro',
           style: TextStyle(color: EduProBrand.blue),
         ),

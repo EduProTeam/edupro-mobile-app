@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
+import 'package:edupro_mobile_app/core/theme/app_theme.dart';
+
 import 'package:edupro_mobile_app/features/home/presentation/screens/home_shell_screen.dart';
 import 'package:edupro_mobile_app/features/onboarding/presentation/screens/onboarding_screen_1.dart';
 import 'package:edupro_mobile_app/features/splash/presentation/screens/splash_screen.dart';
 import 'package:edupro_mobile_app/features/splash/presentation/splash_timing.dart';
 import 'package:edupro_mobile_app/shared/branding/edupro_brand.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Widget tests have no engine raster thread. Signal their synthetic visible
@@ -31,6 +35,7 @@ Future<_LaunchObserver> _launch(
   WidgetTester tester,
   Future<bool> Function() resolve, {
   bool reduceMotion = false,
+  ThemeData? theme,
   Size size = const Size(800, 1000),
   double textScale = 1,
 }) async {
@@ -41,6 +46,7 @@ Future<_LaunchObserver> _launch(
   final observer = _LaunchObserver();
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       navigatorObservers: [observer],
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(
@@ -210,6 +216,34 @@ void main() {
     await tester.pump();
     expect(find.byType(SplashScreen), findsNothing);
     expect(observer.replacements, hasLength(1));
+  });
+
+  testWidgets('dark mode preserves readable branding and launch timing', (
+    tester,
+  ) async {
+    final observer = await _launch(
+      tester,
+      () async => false,
+      reduceMotion: true,
+      theme: AppTheme.dark,
+    );
+    final wordmark = tester.widget<Text>(
+      find.descendant(
+        of: find.byType(EduProWordmark),
+        matching: find.byType(Text),
+      ),
+    );
+    final spans = (wordmark.textSpan! as TextSpan).children!;
+    expect((spans.first as TextSpan).style!.color, AppPalette.dark.textPrimary);
+    final overlay = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+      find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first,
+    );
+    expect(overlay.value.statusBarIconBrightness, Brightness.light);
+    await tester.pump(const Duration(milliseconds: 2799));
+    expect(observer.replacements, isEmpty);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(observer.replacements, hasLength(1));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Disposal cancels timers and ignores pending initialization', (

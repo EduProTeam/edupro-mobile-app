@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 const _blue = Color(0xFF167BFF);
-const _ink = Color(0xFF090D31);
-const _muted = Color(0xFF72778F);
 
 /// The profile layout, kept independent of authentication and data loading.
 class ProfileDashboard extends StatelessWidget {
@@ -13,6 +13,7 @@ class ProfileDashboard extends StatelessWidget {
     required this.skills,
     required this.interests,
     this.onSettings,
+    this.onToggleTheme,
     this.onPhoto,
     this.onEdit,
     this.onShare,
@@ -43,6 +44,7 @@ class ProfileDashboard extends StatelessWidget {
   final Widget? postLibrary;
   final bool readOnly;
   final VoidCallback? onSettings;
+  final VoidCallback? onToggleTheme;
   final VoidCallback? onPhoto;
   final VoidCallback? onEdit;
   final VoidCallback? onShare;
@@ -55,7 +57,7 @@ class ProfileDashboard extends StatelessWidget {
         ? 'No bio added yet.'
         : bio ?? 'Add a bio to tell the community about yourself.';
     return ColoredBox(
-      color: Colors.white,
+      color: context.appColors.surface,
       child: SafeArea(
         bottom: false,
         child: Center(
@@ -66,12 +68,17 @@ class ProfileDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _BrandHeader(onSettings: readOnly ? null : onSettings),
+                  _BrandHeader(
+                    onSettings: readOnly ? null : onSettings,
+                    onToggleTheme: readOnly ? null : onToggleTheme,
+                  ),
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(22),
                     child: CustomPaint(
-                      painter: const _ProfileBackdrop(),
+                      painter: _ProfileBackdrop(
+                        isDark: context.appColors.isDark,
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
                         child: Column(
@@ -87,8 +94,8 @@ class ProfileDashboard extends StatelessWidget {
                               child: Text(
                                 name,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: _ink,
+                                style: TextStyle(
+                                  color: context.appColors.textPrimary,
                                   fontSize: 23,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: -0.6,
@@ -102,15 +109,15 @@ class ProfileDashboard extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEAF4FF),
+                                color: context.appColors.primarySoft,
                                 borderRadius: BorderRadius.circular(24),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.school_outlined,
-                                    color: _blue,
+                                    color: context.appColors.primary,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 6),
@@ -118,8 +125,8 @@ class ProfileDashboard extends StatelessWidget {
                                     child: Text(
                                       title,
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: _blue,
+                                      style: TextStyle(
+                                        color: context.appColors.primary,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -153,8 +160,8 @@ class ProfileDashboard extends StatelessWidget {
                             Text(
                               displayBio,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: _muted,
+                              style: TextStyle(
+                                color: context.appColors.textSecondary,
                                 fontSize: 12.5,
                                 height: 1.4,
                               ),
@@ -236,8 +243,9 @@ class ProfileDashboard extends StatelessWidget {
 }
 
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({this.onSettings});
+  const _BrandHeader({this.onSettings, this.onToggleTheme});
   final VoidCallback? onSettings;
+  final VoidCallback? onToggleTheme;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -249,7 +257,8 @@ class _BrandHeader extends StatelessWidget {
         Semantics(
           label: 'EduPro',
           image: true,
-          child: ClipRect(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
             child: SizedBox(
               width: 154,
               height: 44,
@@ -266,13 +275,31 @@ class _BrandHeader extends StatelessWidget {
             ),
           ),
         ),
+        const Spacer(),
+        if (onToggleTheme != null) ...[
+          IconButton.filledTonal(
+            onPressed: onToggleTheme,
+            tooltip: context.appColors.isDark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode',
+            isSelected: context.appColors.isDark,
+            style: IconButton.styleFrom(
+              backgroundColor: context.appColors.primarySoft,
+              foregroundColor: context.appColors.textPrimary,
+              fixedSize: const Size(40, 40),
+            ),
+            icon: const Icon(Icons.dark_mode_outlined, size: 23),
+            selectedIcon: const Icon(Icons.light_mode_outlined, size: 23),
+          ),
+          const SizedBox(width: 6),
+        ],
         if (onSettings != null)
           IconButton.filledTonal(
             onPressed: onSettings,
             tooltip: 'Settings',
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFFEEF4FF),
-              foregroundColor: _ink,
+              backgroundColor: context.appColors.primarySoft,
+              foregroundColor: context.appColors.textPrimary,
               fixedSize: const Size(40, 40),
             ),
             icon: const Icon(Icons.settings_outlined, size: 24),
@@ -283,7 +310,8 @@ class _BrandHeader extends StatelessWidget {
 }
 
 class _ProfileBackdrop extends CustomPainter {
-  const _ProfileBackdrop();
+  const _ProfileBackdrop({required this.isDark});
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -291,10 +319,12 @@ class _ProfileBackdrop extends CustomPainter {
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFF0F5FF), Colors.white],
+          colors: isDark
+              ? [AppPalette.dark.surfaceVariant, AppPalette.dark.surface]
+              : [const Color(0xFFF0F5FF), Colors.white],
           stops: [0, 0.95],
         ).createShader(rect),
     );
@@ -321,10 +351,12 @@ class _ProfileBackdrop extends CustomPainter {
     canvas.drawPath(
       leftRibbon,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFD3E5FF), Color(0x00ECF5FF)],
+          colors: isDark
+              ? [const Color(0xFF28466C), const Color(0x0028466C)]
+              : [const Color(0xFFD3E5FF), const Color(0x00ECF5FF)],
         ).createShader(rect),
     );
 
@@ -350,17 +382,20 @@ class _ProfileBackdrop extends CustomPainter {
     canvas.drawPath(
       rightRibbon,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [Color(0xFF87B4FF), Color(0x00E8F2FF)],
+          colors: isDark
+              ? [const Color(0xFF365F98), const Color(0x00365F98)]
+              : [const Color(0xFF87B4FF), const Color(0x00E8F2FF)],
           stops: [0, 0.7],
         ).createShader(rect),
     );
   }
 
   @override
-  bool shouldRepaint(_ProfileBackdrop oldDelegate) => false;
+  bool shouldRepaint(_ProfileBackdrop oldDelegate) =>
+      isDark != oldDelegate.isDark;
 }
 
 class _ProfileAvatar extends StatelessWidget {
@@ -384,14 +419,14 @@ class _ProfileAvatar extends StatelessWidget {
         .join()
         .toUpperCase();
     final placeholder = ColoredBox(
-      color: const Color(0xFFE5F1FF),
+      color: context.appColors.primarySoft,
       child: Center(
         child: Text(
           initials,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w800,
-            color: _blue,
+            color: context.appColors.primary,
           ),
         ),
       ),
@@ -405,10 +440,10 @@ class _ProfileAvatar extends StatelessWidget {
             width: 98,
             height: 98,
             padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: context.appColors.surface,
               shape: BoxShape.circle,
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Color(0x1F182C57),
                   blurRadius: 16,
@@ -461,15 +496,21 @@ class _ContactDetail extends StatelessWidget {
     children: [
       Container(
         padding: const EdgeInsets.all(5),
-        decoration: const BoxDecoration(
-          color: Color(0xFFEBF4FF),
+        decoration: BoxDecoration(
+          color: context.appColors.primarySoft,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 15, color: _blue),
+        child: Icon(icon, size: 15, color: context.appColors.primary),
       ),
       const SizedBox(width: 5),
       Flexible(
-        child: Text(text, style: const TextStyle(color: _muted, fontSize: 12)),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 12,
+          ),
+        ),
       ),
     ],
   );
@@ -487,9 +528,9 @@ class _SurfaceCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: padding,
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appColors.surface,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFF5F6F8)),
+      border: Border.all(color: context.appColors.border),
       boxShadow: const [
         BoxShadow(
           color: Color(0x0F182C57),
@@ -524,28 +565,45 @@ class _StatItem extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-          child: Icon(icon, size: 20, color: color),
+          decoration: BoxDecoration(
+            color: context.appColors.isDark
+                ? color.withValues(alpha: 0.16)
+                : background,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: context.appColors.isDark
+                ? Color.lerp(color, Colors.white, 0.35)
+                : color,
+          ),
         ),
         const SizedBox(height: 4),
         if (onRetry != null)
           IconButton(
             tooltip: 'Retry post count',
             onPressed: onRetry,
-            icon: const Icon(Icons.refresh, color: _muted),
+            icon: Icon(Icons.refresh, color: context.appColors.textSecondary),
           )
         else
           Text(
             value?.toString() ?? '—',
-            style: const TextStyle(
-              color: _ink,
+            style: TextStyle(
+              color: context.appColors.textPrimary,
               fontSize: 19,
               height: 1.2,
               fontWeight: FontWeight.w800,
             ),
           ),
         const SizedBox(height: 3),
-        Text(label, style: const TextStyle(color: _muted, fontSize: 12)),
+        Text(
+          label,
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 12,
+          ),
+        ),
       ],
     ),
   );
@@ -554,9 +612,9 @@ class _StatItem extends StatelessWidget {
 class _StatDivider extends StatelessWidget {
   const _StatDivider();
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 5),
-    child: VerticalDivider(width: 1, color: Color(0xFFE7EAF2)),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: VerticalDivider(width: 1, color: context.appColors.border),
   );
 }
 
@@ -594,9 +652,9 @@ class _ProfileActions extends StatelessWidget {
         : OutlinedButton(
             onPressed: onShare,
             style: OutlinedButton.styleFrom(
-              foregroundColor: _blue,
+              foregroundColor: context.appColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
-              side: const BorderSide(color: _blue),
+              side: BorderSide(color: context.appColors.primary),
               shape: shape,
               textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontSize: 14,
@@ -672,8 +730,8 @@ class _TagSection extends StatelessWidget {
               header: true,
               child: Text(
                 title,
-                style: const TextStyle(
-                  color: _ink,
+                style: TextStyle(
+                  color: context.appColors.textPrimary,
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
@@ -686,7 +744,7 @@ class _TagSection extends StatelessWidget {
               icon: const Icon(Icons.add_circle, size: 16),
               label: Text(action),
               style: TextButton.styleFrom(
-                foregroundColor: _blue,
+                foregroundColor: context.appColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
                 minimumSize: const Size(0, 36),
                 textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -716,7 +774,10 @@ class _TagSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Text(
               emptyText,
-              style: const TextStyle(color: _muted, fontSize: 12.5),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 12.5,
+              ),
             ),
           )
         else
@@ -740,7 +801,9 @@ class _ColorTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
-        color: style.background,
+        color: context.appColors.isDark
+            ? style.color.withValues(alpha: 0.16)
+            : style.background,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -749,13 +812,21 @@ class _ColorTag extends StatelessWidget {
           if (label.toLowerCase() == 'flutter')
             const FlutterLogo(size: 20)
           else
-            Icon(style.icon, color: style.color, size: 19),
+            Icon(
+              style.icon,
+              color: context.appColors.isDark
+                  ? Color.lerp(style.color, Colors.white, 0.4)
+                  : style.color,
+              size: 19,
+            ),
           const SizedBox(width: 7),
           Flexible(
             child: Text(
               label,
               style: TextStyle(
-                color: style.textColor,
+                color: context.appColors.isDark
+                    ? context.appColors.textPrimary
+                    : style.textColor,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w500,
               ),

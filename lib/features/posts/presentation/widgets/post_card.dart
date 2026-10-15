@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../services/post_service.dart';
 import '../../../profile/presentation/screens/user_profile_screen.dart';
@@ -11,6 +11,7 @@ import 'post_like_button.dart';
 import 'post_comments_sheet.dart';
 import 'post_image_viewer.dart';
 import 'post_save_button.dart';
+import 'post_share_sheet.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({
@@ -22,10 +23,6 @@ class PostCard extends StatelessWidget {
   });
 
   static const _primaryBlue = Color(0xFF167BFF);
-  static const _textPrimary = Color(0xFF0A1638);
-  static const _textSecondary = Color(0xFF727D95);
-  static const _borderColor = Color(0xFFF0F3F8);
-  static const _attachmentBackground = Color(0xFFEEF5FF);
 
   final PublishedPost post;
   final bool showFullContent;
@@ -41,9 +38,9 @@ class PostCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: context.appColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A1C3A62),
@@ -82,8 +79,8 @@ class PostCard extends StatelessWidget {
                         post.userName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _textPrimary,
+                        style: TextStyle(
+                          color: context.appColors.textPrimary,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
@@ -93,8 +90,8 @@ class PostCard extends StatelessWidget {
                         '${post.category} • ${_relativeTime(post.createdAt)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 11,
                         ),
                       ),
@@ -130,8 +127,8 @@ class PostCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             child: Text(
               post.title,
-              style: const TextStyle(
-                color: _textPrimary,
+              style: TextStyle(
+                color: context.appColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 height: 1.3,
@@ -146,8 +143,8 @@ class PostCard extends StatelessWidget {
               overflow: showFullContent
                   ? TextOverflow.visible
                   : TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _textPrimary,
+              style: TextStyle(
+                color: context.appColors.textPrimary,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -157,7 +154,7 @@ class PostCard extends StatelessWidget {
             TextButton(
               onPressed: onOpen,
               style: TextButton.styleFrom(
-                foregroundColor: _primaryBlue,
+                foregroundColor: context.appColors.primary,
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 32),
               ),
@@ -212,9 +209,9 @@ class PostCard extends StatelessWidget {
                         children: [
                           IconButton(
                             tooltip: 'View comments',
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.chat_bubble_outline,
-                              color: _textSecondary,
+                              color: context.appColors.textSecondary,
                             ),
                             onPressed: () {
                               final service = PostService();
@@ -246,8 +243,8 @@ class PostCard extends StatelessWidget {
                           ),
                           Text(
                             '${post.commentCount}',
-                            style: const TextStyle(
-                              color: _textSecondary,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -271,11 +268,15 @@ class PostCard extends StatelessWidget {
                         ),
                 ),
                 IconButton(
-                  tooltip: 'Copy post to share',
-                  onPressed: () => _share(context),
-                  icon: const Icon(
+                  tooltip: 'Share post',
+                  onPressed: () => showPostShareSheet(
+                    context,
+                    postId: post.id,
+                    postTitle: post.title,
+                  ),
+                  icon: Icon(
                     Icons.share_outlined,
-                    color: _textSecondary,
+                    color: context.appColors.textSecondary,
                     size: 22,
                   ),
                 ),
@@ -299,35 +300,6 @@ class PostCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _share(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final text = [
-      post.title,
-      post.content,
-      if (post.linkUrl != null) post.linkUrl!,
-      if (post.tags.isNotEmpty)
-        post.tags.map((tag) => tag.startsWith('#') ? tag : '#$tag').join(' '),
-    ].where((value) => value.isNotEmpty).join('\n\n');
-    try {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (messenger.mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Post copied. You can paste it to share.'),
-          ),
-        );
-      }
-    } catch (_) {
-      if (messenger.mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Unable to copy this post. Please try again.'),
-          ),
-        );
-      }
-    }
   }
 
   Widget? _attachmentPreview() {
@@ -421,10 +393,10 @@ class _PostAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (imageUrl == null) {
-      return const CircleAvatar(
+      return CircleAvatar(
         radius: 22,
-        backgroundColor: PostCard._attachmentBackground,
-        child: Icon(Icons.person_outline, color: PostCard._primaryBlue),
+        backgroundColor: context.appColors.primarySoft,
+        child: Icon(Icons.person_outline, color: context.appColors.primary),
       );
     }
 
@@ -434,10 +406,10 @@ class _PostAvatar extends StatelessWidget {
         width: 44,
         height: 44,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const CircleAvatar(
+        errorBuilder: (_, _, _) => CircleAvatar(
           radius: 22,
-          backgroundColor: PostCard._attachmentBackground,
-          child: Icon(Icons.person_outline, color: PostCard._primaryBlue),
+          backgroundColor: context.appColors.primarySoft,
+          child: Icon(Icons.person_outline, color: context.appColors.primary),
         ),
       ),
     );
@@ -462,28 +434,30 @@ class _ImageAttachment extends StatelessWidget {
             if (loadingProgress == null) {
               return child;
             }
-            return const ColoredBox(
-              color: PostCard._attachmentBackground,
+            return ColoredBox(
+              color: context.appColors.primarySoft,
               child: Center(
-                child: CircularProgressIndicator(color: PostCard._primaryBlue),
+                child: CircularProgressIndicator(
+                  color: context.appColors.primary,
+                ),
               ),
             );
           },
-          errorBuilder: (_, _, _) => const ColoredBox(
-            color: PostCard._attachmentBackground,
+          errorBuilder: (_, _, _) => ColoredBox(
+            color: context.appColors.primarySoft,
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.broken_image_outlined,
-                    color: PostCard._textSecondary,
+                    color: context.appColors.textSecondary,
                     size: 32,
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Image unavailable',
-                    style: TextStyle(color: PostCard._textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
                 ],
               ),
@@ -505,7 +479,7 @@ class _VideoAttachment extends StatelessWidget {
     return Container(
       height: 160,
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -518,10 +492,10 @@ class _VideoAttachment extends StatelessWidget {
               child: Icon(Icons.play_arrow, color: Colors.white, size: 30),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Video Attachment',
               style: TextStyle(
-                color: PostCard._textPrimary,
+                color: context.appColors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -531,8 +505,8 @@ class _VideoAttachment extends StatelessWidget {
                 name!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: PostCard._textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                 ),
               ),
@@ -559,15 +533,15 @@ class _FileAttachment extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.insert_drive_file_outlined,
             size: 28,
-            color: PostCard._primaryBlue,
+            color: context.appColors.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -578,16 +552,16 @@ class _FileAttachment extends StatelessWidget {
                   fileName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: PostCard._textPrimary,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   extension,
-                  style: const TextStyle(
-                    color: PostCard._textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -610,20 +584,20 @@ class _LinkAttachment extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.link, color: PostCard._primaryBlue),
+          Icon(Icons.link, color: context.appColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               url,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: PostCard._primaryBlue,
+              style: TextStyle(
+                color: context.appColors.primary,
                 decoration: TextDecoration.underline,
               ),
             ),
@@ -646,13 +620,13 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: PostCard._attachmentBackground,
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: PostCard._primaryBlue,
+        style: TextStyle(
+          color: context.appColors.primary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),

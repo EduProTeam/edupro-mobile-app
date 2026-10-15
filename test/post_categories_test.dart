@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edupro_mobile_app/features/home/presentation/widgets/home_community_widgets.dart';
 import 'package:edupro_mobile_app/features/home/presentation/widgets/home_post_feed.dart';
 import 'package:edupro_mobile_app/features/posts/models/post_categories.dart';
+import 'package:edupro_mobile_app/features/posts/models/post_link.dart';
 import 'package:edupro_mobile_app/features/posts/presentation/screens/new_post_screen.dart';
 import 'package:edupro_mobile_app/features/posts/presentation/widgets/post_card.dart';
 import 'package:edupro_mobile_app/features/posts/services/post_service.dart';
@@ -260,6 +261,17 @@ Future<void> _openEditor(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('post links use the document ID even when stored postId differs', () {
+    final post = PublishedPost.fromDocument(
+      _Snapshot('selected-post', {'postId': 'another-post'}),
+    );
+    expect(post.id, 'selected-post');
+    expect(
+      PostLink.forPost(post.id).toString(),
+      'edupro://app/post/selected-post',
+    );
+  });
 
   test(
     'each category is saved to Firestore and read back by the feed',
@@ -763,7 +775,7 @@ void main() {
   });
 
   testWidgets(
-    'post title opens the full post and Share copies useful content',
+    'post title opens the full post and Share offers options for its link',
     (tester) async {
       _configureHomeTest(tester);
       String? copied;
@@ -806,15 +818,16 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('A helpful lesson'));
       expect(opened, isTrue);
-      await tester.tap(find.byTooltip('Copy post to share'));
+      await tester.tap(find.byTooltip('Share post'));
       await tester.pumpAndSettle();
-      expect(copied, contains('A helpful lesson'));
-      expect(copied, contains('Share this learning resource'));
-      expect(copied, contains('#tips'));
-      expect(
-        find.text('Post copied. You can paste it to share.'),
-        findsOneWidget,
-      );
+      expect(find.text('Message'), findsOneWidget);
+      expect(find.text('WhatsApp'), findsOneWidget);
+      expect(find.text('Copy Link'), findsOneWidget);
+      expect(copied, isNull);
+      await tester.tap(find.text('Copy Link'));
+      await tester.pumpAndSettle();
+      expect(copied, PostLink.forPost('A helpful lesson').toString());
+      expect(find.text('Post link copied.'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

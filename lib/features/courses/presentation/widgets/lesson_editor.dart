@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/course_draft.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
@@ -149,130 +150,120 @@ class _LessonEditorState extends State<InlineLessonEditor> {
     curve: Curves.easeOut,
     alignment: Alignment.topCenter,
     child: CourseFormCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.heading,
-                              style: const TextStyle(
-                                color: OnboardingScreenLayout.primaryBlue,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Collapse editor',
-                            onPressed: _busy ? null : widget.onCancel,
-                            icon: const Icon(Icons.keyboard_arrow_up),
-                            color: OnboardingScreenLayout.primaryBlue,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      CourseField(
-                        label: 'Lesson Title',
-                        requiredField: true,
-                        child: TextField(
-                          controller: _title,
-                          onChanged: (_) => setState(() {}),
-                          decoration: courseInput('Enter lesson title')
-                              .copyWith(
-                                errorText:
-                                    widget.showErrors &&
-                                        _title.text.trim().isEmpty
-                                    ? 'Enter a lesson title.'
-                                    : null,
-                              ),
-                        ),
-                      ),
-                      CourseField(
-                        label: 'Upload Lesson Video',
-                        requiredField: true,
-                        child: CourseUploadField(
-                          label: 'Select video',
-                          selection: _lesson.video,
-                          onPick: _busy ? null : () => _pick(video: true),
-                          onRemove: _busy || _lesson.video == null
-                              ? null
-                              : () => setState(() => _lesson.video = null),
-                          onRetry: _busy || _lesson.video == null
-                              ? null
-                              : () => _retry(_lesson.video!),
-                          error: widget.showErrors && _lesson.video == null
-                              ? 'Add a lesson video before publishing.'
-                              : null,
-                        ),
-                      ),
-                      CourseField(
-                        label: 'Lesson Description',
-                        child: TextField(
-                          controller: _description,
-                          maxLines: 4,
-                          decoration: courseInput('Describe this lesson'),
-                        ),
-                      ),
-                      const Text(
-                        'Attach Learning Materials',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'PDF, DOCX, PPTX',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                      for (var i = 0; i < _lesson.materials.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: CourseUploadField(
-                            label: 'Choose file',
-                            selection: _lesson.materials[i],
-                            onPick: _busy ? null : () => _pick(replace: i),
-                            onRemove: _busy
-                                ? null
-                                : () => setState(
-                                    () => _lesson.materials.removeAt(i),
-                                  ),
-                            onRetry: _busy
-                                ? null
-                                : () => _retry(_lesson.materials[i]),
-                          ),
-                        ),
-                      TextButton.icon(
-                        onPressed: _busy ? null : () => _pick(),
-                        icon: const Icon(Icons.attach_file),
-                        label: const Text('Choose files'),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _busy ? null : widget.onCancel,
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: OnboardingScreenLayout.primaryBlue,
-                        minimumSize: const Size.fromHeight(54),
-                      ),
-                      onPressed: _busy ? null : _save,
-                      child: const Text('Save Lesson'),
-                    ),
-                  ),
-                ],
-                      ),
-                    ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.heading,
+                  style: const TextStyle(
+                    color: OnboardingScreenLayout.primaryBlue,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
+              ),
+              IconButton(
+                tooltip: 'Collapse editor',
+                onPressed: _busy ? null : widget.onCancel,
+                icon: const Icon(Icons.keyboard_arrow_up),
+                color: OnboardingScreenLayout.primaryBlue,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          CourseField(
+            label: 'Lesson Title',
+            requiredField: true,
+            child: TextField(
+              controller: _title,
+              onChanged: (_) => setState(() {}),
+              decoration: courseInput(context, 'Enter lesson title').copyWith(
+                errorText: widget.showErrors && _title.text.trim().isEmpty
+                    ? 'Enter a lesson title.'
+                    : null,
+              ),
+            ),
+          ),
+          CourseField(
+            label: 'Upload Lesson Video',
+            requiredField: true,
+            child: CourseUploadField(
+              label: 'Select video',
+              selection: _lesson.video,
+              onPick: _busy ? null : () => _pick(video: true),
+              onRemove: _busy || _lesson.video == null
+                  ? null
+                  : () => setState(() => _lesson.video = null),
+              onRetry: _busy || _lesson.video == null
+                  ? null
+                  : () => _retry(_lesson.video!),
+              error: widget.showErrors && _lesson.video == null
+                  ? 'Add a lesson video before publishing.'
+                  : null,
+            ),
+          ),
+          CourseField(
+            label: 'Lesson Description',
+            child: TextField(
+              controller: _description,
+              maxLines: 4,
+              decoration: courseInput(context, 'Describe this lesson'),
+            ),
+          ),
+          const Text(
+            'Attach Learning Materials',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'PDF, DOCX, PPTX',
+            style: TextStyle(color: context.appColors.textSecondary),
+          ),
+          for (var i = 0; i < _lesson.materials.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: CourseUploadField(
+                label: 'Choose file',
+                selection: _lesson.materials[i],
+                onPick: _busy ? null : () => _pick(replace: i),
+                onRemove: _busy
+                    ? null
+                    : () => setState(() => _lesson.materials.removeAt(i)),
+                onRetry: _busy ? null : () => _retry(_lesson.materials[i]),
+              ),
+            ),
+          TextButton.icon(
+            onPressed: _busy ? null : () => _pick(),
+            icon: const Icon(Icons.attach_file),
+            label: const Text('Choose files'),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy ? null : widget.onCancel,
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: OnboardingScreenLayout.primaryBlue,
+                    minimumSize: const Size.fromHeight(54),
+                  ),
+                  onPressed: _busy ? null : _save,
+                  child: const Text('Save Lesson'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
   );
 }

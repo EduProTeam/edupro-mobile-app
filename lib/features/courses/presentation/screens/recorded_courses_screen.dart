@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
@@ -160,8 +161,8 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
               );
             }
             if (!ownedSnapshot.hasData || !publishedSnapshot.hasData) {
-              return const Scaffold(
-                backgroundColor: Color(0xFFF7F8FB),
+              return Scaffold(
+                backgroundColor: context.appColors.background,
                 body: Center(child: CircularProgressIndicator()),
               );
             }
@@ -183,9 +184,9 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
         .where((course) => course.status == CourseStatus.draft)
         .toList();
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FB),
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F8FB),
+        backgroundColor: context.appColors.background,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: const Text(
@@ -231,7 +232,7 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
                         icon: const Icon(Icons.close),
                       ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: context.appColors.surface,
                 contentPadding: const EdgeInsets.symmetric(vertical: 18),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(22),
@@ -246,7 +247,7 @@ class _RecordedCoursesScreenState extends State<RecordedCoursesScreen>
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             labelColor: OnboardingScreenLayout.primaryBlue,
-            unselectedLabelColor: const Color(0xFF707B94),
+            unselectedLabelColor: context.appColors.textSecondary,
             labelStyle: const TextStyle(fontWeight: FontWeight.w700),
             indicatorColor: OnboardingScreenLayout.primaryBlue,
             indicatorWeight: 4,
@@ -499,7 +500,7 @@ class _CourseCard extends StatelessWidget {
     final hasRemoteThumbnail =
         Uri.tryParse(course.thumbnail?.url ?? '')?.hasScheme == true;
     return Material(
-      color: Colors.white,
+      color: context.appColors.surface,
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
@@ -557,7 +558,7 @@ class _CourseCard extends StatelessWidget {
                               saved ? Icons.favorite : Icons.favorite_border,
                               color: saved
                                   ? OnboardingScreenLayout.primaryBlue
-                                  : const Color(0xFF69748B),
+                                  : context.appColors.textSecondary,
                             ),
                           ),
                         ],
@@ -566,8 +567,8 @@ class _CourseCard extends StatelessWidget {
                         '${course.level}  •  ${course.lessons.length} lessons',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF707B94),
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -592,8 +593,8 @@ class _CourseCard extends StatelessWidget {
                               child: Text(
                                 course.totalDuration,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF707B94),
+                                style: TextStyle(
+                                  color: context.appColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -638,7 +639,7 @@ class _ProgressCourseCard extends StatelessWidget {
     final remoteThumbnail =
         Uri.tryParse(course.thumbnail?.url ?? '')?.hasScheme == true;
     return Material(
-      color: Colors.white,
+      color: context.appColors.surface,
       elevation: 2,
       shadowColor: const Color(0x180E2145),
       borderRadius: BorderRadius.circular(22),
@@ -680,11 +681,11 @@ class _ProgressCourseCard extends StatelessWidget {
                                 : course.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               height: 1.15,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF111B35),
+                              color: context.appColors.textPrimary,
                             ),
                           ),
                         ),
@@ -701,7 +702,7 @@ class _ProgressCourseCard extends StatelessWidget {
                             saved ? Icons.favorite : Icons.favorite_border,
                             color: saved
                                 ? OnboardingScreenLayout.primaryBlue
-                                : const Color(0xFF59647B),
+                                : context.appColors.textSecondary,
                           ),
                         ),
                       ],
@@ -714,16 +715,16 @@ class _ProgressCourseCard extends StatelessWidget {
                             value: progress,
                             minHeight: 10,
                             color: OnboardingScreenLayout.primaryBlue,
-                            backgroundColor: const Color(0xFFE2E7F0),
+                            backgroundColor: context.appColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(99),
                           ),
                         ),
                         const SizedBox(width: 9),
                         Text(
                           '${(progress * 100).round()}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF111B35),
+                            color: context.appColors.textPrimary,
                           ),
                         ),
                       ],
@@ -733,8 +734,8 @@ class _ProgressCourseCard extends StatelessWidget {
                       '$completed of $total lessons completed',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF707B94),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -770,7 +771,7 @@ class _CourseThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    color: const Color(0xFFE5F1FF),
+    color: context.appColors.primarySoft,
     child: Center(
       child: Icon(
         course.category.toLowerCase().contains('market')
@@ -797,10 +798,10 @@ class _PriceBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
         color: draft
-            ? const Color(0xFFF0F2F5)
+            ? context.appColors.surfaceVariant
             : free
             ? const Color(0xFFDDF9E9)
-            : const Color(0xFFE5F1FF),
+            : context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -811,7 +812,7 @@ class _PriceBadge extends StatelessWidget {
             : 'Paid',
         style: TextStyle(
           color: draft
-              ? const Color(0xFF657084)
+              ? context.appColors.textSecondary
               : free
               ? const Color(0xFF159447)
               : OnboardingScreenLayout.primaryBlue,
@@ -851,10 +852,10 @@ class _EmptyCourses extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.menu_book_outlined,
             size: 46,
-            color: Color(0xFF8490A6),
+            color: context.appColors.textSecondary,
           ),
           const SizedBox(height: 14),
           Text(
@@ -866,7 +867,10 @@ class _EmptyCourses extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF707B94), height: 1.4),
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              height: 1.4,
+            ),
           ),
           if (actionLabel != null) ...[
             const SizedBox(height: 12),
@@ -883,7 +887,7 @@ class _LoadError extends StatelessWidget {
   final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF7F8FB),
+    backgroundColor: context.appColors.background,
     appBar: AppBar(title: const Text('Recorded Courses')),
     body: Center(
       child: TextButton.icon(

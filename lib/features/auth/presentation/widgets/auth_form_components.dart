@@ -1,16 +1,9 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../shared/branding/edupro_brand.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
-
-class AuthUi {
-  static const backgroundColor = Color(0xFFF6F7FB);
-  static const fieldBorderColor = Color(0xFFC8CDD5);
-  static const fieldFillColor = Colors.white;
-  static const inputTextColor = Color(0xFF4F4F4F);
-  static const subtitleColor = Color(0xFF1F1F1F);
-}
 
 class EduProAuthBranding extends StatelessWidget {
   const EduProAuthBranding({super.key});
@@ -38,19 +31,19 @@ class AuthDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: Color(0xFFBFC4CC), thickness: 1)),
+        Expanded(child: Divider(color: context.appColors.border, thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF555D68),
+            style: TextStyle(
+              color: context.appColors.textSecondary,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: Color(0xFFBFC4CC), thickness: 1)),
+        Expanded(child: Divider(color: context.appColors.border, thickness: 1)),
       ],
     );
   }
@@ -90,41 +83,38 @@ class AuthTextField extends StatelessWidget {
       obscureText: obscureText,
       obscuringCharacter: '*',
       onFieldSubmitted: onFieldSubmitted,
-      style: const TextStyle(
-        color: AuthUi.inputTextColor,
+      style: TextStyle(
+        color: context.appColors.textPrimary,
         fontSize: 18,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(
-          color: AuthUi.inputTextColor,
+        hintStyle: TextStyle(
+          color: context.appColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: Icon(prefixIcon, color: AuthUi.inputTextColor),
+        prefixIcon: Icon(prefixIcon, color: context.appColors.textPrimary),
         suffixIcon: suffixIcon == null
             ? null
             : IconTheme(
-                data: const IconThemeData(color: AuthUi.inputTextColor),
+                data: IconThemeData(color: context.appColors.textPrimary),
                 child: suffixIcon!,
               ),
         filled: true,
-        fillColor: AuthUi.fieldFillColor,
+        fillColor: context.appColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 15,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: AuthUi.fieldBorderColor),
+          borderSide: BorderSide(color: context.appColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(
-            color: OnboardingScreenLayout.primaryBlue,
-            width: 1.4,
-          ),
+          borderSide: BorderSide(color: context.appColors.primary, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
@@ -199,9 +189,9 @@ class GoogleAuthButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: AuthUi.fieldFillColor,
-          foregroundColor: AuthUi.inputTextColor,
-          side: const BorderSide(color: AuthUi.fieldBorderColor),
+          backgroundColor: context.appColors.surface,
+          foregroundColor: context.appColors.textPrimary,
+          side: BorderSide(color: context.appColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -217,7 +207,9 @@ class GoogleAuthButton extends StatelessWidget {
               height: 22,
             ),
             const SizedBox(width: 12),
-            Text(label),
+            Flexible(
+              child: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
+            ),
           ],
         ),
       ),

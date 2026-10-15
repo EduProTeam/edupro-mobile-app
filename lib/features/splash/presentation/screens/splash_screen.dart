@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../firebase_options.dart';
+import '../../../../core/firebase/app_firebase.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/branding/edupro_brand.dart';
 import '../../../home/presentation/screens/home_shell_screen.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
@@ -68,9 +68,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<bool> _resolveSignedIn(int attempt) async {
     // Reuse an in-flight native initialization if the user retries a timeout.
-    _firebaseInitialization ??= Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ).then<void>((_) {});
+    _firebaseInitialization ??= AppFirebase.ensureInitialized();
     try {
       await _firebaseInitialization;
     } catch (_) {
@@ -150,14 +148,20 @@ class _SplashScreenState extends State<SplashScreen>
       final destination = _signedIn!
           ? const HomeShellScreen()
           : const OnboardingScreen1();
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder<void>(
-          pageBuilder: (_, animation, secondaryAnimation) => destination,
-          transitionDuration: SplashTiming.exitTransition,
-          transitionsBuilder: (_, animation, secondaryAnimation, child) =>
-              FadeTransition(opacity: animation, child: child),
-        ),
+      final navigator = Navigator.of(context);
+      final splashRoute = ModalRoute.of(context);
+      final nextRoute = PageRouteBuilder<void>(
+        pageBuilder: (_, animation, secondaryAnimation) => destination,
+        transitionDuration: SplashTiming.exitTransition,
+        transitionsBuilder: (_, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
       );
+      // A shared link can arrive while this launch sequence is still running.
+      if (splashRoute != null && !splashRoute.isCurrent) {
+        navigator.replace(oldRoute: splashRoute, newRoute: nextRoute);
+      } else {
+        navigator.pushReplacement(nextRoute);
+      }
     });
   }
 
@@ -209,21 +213,30 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.white,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: Color(0xFFEDF6FF),
-        systemNavigationBarIconBrightness: Brightness.dark,
+      value: SystemUiOverlayStyle(
+        statusBarColor: colors.surface,
+        statusBarIconBrightness: colors.isDark
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: colors.isDark
+            ? colors.background
+            : const Color(0xFFEDF6FF),
+        systemNavigationBarIconBrightness: colors.isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
       child: Scaffold(
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.white, Color(0xFFF8FBFF), Color(0xFFEDF6FF)],
+              colors: colors.isDark
+                  ? [colors.surface, colors.background, colors.primarySoft]
+                  : const [Colors.white, Color(0xFFF8FBFF), Color(0xFFEDF6FF)],
               stops: [0, 0.54, 1],
             ),
           ),
@@ -254,11 +267,11 @@ class _SplashScreenState extends State<SplashScreen>
                     AnimatedBuilder(
                       animation: _entrance,
                       builder: (context, _) => _reveal(
-                        const Text(
+                        Text(
                           'A little learning. A world of possibilities.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Color(0xFF7187A2),
+                            color: colors.textSecondary,
                             fontSize: 11.5,
                             letterSpacing: 0.2,
                           ),
@@ -346,10 +359,10 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         const SizedBox(height: 12),
         _reveal(
-          const Text(
+          Text(
             'Learn. Share. Grow.',
             style: TextStyle(
-              color: Color(0xFF516A89),
+              color: context.appColors.textSecondary,
               fontSize: 14,
               letterSpacing: 1.1,
             ),
@@ -390,6 +403,9 @@ class _SplashScreenState extends State<SplashScreen>
   Widget _logoPiece(String asset, Duration start, Duration end) => _reveal(
     SvgPicture.asset(
       asset,
+      colorMapper: context.appColors.isDark
+          ? const EduProDarkColorMapper()
+          : null,
       width: 140,
       height: 140,
       excludeFromSemantics: true,

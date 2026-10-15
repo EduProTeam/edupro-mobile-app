@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
@@ -181,7 +182,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
                         hintText: 'Search skills or learners',
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
-                        fillColor: const Color(0xFFF6F9FD),
+                        fillColor: context.appColors.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
@@ -195,7 +196,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFE9F3FF),
+              color: context.appColors.primarySoft,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -204,7 +205,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCDE3FF),
+                    color: context.appColors.primarySoft,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
@@ -215,7 +216,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -228,9 +229,9 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
                       ),
                       SizedBox(height: 5),
                       Text(
-                          'Explore skills, request a session and share your knowledge.',
+                        'Explore skills, request a session and share your knowledge.',
                         style: TextStyle(
-                          color: SkillColors.secondary,
+                          color: context.appColors.textSecondary,
                           height: 1.35,
                         ),
                       ),
@@ -250,10 +251,7 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _filterButton(
-                  'Requested',
-                  _RequestFilter.requested,
-                ),
+                child: _filterButton('Requested', _RequestFilter.requested),
               ),
             ],
           ),
@@ -269,10 +267,14 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 44),
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        backgroundColor: selected ? SkillColors.primary : Colors.white,
-        foregroundColor: selected ? Colors.white : SkillColors.secondary,
+        backgroundColor: selected
+            ? SkillColors.primary
+            : context.appColors.surface,
+        foregroundColor: selected
+            ? Colors.white
+            : context.appColors.textSecondary,
         side: BorderSide(
-          color: selected ? SkillColors.primary : SkillColors.border,
+          color: selected ? SkillColors.primary : context.appColors.border,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -296,7 +298,9 @@ class _SkillRequestsScreenState extends State<SkillRequestsScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
       );
     }
   }
@@ -353,8 +357,8 @@ class _RequestCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       request.role,
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -366,8 +370,8 @@ class _RequestCard extends StatelessWidget {
                 children: [
                   Text(
                     request.postedAgo,
-                    style: const TextStyle(
-                      color: SkillColors.secondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -380,7 +384,7 @@ class _RequestCard extends StatelessWidget {
                       saved ? Icons.bookmark : Icons.bookmark_border,
                       color: saved
                           ? SkillColors.primary
-                          : SkillColors.secondary,
+                          : context.appColors.textSecondary,
                     ),
                   ),
                 ],
@@ -402,8 +406,8 @@ class _RequestCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   request.description,
-                  style: const TextStyle(
-                    color: SkillColors.secondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     height: 1.35,
                     fontSize: 13,
                   ),
@@ -419,7 +423,7 @@ class _RequestCard extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 25, color: SkillColors.border),
+          Divider(height: 25, color: context.appColors.border),
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 390;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../../models/course_draft.dart';
@@ -71,8 +72,8 @@ class _MyCoursesTabState extends State<MyCoursesTab>
               Expanded(
                 child: Text(
                   '${courses.length} ${courses.length == 1 ? 'course' : 'courses'}',
-                  style: const TextStyle(
-                    color: Color(0xFF707B94),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 15,
                   ),
                 ),
@@ -80,7 +81,7 @@ class _MyCoursesTabState extends State<MyCoursesTab>
               PopupMenuButton<CourseSort>(
                 tooltip: 'Sort courses',
                 initialValue: _sort,
-                icon: const Icon(Icons.sort, color: Color(0xFF59647B)),
+                icon: Icon(Icons.sort, color: context.appColors.textSecondary),
                 onSelected: (value) => setState(() => _sort = value),
                 itemBuilder: (_) => [
                   for (final value in CourseSort.values)
@@ -125,7 +126,9 @@ class _MyCoursesTabState extends State<MyCoursesTab>
                                 ? 'Try another search term.'
                                 : 'Create your first course and start sharing your knowledge.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Color(0xFF707B94)),
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
+                            ),
                           ),
                           const SizedBox(height: 18),
                           FilledButton(
@@ -185,7 +188,7 @@ class MyCourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const blue = OnboardingScreenLayout.primaryBlue;
-    const navy = Color(0xFF111B35);
+    final navy = context.appColors.textPrimary;
     final published = course.status == CourseStatus.published;
     final statusColor = published
         ? const Color(0xFF239A46)
@@ -197,11 +200,14 @@ class MyCourseCard extends StatelessWidget {
         uri.host.isNotEmpty;
     final placeholder = DecoratedBox(
       key: const ValueKey('course-thumbnail-placeholder'),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE5F1FF), Color(0xFFC8DFFF)],
+          colors: [
+            context.appColors.primarySoft,
+            context.appColors.primarySoft,
+          ],
         ),
       ),
       child: const Center(
@@ -264,10 +270,10 @@ class MyCourseCard extends StatelessWidget {
         ],
       ),
       child: Material(
-        color: Colors.white,
+        color: context.appColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0xFFE8ECF2)),
+          side: BorderSide(color: context.appColors.border),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -318,7 +324,7 @@ class MyCourseCard extends StatelessWidget {
                                             : course.title,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w800,
                                           color: navy,
@@ -333,10 +339,10 @@ class MyCourseCard extends StatelessWidget {
                                       tooltip: 'Course options',
                                       padding: EdgeInsets.zero,
                                       enabled: !deleting,
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.more_horiz,
                                         size: 22,
-                                        color: Color(0xFF59647B),
+                                        color: context.appColors.textSecondary,
                                       ),
                                       onSelected: (value) {
                                         if (value == 'edit') {
@@ -427,12 +433,15 @@ class _CardStat extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 16, color: const Color(0xFF707B94)),
+      Icon(icon, size: 16, color: context.appColors.textSecondary),
       const SizedBox(width: 4),
       Flexible(
         child: Text(
           text,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF707B94)),
+          style: TextStyle(
+            fontSize: 12,
+            color: context.appColors.textSecondary,
+          ),
         ),
       ),
     ],

@@ -1,3 +1,4 @@
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../models/group_model.dart';
@@ -30,10 +31,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
   bool _isDeleting = false;
 
   static const Color primaryBlue = Color(0xFF3D8FEF);
-  static const Color backgroundColor = Color(0xFFF6F7FB);
-  static const Color darkText = Color(0xFF151A24);
-  static const Color secondaryText = Color(0xFF7A8494);
-  static const Color borderColor = Color(0xFFD9DEE7);
 
   // ============================================================
   // INIT
@@ -135,8 +132,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
+          backgroundColor: context.appColors.surface,
+          surfaceTintColor: context.appColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -150,7 +147,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              style: TextButton.styleFrom(foregroundColor: secondaryText),
+              style: TextButton.styleFrom(
+                foregroundColor: context.appColors.textSecondary,
+              ),
               child: const Text(
                 'Cancel',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -220,8 +219,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
+          backgroundColor: context.appColors.surface,
+          surfaceTintColor: context.appColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -237,7 +236,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              style: TextButton.styleFrom(foregroundColor: secondaryText),
+              style: TextButton.styleFrom(
+                foregroundColor: context.appColors.textSecondary,
+              ),
               child: const Text(
                 'Cancel',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -337,8 +338,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
+          backgroundColor: context.appColors.surface,
+          surfaceTintColor: context.appColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -354,7 +355,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              style: TextButton.styleFrom(foregroundColor: secondaryText),
+              style: TextButton.styleFrom(
+                foregroundColor: context.appColors.textSecondary,
+              ),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -416,9 +419,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.appColors.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: context.appColors.border),
             ),
             child: const Center(
               child: CircularProgressIndicator(color: primaryBlue),
@@ -431,9 +434,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.appColors.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: context.appColors.border),
             ),
             child: const Text(
               'Could not load members.',
@@ -450,14 +453,14 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.appColors.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: context.appColors.border),
             ),
-            child: const Text(
+            child: Text(
               'No members found.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: secondaryText),
+              style: TextStyle(color: context.appColors.textSecondary),
             ),
           );
         }
@@ -465,16 +468,20 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
         return Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: borderColor),
+            border: Border.all(color: context.appColors.border),
           ),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: members.length,
             separatorBuilder: (_, __) {
-              return const Divider(height: 1, indent: 68, color: borderColor);
+              return Divider(
+                height: 1,
+                indent: 68,
+                color: context.appColors.border,
+              );
             },
             itemBuilder: (context, index) {
               final member = members[index];
@@ -489,14 +496,13 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                     // ==========================================
                     // USER INITIALS
                     // ==========================================
-
                     CircleAvatar(
                       radius: 22,
                       backgroundColor: primaryBlue.withValues(alpha: 0.10),
                       child: Text(
                         _getInitials(member.fullName),
-                        style: const TextStyle(
-                          color: primaryBlue,
+                        style: TextStyle(
+                          color: context.appColors.primary,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
@@ -516,8 +522,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                             member.fullName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: darkText,
+                            style: TextStyle(
+                              color: context.appColors.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -529,8 +535,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                               member.email,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: secondaryText,
+                              style: TextStyle(
+                                color: context.appColors.textSecondary,
                                 fontSize: 11,
                               ),
                             ),
@@ -554,10 +560,10 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                           color: primaryBlue.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Admin',
                           style: TextStyle(
-                            color: primaryBlue,
+                            color: context.appColors.primary,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -572,7 +578,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                           _makeAdmin(group, member);
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor: primaryBlue,
+                          foregroundColor: context.appColors.primary,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                         child: const Text(
@@ -616,9 +622,11 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: backgroundColor,
-            body: Center(child: CircularProgressIndicator(color: primaryBlue)),
+          return Scaffold(
+            backgroundColor: context.appColors.background,
+            body: const Center(
+              child: CircularProgressIndicator(color: primaryBlue),
+            ),
           );
         }
 
@@ -629,17 +637,20 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
         final isAdmin = _groupService.isCurrentUserAdmin(group);
 
         return Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: context.appColors.background,
 
           appBar: AppBar(
-            backgroundColor: backgroundColor,
-            surfaceTintColor: backgroundColor,
+            backgroundColor: context.appColors.surface,
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
             centerTitle: true,
-            iconTheme: const IconThemeData(color: darkText),
-            title: const Text(
+            iconTheme: IconThemeData(color: context.appColors.textPrimary),
+            title: Text(
               'Group Details',
-              style: TextStyle(color: darkText, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: context.appColors.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
 
@@ -650,7 +661,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                 // =================================================
                 // GROUP IMAGE
                 // =================================================
-
                 _buildGroupImage(group),
 
                 const SizedBox(height: 14),
@@ -658,8 +668,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                 Text(
                   group.groupName,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: darkText,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                   ),
@@ -669,7 +679,10 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
 
                 Text(
                   '${group.members.length} members',
-                  style: const TextStyle(color: secondaryText, fontSize: 14),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
 
                 // =================================================
@@ -686,10 +699,10 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                       color: primaryBlue.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Admin',
                       style: TextStyle(
-                        color: primaryBlue,
+                        color: context.appColors.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -706,14 +719,13 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.appColors.surface,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: borderColor),
+                    border: Border.all(color: context.appColors.border),
                   ),
                   child: Column(
                     children: [
                       // GROUP NAME
-
                       _buildInfoSection(
                         icon: Icons.groups_outlined,
                         title: 'Group Name',
@@ -721,14 +733,14 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                             ? _buildEditField(_nameController)
                             : Text(
                                 group.groupName,
-                                style: const TextStyle(
-                                  color: secondaryText,
+                                style: TextStyle(
+                                  color: context.appColors.textSecondary,
                                   fontSize: 14,
                                 ),
                               ),
                       ),
 
-                      const Divider(height: 28, color: borderColor),
+                      Divider(height: 28, color: context.appColors.border),
 
                       // DESCRIPTION
                       _buildInfoSection(
@@ -741,15 +753,15 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                               )
                             : Text(
                                 group.description,
-                                style: const TextStyle(
-                                  color: secondaryText,
+                                style: TextStyle(
+                                  color: context.appColors.textSecondary,
                                   fontSize: 14,
                                   height: 1.4,
                                 ),
                               ),
                       ),
 
-                      const Divider(height: 28, color: borderColor),
+                      Divider(height: 28, color: context.appColors.border),
 
                       // CATEGORY
                       _buildInfoSection(
@@ -772,8 +784,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Members (${group.members.length})',
-                    style: const TextStyle(
-                      color: darkText,
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
@@ -839,8 +851,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                             },
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size(0, 50),
-                              foregroundColor: secondaryText,
-                              side: const BorderSide(color: borderColor),
+                              foregroundColor: context.appColors.textSecondary,
+                              side: BorderSide(color: context.appColors.border),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -933,7 +945,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
                               _deleteGroup(group);
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFEDED),
+                        backgroundColor: context.appColors.isDark
+                            ? Colors.red.withValues(alpha: 0.14)
+                            : const Color(0xFFFFEDED),
                         foregroundColor: Colors.red,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -964,10 +978,14 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
 
   Widget _buildGroupImage(GroupModel group) {
     if (group.imageUrl.trim().isEmpty) {
-      return const CircleAvatar(
+      return CircleAvatar(
         radius: 46,
-        backgroundColor: Color(0xFFE8F1FD),
-        child: Icon(Icons.groups_rounded, size: 42, color: primaryBlue),
+        backgroundColor: context.appColors.primarySoft,
+        child: Icon(
+          Icons.groups_rounded,
+          size: 42,
+          color: context.appColors.primary,
+        ),
       );
     }
 
@@ -978,10 +996,14 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
         height: 92,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          return const CircleAvatar(
+          return CircleAvatar(
             radius: 46,
-            backgroundColor: Color(0xFFE8F1FD),
-            child: Icon(Icons.groups_rounded, size: 42, color: primaryBlue),
+            backgroundColor: context.appColors.primarySoft,
+            child: Icon(
+              Icons.groups_rounded,
+              size: 42,
+              color: context.appColors.primary,
+            ),
           );
         },
       ),
@@ -1008,7 +1030,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
             borderRadius: BorderRadius.circular(11),
             border: Border.all(color: primaryBlue),
           ),
-          child: Icon(icon, color: primaryBlue, size: 21),
+          child: Icon(icon, color: context.appColors.primary, size: 21),
         ),
 
         const SizedBox(width: 12),
@@ -1019,8 +1041,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: darkText,
+                style: TextStyle(
+                  color: context.appColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1047,22 +1069,22 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: const Color(0xFFF8FAFC),
+        fillColor: context.appColors.surfaceVariant,
         contentPadding: const EdgeInsets.all(12),
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: borderColor),
+          borderSide: BorderSide(color: context.appColors.border),
         ),
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: borderColor),
+          borderSide: BorderSide(color: context.appColors.border),
         ),
 
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: primaryBlue),
+          borderSide: BorderSide(color: context.appColors.primary),
         ),
       ),
     );
@@ -1088,14 +1110,14 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
 
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFFF8FAFC),
+            fillColor: context.appColors.surfaceVariant,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: borderColor),
+              borderSide: BorderSide(color: context.appColors.border),
             ),
           ),
 
@@ -1131,8 +1153,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen> {
       ),
       child: Text(
         category,
-        style: const TextStyle(
-          color: primaryBlue,
+        style: TextStyle(
+          color: context.appColors.primary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),

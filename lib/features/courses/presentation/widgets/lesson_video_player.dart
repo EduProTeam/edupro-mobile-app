@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
@@ -317,7 +318,7 @@ class _VideoMessage extends StatelessWidget {
       aspectRatio: 16 / 9,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F6FF),
+          color: context.appColors.primarySoft,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Center(
@@ -333,7 +334,10 @@ class _VideoMessage extends StatelessWidget {
                   child: Text(
                     detail!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.appColors.textSecondary,
+                    ),
                   ),
                 ),
               ?action,

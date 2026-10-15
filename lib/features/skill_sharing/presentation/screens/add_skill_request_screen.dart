@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
@@ -10,8 +11,7 @@ class AddSkillRequestScreen extends StatefulWidget {
   final SkillSharingStore store;
 
   @override
-  State<AddSkillRequestScreen> createState() =>
-      _AddSkillRequestScreenState();
+  State<AddSkillRequestScreen> createState() => _AddSkillRequestScreenState();
 }
 
 class _AddSkillRequestScreenState extends State<AddSkillRequestScreen> {
@@ -153,20 +153,19 @@ class _AddSkillRequestScreenState extends State<AddSkillRequestScreen> {
   InputDecoration _decoration(String? hint) => InputDecoration(
     hintText: hint,
     filled: true,
-    fillColor: const Color(0xFFF6F9FD),
+    fillColor: context.appColors.surfaceVariant,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
-      borderSide: const BorderSide(color: SkillColors.border),
+      borderSide: BorderSide(color: context.appColors.border),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
-      borderSide: const BorderSide(color: SkillColors.border),
+      borderSide: BorderSide(color: context.appColors.border),
     ),
   );
 
-  String? _required(String? value) => value == null || value.trim().isEmpty
-      ? 'This field is required'
-      : null;
+  String? _required(String? value) =>
+      value == null || value.trim().isEmpty ? 'This field is required' : null;
 
   String _levelLabel(SkillLevel level) =>
       '${level.name[0].toUpperCase()}${level.name.substring(1)}';
@@ -203,7 +202,9 @@ class _AddSkillRequestScreenState extends State<AddSkillRequestScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_date == null || _startTime == null || _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a date, start time and end time.')),
+        const SnackBar(
+          content: Text('Select a date, start time and end time.'),
+        ),
       );
       return;
     }
@@ -241,20 +242,21 @@ class _AddSkillRequestScreenState extends State<AddSkillRequestScreen> {
             .toSet()
             .toList(),
         date: _date!,
-        time:
-            '${_startTime!.format(context)} – ${_endTime!.format(context)}',
+        time: '${_startTime!.format(context)} – ${_endTime!.format(context)}',
         level: _level,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Skill published.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Skill published.')));
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
       );
     }
   }
@@ -278,7 +280,7 @@ class _PickerButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 58),
         padding: const EdgeInsets.symmetric(horizontal: 7),
-        side: const BorderSide(color: SkillColors.border),
+        side: BorderSide(color: context.appColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
       ),
       child: Column(

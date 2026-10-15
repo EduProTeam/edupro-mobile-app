@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../models/skill_models.dart';
 import '../../services/skill_sharing_store.dart';
@@ -65,9 +66,8 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
     if (requestTimes.isNotEmpty && !_times.contains(requestTimes.first)) {
       _times.add(requestTimes.first);
       _times.sort(
-        (left, right) => _minutesFromLabel(
-          left,
-        ).compareTo(_minutesFromLabel(right)),
+        (left, right) =>
+            _minutesFromLabel(left).compareTo(_minutesFromLabel(right)),
       );
     }
     _selectedTime = requestTimes.isNotEmpty
@@ -86,10 +86,9 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_dateScrollController.hasClients) return;
       _dateScrollController.jumpTo(
-        (_selectedDate * 65.0).clamp(
-          0.0,
-          _dateScrollController.position.maxScrollExtent,
-        ).toDouble(),
+        (_selectedDate * 65.0)
+            .clamp(0.0, _dateScrollController.position.maxScrollExtent)
+            .toDouble(),
       );
     });
   }
@@ -167,7 +166,7 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                                 style: TextStyle(
                                   color: selected
                                       ? Colors.white
-                                      : SkillColors.navy,
+                                      : context.appColors.textPrimary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -176,7 +175,7 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                                 style: TextStyle(
                                   color: selected
                                       ? const Color(0xFFD7E9FF)
-                                      : SkillColors.secondary,
+                                      : context.appColors.textSecondary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -185,7 +184,7 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                                 style: TextStyle(
                                   color: selected
                                       ? Colors.white
-                                      : SkillColors.navy,
+                                      : context.appColors.textPrimary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 21,
                                 ),
@@ -332,9 +331,9 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F7FF),
+        color: context.appColors.primarySoft,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: const Color(0xFFC8E0FF)),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Column(
         children: [
@@ -351,10 +350,10 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Tutor',
                       style: TextStyle(
-                        color: SkillColors.secondary,
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -385,10 +384,10 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Learner',
                       style: TextStyle(
-                        color: SkillColors.secondary,
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -417,10 +416,10 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Skill / Topic',
                       style: TextStyle(
-                        color: SkillColors.secondary,
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -433,8 +432,8 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
                     ),
                     Text(
                       _request.description,
-                      style: const TextStyle(
-                        color: SkillColors.secondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -471,9 +470,9 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
               ? SkillColors.primary
               : enabled
               ? Colors.white
-              : const Color(0xFFF2F4F7),
+              : context.appColors.surfaceVariant,
           border: Border.all(
-            color: enabled ? SkillColors.primary : SkillColors.border,
+            color: enabled ? SkillColors.primary : context.appColors.border,
           ),
           borderRadius: BorderRadius.circular(10),
         ),
@@ -485,8 +484,8 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
               color: selected
                   ? Colors.white
                   : enabled
-                  ? SkillColors.navy
-                  : SkillColors.secondary.withValues(alpha: .55),
+                  ? context.appColors.textPrimary
+                  : context.appColors.textSecondary.withValues(alpha: .55),
               fontSize: compact ? 11 : 12.5,
               fontWeight: FontWeight.w700,
               height: 1.3,
@@ -506,9 +505,11 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
         height: 78,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF4F8FF) : Colors.white,
+          color: selected
+              ? context.appColors.surfaceVariant
+              : context.appColors.surface,
           border: Border.all(
-            color: selected ? SkillColors.primary : SkillColors.border,
+            color: selected ? SkillColors.primary : context.appColors.border,
             width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
@@ -524,7 +525,9 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11.5,
-                color: selected ? SkillColors.primary : SkillColors.navy,
+                color: selected
+                    ? SkillColors.primary
+                    : context.appColors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -537,9 +540,7 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
   Future<void> _confirm() async {
     if (!_isTimeAvailable(_selectedTime)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a future date and time.'),
-        ),
+        const SnackBar(content: Text('Please select a future date and time.')),
       );
       return;
     }
@@ -553,7 +554,9 @@ class _ScheduleSessionScreenState extends State<ScheduleSessionScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
       );
       return;
     }

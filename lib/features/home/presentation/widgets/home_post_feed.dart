@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
 import '../../../posts/models/post_categories.dart';
 import '../../../posts/presentation/widgets/post_card.dart';
@@ -36,7 +37,6 @@ class HomePostFeed extends StatefulWidget {
 
 class _HomePostFeedState extends State<HomePostFeed> {
   static const _blue = Color(0xFF167BFF);
-  static const _background = Color(0xFFF8FAFD);
   final _searchController = TextEditingController();
   String _selectedCategory = allPostsCategory;
   String _searchQuery = '';
@@ -57,7 +57,7 @@ class _HomePostFeedState extends State<HomePostFeed> {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: _background,
+    color: context.appColors.background,
     child: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
@@ -105,20 +105,20 @@ class _HomePostFeedState extends State<HomePostFeed> {
                   sliver: SliverToBoxAdapter(
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Educational Posts',
                             style: TextStyle(
-                              color: Color(0xFF0A1638),
+                              color: context.appColors.textPrimary,
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Newest first',
-                          style: const TextStyle(
-                            color: Color(0xFF7A879D),
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
                             fontSize: 10,
                           ),
                         ),
@@ -143,20 +143,23 @@ class _HomePostFeedState extends State<HomePostFeed> {
     child: TextField(
       controller: _searchController,
       textInputAction: TextInputAction.search,
-      style: const TextStyle(color: Color(0xFF243753), fontSize: 12),
+      style: TextStyle(color: context.appColors.textPrimary, fontSize: 12),
       decoration: InputDecoration(
         hintText: 'Search posts...',
-        hintStyle: const TextStyle(color: Color(0xFF7B879D), fontSize: 12),
+        hintStyle: TextStyle(
+          color: context.appColors.textSecondary,
+          fontSize: 12,
+        ),
         filled: true,
-        fillColor: const Color(0xFFF0F4FA),
+        fillColor: context.appColors.surfaceVariant,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 10,
           vertical: 13,
         ),
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search,
-          color: Color(0xFF62738E),
+          color: context.appColors.textSecondary,
           size: 21,
         ),
         prefixIconConstraints: const BoxConstraints(
@@ -200,7 +203,7 @@ class _HomePostFeedState extends State<HomePostFeed> {
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeOutCubic,
     ),
-    child: Material(color: _background, child: child),
+    child: Material(color: context.appColors.background, child: child),
   );
 
   Widget _buildCategories() => SingleChildScrollView(
@@ -214,13 +217,13 @@ class _HomePostFeedState extends State<HomePostFeed> {
             child: ChoiceChip(
               label: Text(category),
               selected: _selectedCategory == category,
-              selectedColor: const Color(0xFFE3F0FF),
-              backgroundColor: Colors.white,
+              selectedColor: context.appColors.primarySoft,
+              backgroundColor: context.appColors.surface,
               checkmarkColor: _blue,
               labelStyle: TextStyle(
                 color: _selectedCategory == category
                     ? _blue
-                    : const Color(0xFF62738E),
+                    : context.appColors.textSecondary,
                 fontSize: 11,
                 fontWeight: _selectedCategory == category
                     ? FontWeight.w700
@@ -228,8 +231,8 @@ class _HomePostFeedState extends State<HomePostFeed> {
               ),
               side: BorderSide(
                 color: _selectedCategory == category
-                    ? const Color(0xFFA8CEFF)
-                    : const Color(0xFFE8EDF5),
+                    ? context.appColors.primary
+                    : context.appColors.border,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(22),
@@ -298,13 +301,16 @@ class _HomePostFeedState extends State<HomePostFeed> {
 class _FeedLoading extends StatelessWidget {
   const _FeedLoading();
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 40),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 40),
     child: Column(
       children: [
-        CircularProgressIndicator(color: Color(0xFF167BFF)),
-        SizedBox(height: 14),
-        Text('Loading posts...', style: TextStyle(color: Color(0xFF727D95))),
+        const CircularProgressIndicator(color: Color(0xFF167BFF)),
+        const SizedBox(height: 14),
+        Text(
+          'Loading posts...',
+          style: TextStyle(color: context.appColors.textSecondary),
+        ),
       ],
     ),
   );
@@ -335,8 +341,8 @@ class _FeedMessage extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Color(0xFF0A1638),
+          style: TextStyle(
+            color: context.appColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
@@ -345,8 +351,8 @@ class _FeedMessage extends StatelessWidget {
         Text(
           detail,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Color(0xFF727D95),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
             fontSize: 12,
             height: 1.4,
           ),
