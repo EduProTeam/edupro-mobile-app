@@ -6,7 +6,9 @@ import '../widgets/auth_form_components.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({super.key, this.destinationBuilder});
+
+  final WidgetBuilder? destinationBuilder;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -18,7 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
+  late final _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -55,15 +57,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
 
+      if (!mounted) return;
       _formKey.currentState!.reset();
       _fullNameController.clear();
       _emailController.clear();
       _passwordController.clear();
       _confirmPasswordController.clear();
-
-      if (!mounted) {
-        return;
-      }
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -73,6 +72,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+
+      final destinationBuilder = widget.destinationBuilder;
+      if (destinationBuilder != null) {
+        Navigator.of(context).pushReplacement<void, void>(
+          MaterialPageRoute<void>(builder: destinationBuilder),
+        );
+      }
     } on AuthFailure catch (error) {
       if (!mounted) {
         return;
@@ -99,10 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -182,12 +185,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = constraints.maxWidth;
-              final horizontalPadding =
-                  (screenWidth * 0.075).clamp(24.0, 32.0).toDouble();
-              final contentWidth =
-                  (screenWidth - (horizontalPadding * 2))
-                      .clamp(280.0, 380.0)
-                      .toDouble();
+              final horizontalPadding = (screenWidth * 0.075)
+                  .clamp(24.0, 32.0)
+                  .toDouble();
+              final contentWidth = (screenWidth - (horizontalPadding * 2))
+                  .clamp(280.0, 380.0)
+                  .toDouble();
 
               return SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -335,8 +338,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ..onTap = () {
                                         Navigator.of(context).push(
                                           MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const LoginScreen(),
+                                            builder: (_) => LoginScreen(
+                                              destinationBuilder:
+                                                  widget.destinationBuilder,
+                                            ),
                                           ),
                                         );
                                       },

@@ -6,6 +6,7 @@ import '../../../posts/services/post_service.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../widgets/profile_dashboard.dart';
 import '../widgets/profile_post_library.dart';
+import '../widgets/profile_share_sheet.dart';
 import 'edit_profile_screen.dart';
 import 'profile_photo_screen.dart';
 
@@ -143,7 +144,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPhoto: () => _editPhoto(photo),
             onEdit: _editProfile,
-            onShare: () => _showMessage('Profile sharing coming soon'),
+            onShare: () => showProfileShareSheet(
+              context,
+              userId: user.uid,
+              profileName:
+                  _text(data?['fullName']) ??
+                  _text(user.displayName) ??
+                  'EduPro user',
+            ),
             onAddSkill: _editProfile,
             onAddInterest: _editProfile,
           ),

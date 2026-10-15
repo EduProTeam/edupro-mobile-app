@@ -6,12 +6,24 @@ import '../widgets/post_card.dart';
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({
     super.key,
-    required this.post,
+    required PublishedPost this.post,
     this.readOnly = false,
+    this.publicOnly = false,
     this.postService,
-  });
-  final PublishedPost post;
+  }) : postId = null;
+
+  const PostDetailScreen.fromId({
+    super.key,
+    required String this.postId,
+    this.readOnly = false,
+    this.publicOnly = true,
+    this.postService,
+  }) : post = null;
+
+  final PublishedPost? post;
+  final String? postId;
   final bool readOnly;
+  final bool publicOnly;
   final PostService? postService;
 
   @override
@@ -20,9 +32,16 @@ class PostDetailScreen extends StatefulWidget {
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
   late final _service = widget.postService ?? PostService();
-  late Stream<PublishedPost?> _post = _service.watchPublishedPost(
-    widget.post.id,
-  );
+  String get _postId => widget.postId ?? widget.post!.id;
+  late Stream<PublishedPost?> _post = _service.watchPublishedPost(_postId);
+
+  @override
+  void didUpdateWidget(covariant PostDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_postId != (oldWidget.postId ?? oldWidget.post!.id)) {
+      _post = _service.watchPublishedPost(_postId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -33,6 +52,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       surfaceTintColor: Colors.white,
     ),
     body: StreamBuilder<PublishedPost?>(
+      key: ValueKey(_postId),
       stream: _post,
       initialData: widget.post,
       builder: (context, snapshot) {
@@ -44,7 +64,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const Text('Could not load this post.'),
                 TextButton(
                   onPressed: () => setState(
-                    () => _post = _service.watchPublishedPost(widget.post.id),
+                    () => _post = _service.watchPublishedPost(_postId),
                   ),
                   child: const Text('Try again'),
                 ),
@@ -52,8 +72,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           );
         }
+        if (!snapshot.hasData &&
+            snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
         if (!snapshot.hasData ||
-            (widget.readOnly && snapshot.data!.visibility != 'public')) {
+            ((widget.publicOnly || widget.readOnly) &&
+                snapshot.data!.visibility != 'public')) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(24),

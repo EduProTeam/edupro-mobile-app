@@ -9,7 +9,9 @@ import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.destinationBuilder});
+
+  final WidgetBuilder? destinationBuilder;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  late final _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _hasSubmitted = false;
@@ -36,10 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -78,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => const HomeShellScreen(),
+          builder: widget.destinationBuilder ?? (_) => const HomeShellScreen(),
         ),
       );
     } on AuthFailure catch (error) {
@@ -146,12 +145,12 @@ class _LoginScreenState extends State<LoginScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = constraints.maxWidth;
-              final horizontalPadding =
-                  (screenWidth * 0.075).clamp(24.0, 32.0).toDouble();
-              final contentWidth =
-                  (screenWidth - (horizontalPadding * 2))
-                      .clamp(280.0, 380.0)
-                      .toDouble();
+              final horizontalPadding = (screenWidth * 0.075)
+                  .clamp(24.0, 32.0)
+                  .toDouble();
+              final contentWidth = (screenWidth - (horizontalPadding * 2))
+                  .clamp(280.0, 380.0)
+                  .toDouble();
 
               return SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -247,8 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   bottom: 8,
                                 ),
                                 minimumSize: Size.zero,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               child: const Text(
                                 'Forgot Password?',
@@ -300,8 +298,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ..onTap = () {
                                         Navigator.of(context).push(
                                           MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const RegisterScreen(),
+                                            builder: (_) => RegisterScreen(
+                                              destinationBuilder:
+                                                  widget.destinationBuilder,
+                                            ),
                                           ),
                                         );
                                       },

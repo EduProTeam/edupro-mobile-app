@@ -77,7 +77,8 @@ class PublishedPost {
     final data = document.data() ?? const <String, dynamic>{};
 
     return PublishedPost(
-      id: _stringValue(data['postId']) ?? document.id,
+      // Share links and actions must target the document that was loaded.
+      id: document.id,
       userName: _stringValue(data['userName']) ?? 'EduPro user',
       userId: _stringValue(data['userId']),
       visibility: _stringValue(data['visibility']) ?? 'public',

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../services/post_service.dart';
 import '../../../profile/presentation/screens/user_profile_screen.dart';
@@ -11,6 +10,7 @@ import 'post_like_button.dart';
 import 'post_comments_sheet.dart';
 import 'post_image_viewer.dart';
 import 'post_save_button.dart';
+import 'post_share_sheet.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({
@@ -271,8 +271,12 @@ class PostCard extends StatelessWidget {
                         ),
                 ),
                 IconButton(
-                  tooltip: 'Copy post to share',
-                  onPressed: () => _share(context),
+                  tooltip: 'Share post',
+                  onPressed: () => showPostShareSheet(
+                    context,
+                    postId: post.id,
+                    postTitle: post.title,
+                  ),
                   icon: const Icon(
                     Icons.share_outlined,
                     color: _textSecondary,
@@ -299,35 +303,6 @@ class PostCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _share(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final text = [
-      post.title,
-      post.content,
-      if (post.linkUrl != null) post.linkUrl!,
-      if (post.tags.isNotEmpty)
-        post.tags.map((tag) => tag.startsWith('#') ? tag : '#$tag').join(' '),
-    ].where((value) => value.isNotEmpty).join('\n\n');
-    try {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (messenger.mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Post copied. You can paste it to share.'),
-          ),
-        );
-      }
-    } catch (_) {
-      if (messenger.mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Unable to copy this post. Please try again.'),
-          ),
-        );
-      }
-    }
   }
 
   Widget? _attachmentPreview() {

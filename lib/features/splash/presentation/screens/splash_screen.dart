@@ -34,9 +34,15 @@ class _SplashScreenState extends State<SplashScreen> {
         ? const HomeShellScreen()
         : const OnboardingScreen1();
 
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => nextScreen));
+    final navigator = Navigator.of(context);
+    final splashRoute = ModalRoute.of(context);
+    final nextRoute = MaterialPageRoute<void>(builder: (_) => nextScreen);
+    if (splashRoute != null && !splashRoute.isCurrent) {
+      // An incoming profile link may already be above the splash screen.
+      navigator.replace(oldRoute: splashRoute, newRoute: nextRoute);
+    } else {
+      navigator.pushReplacement(nextRoute);
+    }
   }
 
   @override

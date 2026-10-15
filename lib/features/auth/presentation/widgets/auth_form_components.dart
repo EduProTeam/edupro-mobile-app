@@ -41,10 +41,7 @@ class EduProAuthBranding extends StatelessWidget {
 }
 
 class AuthDivider extends StatelessWidget {
-  const AuthDivider({
-    super.key,
-    required this.label,
-  });
+  const AuthDivider({super.key, required this.label});
 
   final String label;
 
@@ -52,12 +49,7 @@ class AuthDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
-          child: Divider(
-            color: Color(0xFFBFC4CC),
-            thickness: 1,
-          ),
-        ),
+        const Expanded(child: Divider(color: Color(0xFFBFC4CC), thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -69,12 +61,7 @@ class AuthDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(
-          child: Divider(
-            color: Color(0xFFBFC4CC),
-            thickness: 1,
-          ),
-        ),
+        const Expanded(child: Divider(color: Color(0xFFBFC4CC), thickness: 1)),
       ],
     );
   }
@@ -126,16 +113,11 @@ class AuthTextField extends StatelessWidget {
           fontSize: 18,
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: AuthUi.inputTextColor,
-        ),
+        prefixIcon: Icon(prefixIcon, color: AuthUi.inputTextColor),
         suffixIcon: suffixIcon == null
             ? null
             : IconTheme(
-                data: const IconThemeData(
-                  color: AuthUi.inputTextColor,
-                ),
+                data: const IconThemeData(color: AuthUi.inputTextColor),
                 child: suffixIcon!,
               ),
         filled: true,
@@ -146,9 +128,7 @@ class AuthTextField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(
-            color: AuthUi.fieldBorderColor,
-          ),
+          borderSide: const BorderSide(color: AuthUi.fieldBorderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
@@ -191,15 +171,12 @@ class PrimaryAuthButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: OnboardingScreenLayout.primaryBlue,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              OnboardingScreenLayout.primaryBlue.withValues(alpha: 0.65),
+          disabledBackgroundColor: OnboardingScreenLayout.primaryBlue
+              .withValues(alpha: 0.65),
           disabledForegroundColor: Colors.white,
           elevation: 0,
           shape: const StadiumBorder(),
-          textStyle: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         child: isLoading
             ? const SizedBox(
@@ -235,16 +212,11 @@ class GoogleAuthButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: AuthUi.fieldFillColor,
           foregroundColor: AuthUi.inputTextColor,
-          side: const BorderSide(
-            color: AuthUi.fieldBorderColor,
-          ),
+          side: const BorderSide(color: AuthUi.fieldBorderColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -256,7 +228,9 @@ class GoogleAuthButton extends StatelessWidget {
               height: 22,
             ),
             const SizedBox(width: 12),
-            Text(label),
+            Flexible(
+              child: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
+            ),
           ],
         ),
       ),
