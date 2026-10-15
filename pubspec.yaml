@@ -66,7 +66,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - assets/moderation/blocked_words.json
     - assets/images/edupro_logo.svg
+    - assets/images/edupro_graduation_logo.png
+    - assets/images/home_learning_books.png
     - assets/images/google_logo.svg
     - assets/images/auth/forgot_password.jpg
     - assets/images/chat/group_chat.png

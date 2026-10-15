@@ -60,9 +60,15 @@ EduPro is designed around four main user types:
 - Attach one image, video, document, or link.
 - Publish posts or save them as drafts.
 - Like and unlike posts.
+- Save and unsave posts privately, then view them in Profile → Saved.
+- Browse your own published posts in Profile → Posts.
 - Read and add comments.
 - Edit or delete your own comments.
 - Edit your own posts.
+- Block inappropriate words in post titles, content, and tags using an editable
+  [word list](assets/moderation/blocked_words.json). See
+  [post moderation setup](docs/post-moderation.md) for configuration and Firebase
+  rule deployment.
 - Delete posts using soft deletion.
 - Display the author's latest profile photo.
 - Search and browse educational content.
@@ -274,6 +280,7 @@ Main Firestore collections and paths:
 | `users/{userId}` | User profile and profile-photo metadata |
 | `posts/{postId}` | Educational posts, attachments, likes, and counts |
 | `posts/{postId}/comments/{commentId}` | Post comments |
+| `users/{userId}/savedPosts/{postId}` | Private bookmarks with their save timestamps |
 | `courses/{courseId}` | Course details, lessons, and media references |
 | `users/{userId}/courseEnrollments/{courseId}` | Enrollment and lesson progress |
 | `groups/{groupId}` | Group details, members, and administrators |

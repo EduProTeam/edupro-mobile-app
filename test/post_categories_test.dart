@@ -4,6 +4,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:edupro_mobile_app/features/home/presentation/widgets/home_community_widgets.dart';
 import 'package:edupro_mobile_app/features/home/presentation/widgets/home_post_feed.dart';
 import 'package:edupro_mobile_app/features/posts/models/post_categories.dart';
 import 'package:edupro_mobile_app/features/posts/presentation/screens/new_post_screen.dart';
@@ -15,6 +16,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MemoryFirestore implements FirebaseFirestore {
@@ -546,7 +548,7 @@ void main() {
   );
 
   testWidgets(
-    'filters collapse down and reveal up smoothly without losing state',
+    'scrolling up reveals header and categories without the banner or composer',
     (tester) async {
       _configureHomeTest(tester);
       tester.view.physicalSize = const Size(390, 844);
@@ -579,6 +581,9 @@ void main() {
               ]),
               onRefresh: () async {},
               onRetry: () {},
+              onCreatePost: (_) {},
+              onOpenProfile: () {},
+              onOpenSaved: () {},
             ),
           ),
         ),
@@ -592,11 +597,27 @@ void main() {
       final position = tester
           .state<ScrollableState>(verticalScrollable)
           .position;
-      final header = tester.renderObject<RenderSliver>(
-        find.byType(SliverFloatingHeader),
+      final floatingRows = find.byType(SliverFloatingHeader);
+      expect(floatingRows, findsNWidgets(2));
+      final header = tester.renderObject<RenderSliver>(floatingRows.first);
+      final categories = tester.renderObject<RenderSliver>(floatingRows.last);
+      final banner = find.byType(HomeLearningBanner);
+      final bannerSliver = tester.renderObject<RenderSliver>(
+        find.ancestor(of: banner, matching: find.byType(SliverToBoxAdapter)),
       );
       final expandedHeight = header.geometry!.paintExtent;
+      final categoryHeight = categories.geometry!.paintExtent;
       expect(expandedHeight, greaterThan(0));
+      expect(categoryHeight, greaterThan(0));
+      expect(banner.hitTestable(), findsOneWidget);
+      expect(
+        tester.getBottomLeft(find.byType(HomeFeedHeader)).dy,
+        lessThan(tester.getTopLeft(banner).dy),
+      );
+      expect(
+        tester.getBottomLeft(banner).dy,
+        lessThan(tester.getTopLeft(find.widgetWithText(ChoiceChip, 'All')).dy),
+      );
       expect(
         find.widgetWithText(ChoiceChip, 'All').hitTestable(),
         findsOneWidget,
@@ -614,7 +635,7 @@ void main() {
       final navigationRect = tester.getRect(find.byType(BottomNavigationBar));
 
       final downGesture = await tester.startGesture(const Offset(195, 600));
-      await downGesture.moveBy(const Offset(0, -60));
+      await downGesture.moveBy(const Offset(0, -30));
       await tester.pump();
       expect(position.pixels, greaterThan(0));
       expect(header.geometry!.paintExtent, inExclusiveRange(0, expandedHeight));
@@ -624,32 +645,50 @@ void main() {
       );
       await downGesture.up();
       await tester.pumpAndSettle();
-      await tester.drag(view, const Offset(0, -430));
+      await tester.drag(view, const Offset(0, -900));
       await tester.pumpAndSettle();
       expect(header.geometry!.paintExtent, 0);
+      expect(categories.geometry!.paintExtent, 0);
+      expect(bannerSliver.geometry!.paintExtent, 0);
       expect(search.hitTestable(), findsNothing);
       expect(
         find.widgetWithText(ChoiceChip, 'Flutter').hitTestable(),
         findsNothing,
       );
-      expect(position.pixels, greaterThan(expandedHeight));
+      expect(position.pixels, greaterThan(expandedHeight + categoryHeight));
 
       final upGesture = await tester.startGesture(const Offset(195, 300));
       await upGesture.moveBy(const Offset(0, 40));
       await tester.pump();
       final partialHeight = header.geometry!.paintExtent;
       expect(partialHeight, inExclusiveRange(0, expandedHeight));
-      expect(position.pixels, greaterThan(expandedHeight));
+      expect(
+        categories.geometry!.paintExtent,
+        inExclusiveRange(0, categoryHeight),
+      );
+      expect(bannerSliver.geometry!.paintExtent, 0);
+      expect(position.pixels, greaterThan(expandedHeight + categoryHeight));
       await upGesture.up();
       await tester.pump(const Duration(milliseconds: 80));
       expect(header.geometry!.paintExtent, greaterThanOrEqualTo(partialHeight));
       await tester.pumpAndSettle();
       expect(header.geometry!.paintExtent, closeTo(expandedHeight, 1));
+      expect(categories.geometry!.paintExtent, closeTo(categoryHeight, 1));
+      expect(bannerSliver.geometry!.paintExtent, 0);
+      expect(banner.hitTestable(), findsNothing);
+      expect(find.byType(HomePostComposer).hitTestable(), findsNothing);
       expect(search.hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Saved posts').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Open your profile').hitTestable(), findsOneWidget);
       expect(
         find.widgetWithText(ChoiceChip, 'Flutter').hitTestable(),
         findsOneWidget,
       );
+      final headerBottom = tester.getBottomLeft(find.byType(HomeFeedHeader)).dy;
+      final categoryTop = tester
+          .getTopLeft(find.widgetWithText(ChoiceChip, 'Flutter'))
+          .dy;
+      expect(categoryTop - headerBottom, inInclusiveRange(0, 16));
       expect(tester.widget<TextField>(search).controller!.text, 'Widgets');
       expect(
         tester
@@ -665,6 +704,18 @@ void main() {
       );
       expect(tester.getRect(find.byType(AppBar)), headerRect);
       expect(tester.getRect(find.byType(BottomNavigationBar)), navigationRect);
+
+      await tester.drag(view, const Offset(0, -430));
+      await tester.pumpAndSettle();
+      expect(header.geometry!.paintExtent, 0);
+      expect(categories.geometry!.paintExtent, 0);
+      await tester.drag(view, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+      expect(position.pixels, 0);
+      expect(banner.hitTestable(), findsOneWidget);
+      expect(find.byType(HomePostComposer).hitTestable(), findsOneWidget);
+      expect(header.geometry!.paintExtent, closeTo(expandedHeight, 1));
+      expect(categories.geometry!.paintExtent, closeTo(categoryHeight, 1));
       expect(tester.takeException(), isNull);
     },
   );
@@ -710,4 +761,61 @@ void main() {
     expect(find.byType(TextField).hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'post title opens the full post and Share copies useful content',
+    (tester) async {
+      _configureHomeTest(tester);
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      var opened = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 380,
+                child: PostCard(
+                  post: _post(
+                    'A helpful lesson',
+                    'Flutter',
+                    content: 'Share this learning resource',
+                    tags: ['tips'],
+                  ),
+                  onOpen: () => opened = true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('A helpful lesson'));
+      expect(opened, isTrue);
+      await tester.tap(find.byTooltip('Copy post to share'));
+      await tester.pumpAndSettle();
+      expect(copied, contains('A helpful lesson'));
+      expect(copied, contains('Share this learning resource'));
+      expect(copied, contains('#tips'));
+      expect(
+        find.text('Post copied. You can paste it to share.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

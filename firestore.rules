@@ -6,6 +6,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function postHasAllowedText(data) {
+      // BEGIN GENERATED POST MODERATION — do not edit by hand
+      let blockedPattern = "(?s).*(^|[^\\p{L}\\p{M}\\p{N}])(?:f[^\\p{L}\\p{M}\\p{N}]*u[^\\p{L}\\p{M}\\p{N}]*c[^\\p{L}\\p{M}\\p{N}]*k|f[^\\p{L}\\p{M}\\p{N}]*u[^\\p{L}\\p{M}\\p{N}]*c[^\\p{L}\\p{M}\\p{N}]*k[^\\p{L}\\p{M}\\p{N}]*[i1!][^\\p{L}\\p{M}\\p{N}]*n[^\\p{L}\\p{M}\\p{N}]*g|f[^\\p{L}\\p{M}\\p{N}]*u[^\\p{L}\\p{M}\\p{N}]*c[^\\p{L}\\p{M}\\p{N}]*k[^\\p{L}\\p{M}\\p{N}]*[e3][^\\p{L}\\p{M}\\p{N}]*r|m[^\\p{L}\\p{M}\\p{N}]*[o0][^\\p{L}\\p{M}\\p{N}]*[t7][^\\p{L}\\p{M}\\p{N}]*h[^\\p{L}\\p{M}\\p{N}]*[e3][^\\p{L}\\p{M}\\p{N}]*r[^\\p{L}\\p{M}\\p{N}]*f[^\\p{L}\\p{M}\\p{N}]*u[^\\p{L}\\p{M}\\p{N}]*c[^\\p{L}\\p{M}\\p{N}]*k[^\\p{L}\\p{M}\\p{N}]*[e3][^\\p{L}\\p{M}\\p{N}]*r|[s$5][^\\p{L}\\p{M}\\p{N}]*h[^\\p{L}\\p{M}\\p{N}]*[i1!][^\\p{L}\\p{M}\\p{N}]*[t7]|[s$5][^\\p{L}\\p{M}\\p{N}]*h[^\\p{L}\\p{M}\\p{N}]*[i1!][^\\p{L}\\p{M}\\p{N}]*[t7][^\\p{L}\\p{M}\\p{N}]*[t7][^\\p{L}\\p{M}\\p{N}]*y|b[^\\p{L}\\p{M}\\p{N}]*u[^\\p{L}\\p{M}\\p{N}]*l[^\\p{L}\\p{M}\\p{N}]*l[^\\p{L}\\p{M}\\p{N}]*[s$5][^\\p{L}\\p{M}\\p{N}]*h[^\\p{L}\\p{M}\\p{N}]*[i1!][^\\p{L}\\p{M}\\p{N}]*[t7]|b[^\\p{L}\\p{M}\\p{N}]*[i1!][^\\p{L}\\p{M}\\p{N}]*[t7][^\\p{L}\\p{M}\\p{N}]*c[^\\p{L}\\p{M}\\p{N}]*h|b[^\\p{L}\\p{M}\\p{N}]*[a@4][^\\p{L}\\p{M}\\p{N}]*[s$5][^\\p{L}\\p{M}\\p{N}]*[t7][^\\p{L}\\p{M}\\p{N}]*[a@4][^\\p{L}\\p{M}\\p{N}]*r[^\\p{L}\\p{M}\\p{N}]*d|[a@4][^\\p{L}\\p{M}\\p{N}]*[s$5][^\\p{L}\\p{M}\\p{N}]*[s$5][^\\p{L}\\p{M}\\p{N}]*h[^\\p{L}\\p{M}\\p{N}]*[o0][^\\p{L}\\p{M}\\p{N}]*l[^\\p{L}\\p{M}\\p{N}]*[e3]|c[^\\p{L}\\p{M}\\p{N}]*u[^\\p{L}\\p{M}\\p{N}]*n[^\\p{L}\\p{M}\\p{N}]*[t7])($|[^\\p{L}\\p{M}\\p{N}]).*";
+      return data.title is string
+             && data.content is string
+             && data.tags is list
+             && !data.title.lower().matches(blockedPattern)
+             && !data.content.lower().matches(blockedPattern)
+             && !data.tags.join(' ').lower().matches(blockedPattern);
+      // END GENERATED POST MODERATION
+    }
+
+    function postTextUpdateAllowed() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return !changed.hasAny(['title', 'content', 'tags', 'status'])
+             // Owners must still be able to remove a legacy flagged post.
+             || (changed.hasOnly(['status', 'deletedAt', 'updatedAt'])
+                 && request.resource.data.status == 'deleted')
+             || postHasAllowedText(request.resource.data);
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
       allow create, update, delete: if signedIn()
@@ -15,6 +36,16 @@ service cloud.firestore {
         allow read, create, update, delete: if signedIn()
                                             && request.auth.uid == userId;
       }
+
+      match /savedPosts/{postId} {
+        allow read, delete: if signedIn() && request.auth.uid == userId;
+        allow create: if signedIn() && request.auth.uid == userId
+                      && request.resource.data.keys().hasOnly(['postId', 'savedAt'])
+                      && request.resource.data.postId == postId
+                      && request.resource.data.savedAt == request.time
+                      && get(/databases/$(database)/documents/posts/$(postId)).data.status == 'published';
+        allow update: if false;
+      }
     }
 
     match /posts/{postId} {
@@ -22,8 +53,11 @@ service cloud.firestore {
                   && (resource.data.status == 'published'
                       || resource.data.userId == request.auth.uid);
       allow create: if signedIn()
-                    && request.resource.data.userId == request.auth.uid;
+                    && request.resource.data.userId == request.auth.uid
+                    && postHasAllowedText(request.resource.data);
       allow update: if signedIn()
+                    && request.resource.data.userId == resource.data.userId
+                    && postTextUpdateAllowed()
                     && (resource.data.userId == request.auth.uid
                         || request.resource.data.diff(resource.data)
                           .affectedKeys()
