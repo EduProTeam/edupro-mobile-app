@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../supabase_options.dart';
 import '../models/post_categories.dart';
 import '../models/post_comment.dart';
+import 'post_moderation_service.dart';
 
 enum PostAttachmentType { image, video, file, link }
 
@@ -145,12 +146,17 @@ class PublishedPost {
 }
 
 class PostService {
-  PostService({FirebaseAuth? firebaseAuth, FirebaseFirestore? firestore})
-    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-      _firestore = firestore ?? FirebaseFirestore.instance;
+  PostService({
+    FirebaseAuth? firebaseAuth,
+    FirebaseFirestore? firestore,
+    PostModerationService? moderationService,
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _moderationService = moderationService ?? PostModerationService.shared;
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+  final PostModerationService _moderationService;
 
   CollectionReference<Map<String, dynamic>> _bookmarks(String userId) =>
       _firestore.collection('users').doc(userId).collection('savedPosts');
@@ -572,6 +578,18 @@ class PostService {
     if (!postCategories.contains(category)) {
       throw const PostFailure('Please select a category.');
     }
+    try {
+      final errors = await _moderationService.validatePostText(
+        title: title,
+        content: content,
+        tags: tags,
+      );
+      if (errors.isNotEmpty) {
+        throw PostFailure(errors.values.first, fieldErrors: errors);
+      }
+    } on PostModerationUnavailable {
+      throw const PostFailure(PostModerationService.unavailableMessage);
+    }
     if (postId != null) {
       return _updatePost(
         postId: postId,
@@ -827,7 +845,8 @@ class _StoredAttachment {
 }
 
 class PostFailure implements Exception {
-  const PostFailure(this.message);
+  const PostFailure(this.message, {this.fieldErrors = const {}});
 
   final String message;
+  final Map<String, String> fieldErrors;
 }

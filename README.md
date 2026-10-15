@@ -65,6 +65,10 @@ EduPro is designed around four main user types:
 - Read and add comments.
 - Edit or delete your own comments.
 - Edit your own posts.
+- Block inappropriate words in post titles, content, and tags using an editable
+  [word list](assets/moderation/blocked_words.json). See
+  [post moderation setup](docs/post-moderation.md) for configuration and Firebase
+  rule deployment.
 - Delete posts using soft deletion.
 - Display the author's latest profile photo.
 - Search and browse educational content.
