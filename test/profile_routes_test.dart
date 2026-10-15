@@ -12,7 +12,19 @@ import 'package:firebase_core_platform_interface/firebase_core_platform_interfac
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// Widget tests have no raster thread; signal the synthetic visible frame.
+class _VisibleFrameBinding extends AutomatedTestWidgetsFlutterBinding {
+  @override
+  Future<void> get waitUntilFirstFrameRasterized => Future<void>.value();
+}
+
 class _FirebasePlatform extends FirebasePlatform {
+  @override
+  Future<FirebaseAppPlatform> initializeApp({
+    String? name,
+    FirebaseOptions? options,
+  }) async => app(name ?? defaultFirebaseAppName);
+
   @override
   FirebaseAppPlatform app([String name = defaultFirebaseAppName]) =>
       FirebaseAppPlatform(
@@ -79,6 +91,7 @@ void _expectSharedPost(WidgetTester tester, String postId) {
 }
 
 void main() {
+  _VisibleFrameBinding();
   for (final route in [
     'edupro://app/post/cold-post',
     '/post/cold-post',
@@ -97,7 +110,7 @@ void main() {
         tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
         isFalse,
       );
-      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
       _expectSharedPost(tester, 'cold-post');
       expect(tester.takeException(), isNull);
@@ -114,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
     _expectSharedPost(tester, 'warm-post');
 
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     _expectSharedPost(tester, 'warm-post');
     expect(find.byType(SplashScreen, skipOffstage: false), findsNothing);
@@ -153,7 +166,7 @@ void main() {
         final navigator = tester.state<NavigatorState>(find.byType(Navigator));
         expect(navigator.canPop(), isFalse);
 
-        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(seconds: 3));
         await tester.pumpAndSettle();
         _expectSharedAuthor(tester, 'cold-author');
         expect(find.byType(SplashScreen, skipOffstage: false), findsNothing);
@@ -175,7 +188,7 @@ void main() {
     _expectSharedAuthor(tester, 'warm-author');
     expect(find.byType(SplashScreen, skipOffstage: false), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     _expectSharedAuthor(tester, 'warm-author');
     expect(find.byType(SplashScreen, skipOffstage: false), findsNothing);
@@ -209,7 +222,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
     expect(find.byType(SplashScreen), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     expect(find.byType(OnboardingScreen1), findsOneWidget);
     expect(find.byType(SplashScreen, skipOffstage: false), findsNothing);

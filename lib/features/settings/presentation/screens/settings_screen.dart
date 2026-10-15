@@ -2,10 +2,11 @@ import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../../shared/branding/edupro_brand.dart';
 
 import '../../../auth/services/auth_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
-import '../../../splash/presentation/screens/splash_screen.dart';
+import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.user});
@@ -245,7 +246,7 @@ class SettingsScreen extends StatelessWidget {
       await AuthService().signOut();
       if (!context.mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const SplashScreen()),
+        MaterialPageRoute<void>(builder: (_) => const OnboardingScreen1()),
         (route) => false,
       );
     } catch (_) {
@@ -316,11 +317,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) => AboutDialog(
         applicationName: 'EduPro',
         applicationVersion: '1.0.0',
-        applicationIcon: Icon(
-          Icons.school_outlined,
-          color: context.appColors.primary,
-          size: 36,
-        ),
+        applicationIcon: const EduProMark(size: 36),
         children: [
           Padding(
             padding: EdgeInsets.only(top: 12),

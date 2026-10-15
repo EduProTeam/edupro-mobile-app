@@ -2,6 +2,7 @@ import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../shared/branding/edupro_brand.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 
 class EduProAuthBranding extends StatelessWidget {
@@ -13,21 +14,9 @@ class EduProAuthBranding extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SvgPicture.asset(
-          'assets/images/edupro_logo.svg',
-          width: 44,
-          height: 56,
-        ),
+        const SizedBox(height: 56, child: Center(child: EduProMark())),
         const SizedBox(width: 8),
-        Text(
-          'EduPro',
-          style: TextStyle(
-            color: context.appColors.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.4,
-          ),
-        ),
+        const EduProWordmark(),
       ],
     );
   }

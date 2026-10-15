@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,16 +5,14 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_theme_controller.dart';
 
 import 'features/splash/presentation/screens/splash_screen.dart';
+import 'features/auth/presentation/widgets/firebase_ready_gate.dart';
 import 'features/profile/models/profile_link.dart';
 import 'features/profile/presentation/screens/shared_profile_screen.dart';
 import 'features/posts/models/post_link.dart';
 import 'features/posts/presentation/screens/shared_post_screen.dart';
-import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final themeController = await AppThemeController.load();
   runApp(MyApp(themeController: themeController));
@@ -87,8 +84,16 @@ Route<void> buildAppRoute(RouteSettings settings) {
   return MaterialPageRoute<void>(
     settings: settings,
     builder: (context) {
-      if (userId != null) return SharedProfileScreen(userId: userId);
-      if (postId != null) return SharedPostScreen(postId: postId);
+      if (userId != null) {
+        return FirebaseReadyGate(
+          builder: (_) => SharedProfileScreen(userId: userId),
+        );
+      }
+      if (postId != null) {
+        return FirebaseReadyGate(
+          builder: (_) => SharedPostScreen(postId: postId),
+        );
+      }
       if (settings.name == '/') return const SplashScreen();
       return Scaffold(
         appBar: AppBar(title: const Text('EduPro')),

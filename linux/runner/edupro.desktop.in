@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=EduPro
+Comment=Community Skill Exchange and Micro-Learning
+Exec=edupro_mobile_app
+Icon=com.example.edupro_mobile_app
+Terminal=false
+Categories=Education;
+StartupWMClass=com.example.edupro_mobile_app
