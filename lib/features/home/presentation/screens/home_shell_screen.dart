@@ -13,7 +13,7 @@ import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_photo_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../skill_sharing/presentation/screens/skill_requests_screen.dart';
-import '../../../splash/presentation/screens/splash_screen.dart';
+import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
 import '../widgets/home_post_feed.dart';
 
 class HomeShellScreen extends StatefulWidget {
@@ -38,7 +38,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const SplashScreen()),
+      MaterialPageRoute<void>(builder: (_) => const OnboardingScreen1()),
       (route) => false,
     );
   }

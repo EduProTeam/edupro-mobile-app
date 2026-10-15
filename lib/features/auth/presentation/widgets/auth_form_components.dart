@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../shared/branding/edupro_brand.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 
 class AuthUi {
@@ -20,31 +21,16 @@ class EduProAuthBranding extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SvgPicture.asset(
-          'assets/images/edupro_logo.svg',
-          width: 44,
-          height: 56,
-        ),
+        const SizedBox(height: 56, child: Center(child: EduProMark())),
         const SizedBox(width: 8),
-        const Text(
-          'EduPro',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.4,
-          ),
-        ),
+        const EduProWordmark(),
       ],
     );
   }
 }
 
 class AuthDivider extends StatelessWidget {
-  const AuthDivider({
-    super.key,
-    required this.label,
-  });
+  const AuthDivider({super.key, required this.label});
 
   final String label;
 
@@ -52,12 +38,7 @@ class AuthDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
-          child: Divider(
-            color: Color(0xFFBFC4CC),
-            thickness: 1,
-          ),
-        ),
+        const Expanded(child: Divider(color: Color(0xFFBFC4CC), thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -69,12 +50,7 @@ class AuthDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(
-          child: Divider(
-            color: Color(0xFFBFC4CC),
-            thickness: 1,
-          ),
-        ),
+        const Expanded(child: Divider(color: Color(0xFFBFC4CC), thickness: 1)),
       ],
     );
   }
@@ -126,16 +102,11 @@ class AuthTextField extends StatelessWidget {
           fontSize: 18,
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: AuthUi.inputTextColor,
-        ),
+        prefixIcon: Icon(prefixIcon, color: AuthUi.inputTextColor),
         suffixIcon: suffixIcon == null
             ? null
             : IconTheme(
-                data: const IconThemeData(
-                  color: AuthUi.inputTextColor,
-                ),
+                data: const IconThemeData(color: AuthUi.inputTextColor),
                 child: suffixIcon!,
               ),
         filled: true,
@@ -146,9 +117,7 @@ class AuthTextField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(
-            color: AuthUi.fieldBorderColor,
-          ),
+          borderSide: const BorderSide(color: AuthUi.fieldBorderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
@@ -191,15 +160,12 @@ class PrimaryAuthButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: OnboardingScreenLayout.primaryBlue,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              OnboardingScreenLayout.primaryBlue.withValues(alpha: 0.65),
+          disabledBackgroundColor: OnboardingScreenLayout.primaryBlue
+              .withValues(alpha: 0.65),
           disabledForegroundColor: Colors.white,
           elevation: 0,
           shape: const StadiumBorder(),
-          textStyle: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         child: isLoading
             ? const SizedBox(
@@ -235,16 +201,11 @@ class GoogleAuthButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: AuthUi.fieldFillColor,
           foregroundColor: AuthUi.inputTextColor,
-          side: const BorderSide(
-            color: AuthUi.fieldBorderColor,
-          ),
+          side: const BorderSide(color: AuthUi.fieldBorderColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

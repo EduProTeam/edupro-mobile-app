@@ -1,140 +1,400 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
+import '../../../../firebase_options.dart';
+import '../../../../shared/branding/edupro_brand.dart';
 import '../../../home/presentation/screens/home_shell_screen.dart';
+import '../../../onboarding/presentation/screens/onboarding_screen_1.dart';
+import '../splash_timing.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.resolveSignedIn});
+
+  final Future<bool> Function()? resolveSignedIn;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  static const _backgroundColor = Color(0xFF3D8FEF);
-  Timer? _routeTimer;
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  static const _blue = EduProBrand.blue;
+  late final AnimationController _entrance;
+  bool? _signedIn;
+  bool _entranceComplete = false;
+  bool _navigated = false;
+  bool _failed = false;
+  bool _minimumElapsed = false;
+  bool _reduceMotion = false;
+  bool _visibleSequenceStarted = false;
+  Timer? _minimumDisplayTimer;
+  Timer? _initializationTimeout;
+  Future<void>? _firebaseInitialization;
+  StreamSubscription<User?>? _authSubscription;
+  Completer<bool>? _authReady;
+  int _attempt = 0;
 
   @override
   void initState() {
     super.initState();
-    _routeTimer = Timer(const Duration(milliseconds: 1500), _routeFromSplash);
+    _entrance =
+        AnimationController(vsync: this, duration: SplashTiming.entrance)
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {
+              _entranceComplete = true;
+              _tryNavigate();
+            }
+          });
+    _initialize();
+    // Start when the first frame has reached the rasterizer. A post-frame
+    // callback alone can run while the native splash is still covering Flutter.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await WidgetsBinding.instance.waitUntilFirstFrameRasterized;
+      if (!mounted) return;
+      _visibleSequenceStarted = true;
+      _minimumDisplayTimer = Timer(SplashTiming.minimumDisplay, () {
+        if (!mounted) return;
+        setState(() => _minimumElapsed = true);
+        _tryNavigate();
+      });
+      if (!_reduceMotion) _entrance.forward();
+    });
   }
 
-  void _routeFromSplash() {
-    if (!mounted) {
+  Future<bool> _resolveSignedIn(int attempt) async {
+    // Reuse an in-flight native initialization if the user retries a timeout.
+    _firebaseInitialization ??= Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).then<void>((_) {});
+    try {
+      await _firebaseInitialization;
+    } catch (_) {
+      _firebaseInitialization = null;
+      rethrow;
+    }
+    if (!mounted || attempt != _attempt) throw StateError('Launch cancelled');
+    final ready = Completer<bool>();
+    _authReady = ready;
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      (user) {
+        if (!ready.isCompleted) ready.complete(user != null);
+      },
+      onError: (Object error, StackTrace stack) {
+        if (!ready.isCompleted) ready.completeError(error, stack);
+      },
+    );
+    try {
+      return await ready.future;
+    } finally {
+      if (identical(_authReady, ready)) _cancelAuthWait();
+    }
+  }
+
+  void _cancelAuthWait() {
+    final subscription = _authSubscription;
+    _authSubscription = null;
+    if (subscription != null) unawaited(subscription.cancel());
+    final ready = _authReady;
+    _authReady = null;
+    if (ready != null && !ready.isCompleted) {
+      ready.completeError(StateError('Launch cancelled'));
+    }
+  }
+
+  void _initialize() {
+    final attempt = ++_attempt;
+    _initializationTimeout?.cancel();
+    _cancelAuthWait();
+    setState(() {
+      _failed = false;
+      _signedIn = null;
+    });
+    _initializationTimeout = Timer(SplashTiming.initializationTimeout, () {
+      if (!mounted || attempt != _attempt) return;
+      _attempt++;
+      _cancelAuthWait();
+      setState(() => _failed = true);
+    });
+    unawaited(_runInitialization(attempt));
+  }
+
+  Future<void> _runInitialization(int attempt) async {
+    try {
+      final signedIn = widget.resolveSignedIn != null
+          ? await widget.resolveSignedIn!()
+          : await _resolveSignedIn(attempt);
+      if (!mounted || attempt != _attempt) return;
+      _initializationTimeout?.cancel();
+      setState(() => _signedIn = signedIn);
+      _tryNavigate();
+    } catch (error) {
+      if (!mounted || attempt != _attempt) return;
+      debugPrint('Launch initialization failed: $error');
+      _initializationTimeout?.cancel();
+      setState(() => _failed = true);
+    }
+  }
+
+  void _tryNavigate() {
+    if (!mounted || _navigated || !_minimumElapsed || _signedIn == null) {
       return;
     }
+    _navigated = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final destination = _signedIn!
+          ? const HomeShellScreen()
+          : const OnboardingScreen1();
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder<void>(
+          pageBuilder: (_, animation, secondaryAnimation) => destination,
+          transitionDuration: SplashTiming.exitTransition,
+          transitionsBuilder: (_, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      );
+    });
+  }
 
-    final nextScreen = FirebaseAuth.instance.currentUser != null
-        ? const HomeShellScreen()
-        : const OnboardingScreen1();
-
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => nextScreen));
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (_reduceMotion) {
+      _entrance.value = 1;
+    } else if (_visibleSequenceStarted && _entrance.isDismissed) {
+      _entrance.forward();
+    }
   }
 
   @override
   void dispose() {
-    _routeTimer?.cancel();
+    _attempt++;
+    _minimumDisplayTimer?.cancel();
+    _initializationTimeout?.cancel();
+    _cancelAuthWait();
+    _entrance.dispose();
     super.dispose();
+  }
+
+  double _progress(Duration start, Duration end) {
+    final elapsed = _entrance.value * SplashTiming.entrance.inMilliseconds;
+    return Curves.easeOutCubic.transform(
+      ((elapsed - start.inMilliseconds) /
+              (end.inMilliseconds - start.inMilliseconds))
+          .clamp(0.0, 1.0),
+    );
+  }
+
+  Widget _reveal(
+    Widget child,
+    Duration start,
+    Duration end, {
+    double travel = 10,
+  }) {
+    final progress = _progress(start, end);
+    return Opacity(
+      opacity: progress,
+      child: Transform.translate(
+        offset: Offset(0, travel * (1 - progress)),
+        child: child,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: _backgroundColor,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: _backgroundColor,
-        systemNavigationBarIconBrightness: Brightness.light,
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Color(0xFFEDF6FF),
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: _backgroundColor,
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            final brandingWidth = (constraints.maxWidth * 0.6)
-                .clamp(225.0, 300.0)
-                .toDouble();
-
-            return Center(
-              child: SizedBox(
-                width: brandingWidth,
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: const _EduProBranding(
-                    iconWidth: 78,
-                    textSize: 54,
-                    spacing: 8,
-                  ),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.white, Color(0xFFF8FBFF), Color(0xFFEDF6FF)],
+              stops: [0, 0.54, 1],
+            ),
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Positioned(top: -85, right: -105, child: _glow(240)),
+                Positioned(bottom: -150, left: -125, child: _glow(300)),
+                Column(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: AnimatedBuilder(
+                            animation: _entrance,
+                            builder: (context, _) => FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Transform.translate(
+                                offset: const Offset(0, -12),
+                                child: _brand(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _entrance,
+                      builder: (context, _) => _reveal(
+                        const Text(
+                          'A little learning. A world of possibilities.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF7187A2),
+                            fontSize: 11.5,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        SplashTiming.finishingStart,
+                        SplashTiming.finishingEnd,
+                        travel: 5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
-}
 
-class _EduProBranding extends StatelessWidget {
-  const _EduProBranding({
-    required this.iconWidth,
-    required this.textSize,
-    required this.spacing,
-  });
-
-  final double iconWidth;
-  final double textSize;
-  final double spacing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SvgPicture.asset(
-          'assets/images/edupro_logo.svg',
-          width: iconWidth,
-          height: iconWidth * (88 / 68),
+  Widget _glow(double size) => IgnorePointer(
+    child: Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [Color(0x159BD5FF), Color(0x009BD5FF)],
         ),
-        SizedBox(width: spacing),
-        RichText(
-          textScaler: const TextScaler.linear(1),
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: 'Edu',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: textSize,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                  letterSpacing: -1.4,
+      ),
+    ),
+  );
+
+  Widget _brand() {
+    final logoProgress = _progress(
+      SplashTiming.logoStart,
+      SplashTiming.logoEnd,
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Opacity(
+          opacity: logoProgress,
+          child: Transform.scale(
+            scale: 0.88 + 0.12 * logoProgress,
+            child: Semantics(
+              label: 'EduPro',
+              image: true,
+              child: SizedBox.square(
+                dimension: 140,
+                child: Stack(
+                  children: [
+                    // Preserve the source SVG's paint order and viewBox.
+                    _logoPiece(
+                      EduProBrand.tassel,
+                      SplashTiming.tasselStart,
+                      SplashTiming.tasselEnd,
+                    ),
+                    _logoPiece(
+                      EduProBrand.letterE,
+                      SplashTiming.letterEStart,
+                      SplashTiming.letterEEnd,
+                    ),
+                    _logoPiece(
+                      EduProBrand.letterP,
+                      SplashTiming.letterPStart,
+                      SplashTiming.letterPEnd,
+                    ),
+                    _logoPiece(
+                      EduProBrand.cap,
+                      SplashTiming.capStart,
+                      SplashTiming.capEnd,
+                    ),
+                  ],
                 ),
               ),
-              TextSpan(
-                text: 'Pro',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: textSize,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                  letterSpacing: -1.4,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+        const SizedBox(height: 20),
+        _reveal(
+          const EduProWordmark(fontSize: 46),
+          SplashTiming.wordmarkStart,
+          SplashTiming.wordmarkEnd,
+        ),
+        const SizedBox(height: 12),
+        _reveal(
+          const Text(
+            'Learn. Share. Grow.',
+            style: TextStyle(
+              color: Color(0xFF516A89),
+              fontSize: 14,
+              letterSpacing: 1.1,
+            ),
+          ),
+          SplashTiming.taglineStart,
+          SplashTiming.taglineEnd,
+        ),
+        const SizedBox(height: 20),
+        _reveal(
+          Container(
+            width: 38,
+            height: 3,
+            decoration: BoxDecoration(
+              color: _blue,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          SplashTiming.finishingStart,
+          SplashTiming.finishingEnd,
+          travel: 4,
+        ),
+        if (_failed) ...[
+          const SizedBox(height: 30),
+          const Text('Unable to start EduPro. Please try again.'),
+          TextButton(onPressed: _initialize, child: const Text('Retry')),
+        ] else if (_entranceComplete && _signedIn == null) ...[
+          const SizedBox(height: 30),
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: _blue),
+          ),
+        ],
       ],
     );
   }
+
+  Widget _logoPiece(String asset, Duration start, Duration end) => _reveal(
+    SvgPicture.asset(
+      asset,
+      width: 140,
+      height: 140,
+      excludeFromSemantics: true,
+    ),
+    start,
+    end,
+  );
 }
