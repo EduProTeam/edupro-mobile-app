@@ -78,6 +78,8 @@ service cloud.firestore {
       allow read: if signedIn()
                   && (resource.data.status == 'published'
                       || resource.data.userId == request.auth.uid);
+      allow get: if signedIn()
+                 && !exists(/databases/$(database)/documents/courses/$(courseId));
       allow create: if signedIn()
                     && request.resource.data.userId == request.auth.uid;
       allow update: if signedIn()

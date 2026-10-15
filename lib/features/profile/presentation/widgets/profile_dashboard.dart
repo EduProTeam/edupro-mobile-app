@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/branding/edupro_brand.dart';
 
 const _blue = Color(0xFF167BFF);
 
@@ -253,24 +254,23 @@ class _BrandHeader extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Display the supplied logo without its surrounding white margins.
         Semantics(
           label: 'EduPro',
           image: true,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 154,
-              height: 44,
-              child: OverflowBox(
-                maxWidth: 192,
-                maxHeight: 108,
-                child: Image.asset(
-                  'assets/images/edupro_graduation_logo.png',
-                  width: 192,
-                  height: 108,
-                  excludeFromSemantics: true,
-                ),
+          excludeSemantics: true,
+          child: SizedBox(
+            width: 154,
+            height: 44,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  EduProMark(size: 34),
+                  SizedBox(width: 4),
+                  EduProWordmark(fontSize: 20),
+                ],
               ),
             ),
           ),

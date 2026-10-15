@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 
+import '../../../../shared/branding/edupro_brand.dart';
 import '../../../posts/services/post_service.dart';
 
 const _blue = Color(0xFF167BFF);
@@ -26,20 +27,20 @@ class HomeFeedHeader extends StatelessWidget {
       final brand = Semantics(
         label: 'EduPro',
         image: true,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 110,
-            height: 34,
-            child: OverflowBox(
-              maxWidth: 137,
-              maxHeight: 77,
-              child: Image.asset(
-                'assets/images/edupro_graduation_logo.png',
-                width: 137,
-                height: 77,
-                excludeFromSemantics: true,
-              ),
+        excludeSemantics: true,
+        child: SizedBox(
+          width: 110,
+          height: 34,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                EduProMark(size: 34),
+                SizedBox(width: 4),
+                EduProWordmark(fontSize: 20),
+              ],
             ),
           ),
         ),
