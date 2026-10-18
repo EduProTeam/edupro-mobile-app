@@ -150,3 +150,11 @@ String? validateCoursePrice(String value) {
       ? 'Enter a price greater than zero.'
       : null;
 }
+
+/// The fraction displayed by the learning list, bounded by the lesson count.
+double calculateLearningProgress({
+  required int completedLessons,
+  required int totalLessons,
+}) => totalLessons == 0
+    ? 0.0
+    : completedLessons.clamp(0, totalLessons) / totalLessons;

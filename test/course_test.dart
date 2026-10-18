@@ -58,7 +58,9 @@ void main() {
     expect(course.toMap().containsKey('modules'), isFalse);
     expect(() => restored.lessons.clear(), throwsUnsupportedError);
   });
-  testWidgets('new-course lessons stay locked until verification', (tester) async {
+  testWidgets('new-course lessons stay locked until verification', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -76,33 +78,45 @@ void main() {
           )
           .first,
     );
+    await tester.pumpAndSettle();
     expect(find.text('Verify to Unlock Lessons'), findsOneWidget);
     expect(find.text('Lesson 01'), findsOneWidget);
     expect(find.text('Remove Lesson'), findsNothing);
-    await tester.tap(find.text('Add Another Lesson'));
+    // The verification gate intentionally absorbs taps on lesson controls.
+    final gate = find
+        .ancestor(
+          of: find.text('Add Another Lesson'),
+          matching: find.byType(AbsorbPointer),
+        )
+        .first;
+    expect(tester.widget<AbsorbPointer>(gate).absorbing, isTrue);
+    await tester.tapAt(tester.getCenter(find.text('Add Another Lesson')));
     await tester.pumpAndSettle();
     expect(find.text('Create Lesson'), findsNothing);
+    expect(find.byType(InlineLessonEditor), findsNothing);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('new course cannot save before verification', (
-    tester,
-  ) async {
+  testWidgets('new course cannot save before verification', (tester) async {
     final service = MemoryCourseService();
     await tester.pumpWidget(
       MaterialApp(home: CreateCourseScreen(service: service)),
     );
     await tester.tap(find.text('Publish Course'));
     await tester.pumpAndSettle();
-    expect(find.byType(InlineLessonEditor), findsOneWidget);
+    // Verification blocks publishing before the lesson editor can be opened.
+    expect(find.byType(InlineLessonEditor), findsNothing);
     expect(service.saved, isNull);
-    await tester.ensureVisible(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
+    expect(
+      find.text('Pass the course verification quiz before saving lessons.'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Save as Draft'));
     await tester.pumpAndSettle();
     expect(service.saved, isNull);
-    expect(find.text('Pass the course verification quiz before saving lessons.'), findsOneWidget);
+    expect(
+      find.text('Pass the course verification quiz before saving lessons.'),
+      findsOneWidget,
+    );
   });
   testWidgets('price fields only appear for Paid', (tester) async {
     await tester.pumpWidget(

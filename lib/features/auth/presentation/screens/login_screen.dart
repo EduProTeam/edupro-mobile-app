@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../validation/auth_validators.dart';
 import '../../../home/presentation/screens/home_shell_screen.dart';
 import '../../../onboarding/presentation/widgets/onboarding_screen_layout.dart';
 import '../widgets/auth_form_components.dart';
@@ -108,18 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return null;
     }
 
-    final trimmed = value?.trim() ?? '';
-    final emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-
-    if (trimmed.isEmpty) {
-      return 'Enter your email address.';
-    }
-
-    if (!emailPattern.hasMatch(trimmed)) {
-      return 'Enter a valid email address.';
-    }
-
-    return null;
+    return AuthValidators.email(value);
   }
 
   String? _validatePassword(String? value) {
@@ -127,11 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return null;
     }
 
-    if ((value ?? '').isEmpty) {
-      return 'Enter your password.';
-    }
-
-    return null;
+    return AuthValidators.loginPassword(value);
   }
 
   @override

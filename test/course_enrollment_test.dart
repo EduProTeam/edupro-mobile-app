@@ -294,9 +294,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // The lesson list is built lazily below the course header.
+    await tester.scrollUntilVisible(
+      find.textContaining('Introduction'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Introduction'));
     await tester.pumpAndSettle();
     expect(find.text('Mark as Complete'), findsOneWidget);
+    await tester.ensureVisible(find.text('Mark as Complete'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Mark as Complete'));
     await tester.pumpAndSettle();
     expect(service.completionAttempts, 1);

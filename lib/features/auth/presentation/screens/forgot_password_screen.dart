@@ -2,6 +2,8 @@ import 'package:edupro_mobile_app/core/theme/app_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../../validation/auth_validators.dart';
+
 import '../widgets/auth_form_components.dart';
 import 'login_screen.dart';
 
@@ -50,18 +52,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return null;
     }
 
-    final trimmed = value?.trim() ?? '';
-    final emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-
-    if (trimmed.isEmpty) {
-      return 'Enter your email address.';
-    }
-
-    if (!emailPattern.hasMatch(trimmed)) {
-      return 'Enter a valid email address.';
-    }
-
-    return null;
+    return AuthValidators.email(value);
   }
 
   void _goBackToLogin() {

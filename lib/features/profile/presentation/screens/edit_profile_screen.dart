@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../auth/services/auth_service.dart';
+import '../../validation/profile_validators.dart';
 import 'profile_photo_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -243,11 +244,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         label: 'Full Name',
                         icon: Icons.person_outline,
                         controller: _fullNameController,
-                        validator: (value) {
-                          final name = value?.trim() ?? '';
-                          if (name.length < 2) return 'Enter your full name.';
-                          return null;
-                        },
+                        validator: ProfileValidators.fullName,
                       ),
                       _ProfileField(
                         label: 'Username',

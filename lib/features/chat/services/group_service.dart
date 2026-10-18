@@ -7,9 +7,12 @@ import '../models/group_model.dart';
 import '../models/group_member_model.dart';
 
 class GroupService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  GroupService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
   // ============================================================
   // CURRENT USER

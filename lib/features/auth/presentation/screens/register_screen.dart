@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../validation/auth_validators.dart';
 import '../widgets/auth_form_components.dart';
 import 'login_screen.dart';
 
@@ -115,12 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return null;
     }
 
-    final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty) {
-      return 'Enter your full name.';
-    }
-
-    return null;
+    return AuthValidators.registrationFullName(value);
   }
 
   String? _validateEmail(String? value) {
@@ -128,18 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return null;
     }
 
-    final trimmed = value?.trim() ?? '';
-    final emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-
-    if (trimmed.isEmpty) {
-      return 'Enter your email address.';
-    }
-
-    if (!emailPattern.hasMatch(trimmed)) {
-      return 'Enter a valid email address.';
-    }
-
-    return null;
+    return AuthValidators.email(value);
   }
 
   String? _validatePassword(String? value) {
@@ -147,15 +132,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return null;
     }
 
-    if ((value ?? '').isEmpty) {
-      return 'Enter a password.';
-    }
-
-    if ((value ?? '').length < 6) {
-      return 'Password must be at least 6 characters.';
-    }
-
-    return null;
+    return AuthValidators.registrationPassword(value);
   }
 
   String? _validateConfirmPassword(String? value) {
@@ -163,15 +140,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return null;
     }
 
-    if ((value ?? '').isEmpty) {
-      return 'Confirm your password.';
-    }
-
-    if (value != _passwordController.text) {
-      return 'Passwords do not match.';
-    }
-
-    return null;
+    return AuthValidators.confirmPassword(
+      value,
+      password: _passwordController.text,
+    );
   }
 
   @override

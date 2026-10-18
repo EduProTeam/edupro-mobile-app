@@ -35,11 +35,24 @@ void main() {
       MaterialApp(home: OfferAcceptanceScreen(store: store)),
     );
 
-    await tester.tap(find.text('Accept Offer').first);
+    await tester.scrollUntilVisible(find.text('Accept Request'), 250);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Accept Request').first);
     await tester.pumpAndSettle();
 
     expect(find.byType(ScheduleSessionScreen), findsOneWidget);
     expect(find.text('Schedule Session'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Confirm Schedule'),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(ScheduleSessionScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Confirm Schedule'), findsOneWidget);
   });
 }

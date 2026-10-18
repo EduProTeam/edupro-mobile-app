@@ -428,7 +428,10 @@ class _InProgressTab extends StatelessWidget {
         final course = courses[index];
         final total = course.lessons.length;
         final completed = (completedLessons[course.id] ?? 0).clamp(0, total);
-        final progress = total == 0 ? 0.0 : completed / total;
+        final progress = calculateLearningProgress(
+          completedLessons: completed,
+          totalLessons: total,
+        );
         return _ProgressCourseCard(
           course: course,
           completed: completed,
